@@ -109,13 +109,7 @@
       "schema": "LibraryResource",
       "description": "Digital library items."
     },
-    "/quiz_submissions/{submissionId}": {
-      "schema": "object",
-      "description": "Student quiz results."
-    },
-    "/chat_messages/{messageId}": {
-      "schema": "object",
-      "description": "Direct chat records."
-    }
+    "/quiz_submissions/{submissionId}": { "schema": "object", "description": "Student quiz results." },
+    "/chat_messages/{messageId}": { "schema": "object", "description": "Direct chat records." }
   }
 }
