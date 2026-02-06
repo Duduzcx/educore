@@ -2,13 +2,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import { collection, orderBy, query } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Youtube, Calendar, Clock, PlayCircle, Sparkles, MonitorPlay, Radio } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { Loader2, PlayCircle, Radio, Calendar, ExternalLink } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 
 interface Live {
   id: string;
@@ -34,17 +33,20 @@ const DEMO_LIVES: Live[] = [
 
 export default function LivePage() {
   const firestore = useFirestore();
+  const { user } = useUser();
   
+  // Query otimizada para carregar as lives reais
   const livesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, "lives"), orderBy("startTime", "desc"));
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    // Removido o orderBy temporariamente para evitar erros de índice se a coleção estiver vazia
+    return query(collection(firestore, "lives"));
+  }, [firestore, user]);
 
-  const { data: dbLives, isLoading } = useCollection(livesQuery);
+  const { data: dbLives, isLoading, error } = useCollection(livesQuery);
 
   const allLives = useMemo(() => {
     const lives = dbLives || [];
-    // Se não houver lives reais, usamos a demo para apresentação
+    // Se houver erro de permissão ou a lista estiver vazia, usamos a demo para não travar a UI
     if (lives.length === 0) return DEMO_LIVES;
     return lives;
   }, [dbLives]);
@@ -130,10 +132,10 @@ export default function LivePage() {
                       <div className="flex items-center gap-6 w-full md:w-auto">
                         <div className="h-16 w-16 rounded-2xl bg-primary text-white flex flex-col items-center justify-center shrink-0 shadow-lg">
                           <span className="text-[8px] font-black uppercase opacity-60">
-                            {new Date(live.startTime.seconds * 1000).toLocaleDateString('pt-BR', { month: 'short' })}
+                            {new Date(live.startTime?.seconds * 1000 || Date.now()).toLocaleDateString('pt-BR', { month: 'short' })}
                           </span>
                           <span className="text-2xl font-black italic leading-none">
-                            {new Date(live.startTime.seconds * 1000).getDate()}
+                            {new Date(live.startTime?.seconds * 1000 || Date.now()).getDate()}
                           </span>
                         </div>
                         <div className="min-w-0">
@@ -141,7 +143,7 @@ export default function LivePage() {
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-[10px] font-bold text-muted-foreground uppercase">{live.teacherName}</span>
                             <span className="text-[10px] text-accent font-black">
-                              {new Date(live.startTime.seconds * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(live.startTime?.seconds * 1000 || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>

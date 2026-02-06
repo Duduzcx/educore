@@ -112,6 +112,10 @@
     "/quiz_submissions/{submissionId}": {
       "schema": "object",
       "description": "Student quiz results."
+    },
+    "/chat_messages/{messageId}": {
+      "schema": "object",
+      "description": "Direct chat records."
     }
   }
 }
