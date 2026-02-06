@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "Teacher": {
+      "title": "Teacher",
+      "type": "object",
+      "description": "Represents a teacher or coordinator in the system.",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "subjects": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Live": {
+      "title": "Live",
+      "type": "object",
+      "description": "Represents a scheduled or active live streaming class.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "youtubeId": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "startTime": { 
+          "type": "object",
+          "properties": {
+            "seconds": { "type": "number" }
+          }
+        },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Notice": {
+      "title": "Notice",
+      "type": "object",
+      "description": "Institutional announcements for the students.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "author": { "type": "string" },
+        "priority": { "type": "string", "enum": ["banner", "popup", "normal", "fullscreen"] },
+        "readBy": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "LearningTrail": {
+      "title": "LearningTrail",
+      "type": "object",
+      "description": "A structured path of educational content created by teachers.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active"] },
+        "isFundamental": { "type": "boolean" },
+        "modulesCount": { "type": "number" },
+        "totalContents": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "LibraryResource": {
+      "title": "LibraryResource",
+      "type": "object",
+      "description": "Educational materials in the digital library.",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "url": { "type": "string" },
+        "category": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/teachers/{teacherId}": {
+      "schema": "Teacher",
+      "description": "Teacher profiles."
+    },
+    "/lives/{liveId}": {
+      "schema": "Live",
+      "description": "Live classes data."
+    },
+    "/notices/{noticeId}": {
+      "schema": "Notice",
+      "description": "Mural of notices."
+    },
+    "/learning_trails/{trailId}": {
+      "schema": "LearningTrail",
+      "description": "Global study trails."
+    },
+    "/users/{userId}": {
+      "schema": "object",
+      "description": "Student profiles."
+    },
+    "/library_resources/{resourceId}": {
+      "schema": "LibraryResource",
+      "description": "Digital library items."
+    },
+    "/quiz_submissions/{submissionId}": {
+      "schema": "object",
+      "description": "Student quiz results."
+    }
+  }
+}

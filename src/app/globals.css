@@ -1,0 +1,97 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 206 28% 90%;
+    --foreground: 200 100% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 100% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 100% 10%;
+    --primary: 200 100% 14%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 206 20% 85%;
+    --secondary-foreground: 200 100% 14%;
+    --muted: 206 15% 80%;
+    --muted-foreground: 200 100% 20%;
+    --accent: 40 60% 50%;
+    --accent-foreground: 200 100% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 206 20% 80%;
+    --input: 206 20% 80%;
+    --ring: 200 100% 14%;
+    --radius: 1.5rem;
+
+    --sidebar-background: 200 100% 14%;
+    --sidebar-foreground: 206 28% 90%;
+    --sidebar-primary: 40 60% 61%;
+    --sidebar-primary-foreground: 200 100% 14%;
+    --sidebar-accent: 200 100% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 200 100% 25%;
+    --sidebar-ring: 40 60% 61%;
+  }
+
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  html, body {
+    @apply overflow-x-hidden max-w-full;
+    width: 100%;
+    position: relative;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    min-height: 100dvh;
+  }
+  
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-background;
+  }
+
+  input, textarea, select {
+    @apply appearance-none;
+    font-size: 16px !important;
+  }
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top: env(safe-area-inset-top); }
+
+@keyframes diagonal-rain {
+  from { background-position: 0 0; }
+  to { background-position: 400px 400px; }
+}
+
+.animate-diagonal-rain {
+  animation: diagonal-rain 25s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shine-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
