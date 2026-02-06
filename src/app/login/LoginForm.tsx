@@ -35,7 +35,7 @@ export function LoginForm() {
       toast({ title: "Bem-vindo ao EduCore!", description: "Acesso autorizado com sucesso." });
       router.push("/dashboard/home");
     } catch (err: any) {
-      // Lógica de Autocriação para demonstração
+      // Lógica de Autocriação para demonstração EduCore
       const testEmails = ["aluno@educore.gov.br", "professor@educore.gov.br", "coordenacao@educore.gov.br"];
       
       if ((err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-email' || err.code === 'auth/user-disabled') && testEmails.includes(email)) {
@@ -61,7 +61,7 @@ export function LoginForm() {
               createdAt: new Date().toISOString()
             });
           }
-          toast({ title: "Conta Demo Criada!", description: "Acesso inicial configurado." });
+          toast({ title: "Conta Demo Criada!", description: "Acesso inicial configurado com sucesso." });
           router.push("/dashboard/home");
           return;
         } catch (createErr: any) {
@@ -137,17 +137,17 @@ export function LoginForm() {
 
           <div className="pt-6 space-y-4">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/40">
-              <Users className="h-3 w-3" /> Acesso Rápido (Demo)
+              <Users className="h-3 w-3" /> Acesso Rápido (Demo Mode)
             </div>
             <div className="grid grid-cols-1 gap-3">
               <Button variant="outline" onClick={() => fillCredentials('student')} className="h-12 rounded-xl text-blue-700 font-black gap-3 text-xs justify-start px-6">
-                <GraduationCap className="h-4 w-4" /> Aluno
+                <GraduationCap className="h-4 w-4" /> Entrar como Aluno
               </Button>
               <Button variant="outline" onClick={() => fillCredentials('teacher')} className="h-12 rounded-xl text-orange-700 font-black gap-3 text-xs justify-start px-6">
-                <UserCircle className="h-4 w-4" /> Professor
+                <UserCircle className="h-4 w-4" /> Entrar como Professor
               </Button>
               <Button variant="outline" onClick={() => fillCredentials('coordination')} className="h-12 rounded-xl text-accent font-black gap-3 text-xs justify-start px-6">
-                <ShieldCheck className="h-4 w-4" /> Coordenação
+                <ShieldCheck className="h-4 w-4" /> Entrar como Gestão
               </Button>
             </div>
           </div>

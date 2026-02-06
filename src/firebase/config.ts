@@ -3,8 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 /**
- * Configuração central do Firebase.
- * Garantimos que o app não quebre se as variáveis estiverem vazias durante o build.
+ * Configuração central do Firebase restaurada para o modo produção EduCore.
  */
 export const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSy-dummy",
