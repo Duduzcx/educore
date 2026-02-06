@@ -1,20 +1,17 @@
-
 'use client';
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; // Importando o componente Link
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Lock, Mail, ChevronRight, Loader2, Sparkles, ShieldCheck, GraduationCap, UserCircle, Users } from "lucide-react";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-
-/**
- * @fileOverview Componente de Login interativo com suporte a perfis demonstrativos.
- */
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -22,15 +19,15 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const auth = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) return;
+    
     setLoading(true);
     
-    const { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword } = await import("firebase/auth");
-    const { getFirestore, doc, setDoc } = await import("firebase/firestore");
-
     try {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithEmailAndPassword(auth, email, password);
@@ -41,11 +38,10 @@ export function LoginForm() {
       // Lógica de Autocriação para demonstração
       const testEmails = ["aluno@educore.gov.br", "professor@educore.gov.br", "coordenacao@educore.gov.br"];
       
-      if ((err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/user-disabled') && testEmails.includes(email)) {
+      if ((err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-email' || err.code === 'auth/user-disabled') && testEmails.includes(email)) {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           const user = userCredential.user;
-          const db = getFirestore();
 
           if (email === "aluno@educore.gov.br") {
             await setDoc(doc(db, "users", user.uid), {
@@ -65,14 +61,16 @@ export function LoginForm() {
               createdAt: new Date().toISOString()
             });
           }
+          toast({ title: "Conta Demo Criada!", description: "Acesso inicial configurado." });
           router.push("/dashboard/home");
           return;
-        } catch (createErr) {
-          console.error(createErr);
+        } catch (createErr: any) {
+          console.error("Erro ao criar usuário demo:", createErr);
+          toast({ variant: "destructive", title: "Erro na Demo", description: createErr.message });
         }
+      } else {
+        toast({ variant: "destructive", title: "Falha na Autenticação", description: "Verifique suas credenciais." });
       }
-
-      toast({ variant: "destructive", title: "Falha na Autenticação", description: "Credenciais inválidas ou erro de rede." });
     } finally {
       setLoading(false);
     }
@@ -111,7 +109,7 @@ export function LoginForm() {
           <CardDescription className="font-medium text-muted-foreground">Utilize suas credenciais institucionais</CardDescription>
         </CardHeader>
         <CardContent className="px-8 pt-8 space-y-6">
-          <form onSubmit={handleLogin} className="space-y-4"> {/* Reduzido o espaço para acomodar o novo link */}
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
               <div className="relative group">
@@ -130,7 +128,6 @@ export function LoginForm() {
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
             </Button>
             
-            {/* Link para a página de registro */}
             <div className="text-center">
                 <Link href="/register" className="text-xs font-bold text-primary/60 hover:text-primary transition-colors">
                     Não tem uma conta? Crie uma agora
