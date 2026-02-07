@@ -8,7 +8,26 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MonitorPlay, Plus, Trash2, Youtube, Loader2, ExternalLink, Video, Radio, FlaskConical, AlertCircle, ShieldAlert, CheckCircle2, RefreshCw, X, Eye, Layers } from "lucide-react";
+import { 
+  MonitorPlay, 
+  Plus, 
+  Trash2, 
+  Youtube, 
+  Loader2, 
+  ExternalLink, 
+  Video, 
+  Radio, 
+  FlaskConical, 
+  AlertCircle, 
+  ShieldAlert, 
+  CheckCircle2, 
+  RefreshCw, 
+  X, 
+  Eye, 
+  Layers,
+  MessageCircle,
+  Users
+} from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -193,7 +212,7 @@ export default function TeacherLiveManagement() {
                 <Card key={live.id} className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group">
                   <div className="p-8 flex items-center gap-8">
                     <div className="relative aspect-video w-48 bg-black rounded-2xl overflow-hidden shadow-lg shrink-0">
-                      <img src={`https://img.youtube.com/vi/${live.youtube_id}/mqdefault.jpg`} className="w-full h-full object-cover opacity-80" />
+                      <img src={`https://img.youtube.com/vi/${live.youtube_id}/mqdefault.jpg`} className="w-full h-full object-cover opacity-80" alt={live.title} />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Youtube className="h-8 w-8 text-white" /></div>
                     </div>
                     <div className="flex-1 space-y-2">
@@ -220,7 +239,9 @@ export default function TeacherLiveManagement() {
           <Card className="border-none shadow-2xl bg-primary text-white rounded-[2.5rem] p-8 overflow-hidden relative">
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center"><MessageCircle className="h-6 w-6 text-accent" /></div>
+                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <MessageCircle className="h-6 w-6 text-accent" />
+                </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Ecossistema Social</p>
                   <p className="text-xl font-black italic">Chat Unificado</p>
