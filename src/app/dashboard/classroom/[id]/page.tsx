@@ -92,7 +92,6 @@ export default function ClassroomPage() {
             .order('created_at', { ascending: true });
           setLiveMessages(msgs || []);
 
-          // INSCRIÇÃO EM TEMPO REAL (REALTIME)
           const channel = supabase.channel(`live_chat_${liveData.id}`)
             .on('postgres_changes', { 
               event: 'INSERT', 
@@ -148,24 +147,20 @@ export default function ClassroomPage() {
     const messageContent = liveChatInput;
     setLiveChatInput(""); 
 
-    try {
-      const { error } = await supabase.from('forum_posts').insert({
-        forum_id: activeLive.id,
-        content: messageContent,
-        author_id: user.id,
-        author_name: user.user_metadata?.full_name || "Estudante",
-        is_question: isQuestion,
-        is_answered: false,
-        created_at: new Date().toISOString()
-      });
+    const { error } = await supabase.from('forum_posts').insert({
+      forum_id: activeLive.id,
+      content: messageContent,
+      author_id: user.id,
+      author_name: user.user_metadata?.full_name || "Estudante",
+      is_question: isQuestion,
+      is_answered: false,
+      created_at: new Date().toISOString()
+    });
 
-      if (error) throw error;
-      
-      if (isQuestion) {
-        toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi destacada para o professor." });
-      }
-    } catch (err: any) {
+    if (error) {
       toast({ variant: "destructive", title: "Erro ao enviar", description: "Verifique se habilitou o Realtime no console do Supabase." });
+    } else if (isQuestion) {
+      toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi destacada para o professor." });
     }
   };
 
@@ -328,30 +323,27 @@ export default function ClassroomPage() {
                           </div>
                         </div>
                       ))}
-                      {liveMessages.length === 0 && (
-                        <div className="py-20 text-center opacity-30 italic text-xs">O chat está silencioso. Comece a interagir!</div>
-                      )}
                     </div>
                   </ScrollArea>
                   <div className="p-4 border-t bg-muted/5 space-y-3">
                     <div className="flex gap-2">
                       <Input 
                         placeholder="Comentar na aula..." 
-                        className="rounded-xl h-12 text-xs italic bg-white shadow-inner" 
+                        className="rounded-xl h-12 text-xs italic bg-white" 
                         value={liveChatInput} 
                         onChange={(e) => setLiveChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendLiveMessage(false)}
                       />
-                      <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-12 w-12 bg-slate-900 rounded-xl shrink-0 shadow-lg active:scale-95 transition-all">
+                      <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-12 w-12 bg-slate-900 rounded-xl shrink-0 shadow-lg">
                         <Send className="h-4 w-4 text-white" />
                       </Button>
                     </div>
                     <Button 
                       onClick={() => handleSendLiveMessage(true)} 
                       variant="outline" 
-                      className="w-full h-12 border-2 border-amber-500/50 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[10px] uppercase gap-2 rounded-xl transition-all shadow-md active:scale-95"
+                      className="w-full h-12 border-2 border-amber-500/50 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[10px] uppercase gap-2 rounded-xl"
                     >
-                      <Lightbulb className="h-4 w-4 animate-pulse" /> 💡 Fazer Pergunta Especial ao Mentor
+                      <Lightbulb className="h-4 w-4" /> 💡 Fazer Pergunta Especial ao Mentor
                     </Button>
                   </div>
                 </Card>

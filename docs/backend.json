@@ -26,8 +26,8 @@
         "teacher_id": { "type": "string" },
         "youtube_id": { "type": "string" },
         "youtube_url": { "type": "string" },
+        "url": { "type": "string" },
         "start_time": { "type": "string", "format": "date-time" },
-        "active": { "type": "boolean" },
         "trail_id": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" }
       }
@@ -35,7 +35,7 @@
     "ForumPost": {
       "title": "ForumPost",
       "type": "object",
-      "description": "A message in a forum or live chat.",
+      "description": "A message in a forum or live chat with interaction flags.",
       "properties": {
         "id": { "type": "string" },
         "forum_id": { "type": "string" },
@@ -62,7 +62,7 @@
     },
     "/forum_posts/{postId}": {
       "schema": "ForumPost",
-      "description": "Chat messages and questions."
+      "description": "Chat messages and pedagogical questions."
     }
   }
 }

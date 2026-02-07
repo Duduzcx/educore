@@ -22,7 +22,8 @@ import {
   Signal,
   Activity,
   History,
-  ExternalLink
+  ExternalLink,
+  Eye
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -143,8 +144,6 @@ export default function TeacherLiveManagement() {
     <div className="flex flex-col gap-8 animate-in fade-in duration-700 pb-20 max-w-[1600px] mx-auto">
       <div className="relative bg-slate-950 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl border-b-8 border-red-600">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/10 to-transparent pointer-events-none" />
-        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-        
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -263,26 +262,16 @@ export default function TeacherLiveManagement() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent opacity-90" />
                     
-                    <div className="absolute top-4 left-4 flex gap-2">
-                      <Badge className="bg-red-600 text-white border-none font-black text-[8px] uppercase px-3 py-1 shadow-lg">
-                        {new Date(live.start_time) <= new Date() ? 'AO VIVO' : 'AGENDADA'}
-                      </Badge>
-                    </div>
-
                     <div className="absolute bottom-6 left-6 right-6">
-                       <div className="flex items-center gap-2 mb-2">
-                         <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                         <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Stream ID: {live.id.slice(0,8)}</span>
-                       </div>
                        <h3 className="text-2xl font-black text-white italic leading-tight line-clamp-1">{live.title}</h3>
                        <div className="flex items-center gap-4 mt-3 text-white/60">
-                         <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-md">
+                         <div className="flex items-center gap-1.5">
                            <Clock className="h-3.5 w-3.5 text-red-500" />
                            <span className="text-[10px] font-bold uppercase">{new Date(live.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                          </div>
-                         <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-md">
+                         <div className="flex items-center gap-1.5">
                            <Users className="h-3.5 w-3.5 text-blue-400" />
-                           <span className="text-[10px] font-bold uppercase">42 On</span>
+                           <span className="text-[10px] font-bold uppercase">Monitorando</span>
                          </div>
                        </div>
                     </div>
@@ -290,21 +279,12 @@ export default function TeacherLiveManagement() {
                   
                   <CardContent className="p-8 flex flex-col gap-6 bg-white mt-auto">
                     <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Destino do Canal</p>
-                        <Badge variant="outline" className="border-slate-200 text-slate-600 font-bold truncate max-w-[180px]">
-                          {trails.find(t => t.id === live.trail_id)?.title || 'Feed de Lives Geral'}
-                        </Badge>
-                      </div>
+                      <Badge variant="outline" className="border-slate-200 text-slate-600 font-bold">
+                        {trails.find(t => t.id === live.trail_id)?.title || 'Geral'}
+                      </Badge>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDelete(live.id)}
-                          className="h-12 w-12 rounded-2xl hover:bg-red-50 text-slate-300 hover:text-red-600 transition-all"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => window.open(live.youtube_url || live.url, '_blank')} className="rounded-full text-slate-400 hover:text-primary"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(live.id)} className="rounded-full text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </div>
                     
@@ -316,59 +296,33 @@ export default function TeacherLiveManagement() {
                   </CardContent>
                 </Card>
               ))}
-              {lives.length === 0 && (
-                <div className="col-span-full p-20 text-center border-4 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50 opacity-40">
-                  <MonitorPlay className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-                  <p className="font-black italic text-xl text-slate-400 uppercase tracking-tighter">Estúdio em Silêncio</p>
-                  <p className="text-sm font-medium mt-2">Agende uma live para iniciar o monitoramento.</p>
-                </div>
-              )}
             </div>
           )}
         </div>
 
         <div className="space-y-8">
-          <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
-            <div className="relative z-10 space-y-6">
+          <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-xl">
+            <div className="space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-3xl bg-blue-50 flex items-center justify-center">
-                  <Zap className="h-7 w-7 text-blue-600" />
-                </div>
+                <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600"><Zap className="h-6 w-6" /></div>
                 <div>
-                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Status da Rede</p>
-                  <p className="text-xl font-black italic">Sinal: 100%</p>
+                  <p className="text-[10px] font-black uppercase opacity-40">Status Rede</p>
+                  <p className="text-xl font-black italic">Operacional</p>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center text-[10px] font-bold uppercase opacity-60">
-                  <span>Qualidade Stream</span>
-                  <span className="text-green-600 font-black">4K ULTRACAST</span>
-                </div>
-                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[98%] bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-                </div>
+              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full w-[98%] bg-green-500" />
               </div>
             </div>
           </Card>
 
-          <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] p-8 shadow-2xl overflow-hidden relative">
-            <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-blue-600/20 rounded-full blur-3xl" />
-            <div className="relative z-10 space-y-6">
+          <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] p-8">
+            <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-blue-400">
-                  <MessageCircle className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase text-white/40">Ecossistema Social</p>
-                  <p className="text-xl font-black italic">Chat Ativo</p>
-                </div>
+                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-400"><MessageCircle className="h-5 w-5" /></div>
+                <p className="font-black italic">Ecossistema Social</p>
               </div>
-              <p className="text-[11px] font-medium leading-relaxed italic text-white/60">
-                O chat em tempo real permite que os alunos enviem dúvidas que você gerencia no monitor de estúdio.
-              </p>
-              <Button variant="outline" className="w-full border-white/10 text-white font-black text-[9px] uppercase h-10 rounded-xl hover:bg-white/5" asChild>
-                <Link href="/dashboard/forum">Ver Fórum Geral</Link>
-              </Button>
+              <p className="text-[11px] text-white/60 leading-relaxed italic">As perguntas dos alunos aparecem instantaneamente no seu monitor de estúdio.</p>
             </div>
           </Card>
         </div>
