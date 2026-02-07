@@ -11,19 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState, useRef } from "react";
-import { useAuth } from "@/lib/AuthProvider"; // Nosso novo hook de autenticação
-import { supabase } from "@/lib/supabase"; // Cliente Supabase
+import { useAuth } from "@/lib/AuthProvider"; 
+import { supabase } from "@/lib/supabase"; 
 
-// Tipos para os perfis
 interface Profile {
   id: string;
   name: string;
   email: string;
-  // adicione outros campos se necessário
 }
 
 interface TeacherProfile extends Profile {
-  // campos específicos de professor
+  subjects?: string;
 }
 
 const studentItems = [
@@ -53,55 +51,44 @@ const teacherItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading: isUserLoading } = useAuth(); // Usando nosso hook do Supabase
+  const { user, loading: isUserLoading } = useAuth();
   const { toast } = useToast();
-  const [isTeacher, setIsTeacher] = useState(false);
+  
+  // Determina se é professor baseado no metadado do usuário (mais rápido e confiável para UI)
+  const isTeacher = user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin';
+  
   const [profile, setProfile] = useState<Profile | TeacherProfile | null>(null);
   const [isProfileLoading, setProfileLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const lastToastRef = useRef<string | null>(null);
 
-  // Efeito para buscar o perfil do usuário (aluno ou professor)
   useEffect(() => {
     if (user) {
       const fetchProfile = async () => {
         setProfileLoading(true);
-        // Tenta buscar primeiro na tabela de professores
-        let { data: teacherData, error: teacherError } = await supabase
-          .from('teachers')
+        const table = isTeacher ? 'teachers' : 'profiles';
+        
+        let { data, error } = await supabase
+          .from(table)
           .select('*')
           .eq('id', user.id)
           .single();
         
-        if (teacherData) {
-          setProfile(teacherData as TeacherProfile);
-          setIsTeacher(true);
-        } else {
-          // Se não for professor, busca na tabela de perfis de alunos
-          let { data: studentData, error: studentError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          if (studentData) {
-            setProfile(studentData as Profile);
-            setIsTeacher(false);
-          }
+        if (data) {
+          setProfile(data);
         }
         setProfileLoading(false);
       };
       fetchProfile();
     }
-  }, [user]);
+  }, [user, isTeacher]);
 
-  // Efeito para verificar se o usuário está logado
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
 
-  // Efeito para escutar novas mensagens (substituindo useCollection)
   useEffect(() => {
     if (user) {
       const channel = supabase
@@ -110,9 +97,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user.id}` },
           (payload) => {
-            console.log('Nova mensagem recebida!', payload);
             setUnreadCount(current => current + 1);
-            const newMessage = payload.new as { id: string, sender_id: string }; // Ajuste o tipo conforme sua tabela
+            const newMessage = payload.new as { id: string, sender_id: string };
             if (newMessage.id !== lastToastRef.current) {
               lastToastRef.current = newMessage.id;
               toast({
@@ -129,7 +115,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         )
         .subscribe();
 
-      // Função de limpeza
       return () => {
         supabase.removeChannel(channel);
       };
@@ -138,16 +123,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await supabase.auth.signOut();
       toast({ title: "Sessão encerrada" });
       router.push("/login");
     } catch (error: any) {
-      toast({ title: "Erro ao sair", variant: "destructive", description: error.message });
+      toast({ title: "Erro ao sair", variant: "destructive" });
     }
   };
 
-  if (isUserLoading || (user && isProfileLoading)) {
+  if (isUserLoading) {
     return (
       <div className="flex h-[100dvh] w-full items-center justify-center bg-background p-6">
         <div className="flex flex-col items-center gap-4">
@@ -158,7 +142,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!user) return null; // Redirecionamento já é feito pelo useEffect
+  if (!user) return null;
 
   const navItems = isTeacher ? teacherItems : studentItems;
 

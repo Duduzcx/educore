@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -31,6 +32,7 @@ export function LoginForm() {
       });
 
       if (error) {
+        // Fluxo de criação de contas Demo se o login falhar
         const testEmails = ["aluno@educore.gov.br", "professor@educore.gov.br", "coordenacao@educore.gov.br"];
         
         if (error.message.includes('Invalid login credentials') && testEmails.includes(email)) {
@@ -52,34 +54,45 @@ export function LoginForm() {
 
           if (!signUpData.session) {
             toast({ 
-              title: "Conta Demo Criada!", 
-              description: "Como a confirmação de e-mail está ativa no Supabase, verifique sua caixa de entrada ou desative essa opção no console.",
+              title: "Confirme seu e-mail", 
+              description: "Uma mensagem foi enviada. Ou desative a confirmação no console do Supabase.",
               variant: "default" 
             });
             setLoading(false);
             return;
           }
+
+          // Inserir no banco de dados para garantir que o perfil exista
+          const user = signUpData.user!;
+          if (role === 'teacher' || role === 'admin') {
+            await supabase.from('teachers').upsert({
+              id: user.id,
+              name: fullName,
+              email: email,
+              subjects: "Gestão Geral",
+              created_at: new Date().toISOString()
+            });
+          } else {
+            await supabase.from('profiles').upsert({
+              id: user.id,
+              name: fullName,
+              email: email,
+              profile_type: 'uni',
+              created_at: new Date().toISOString()
+            });
+          }
           
           toast({ title: "Bem-vindo!", description: "Sua conta demo foi configurada." });
-          const userRole = signUpData.user?.user_metadata?.role;
-          if (userRole === 'teacher' || userRole === 'admin') {
-            router.push("/dashboard/teacher/home");
-          } else {
-            router.push("/dashboard/home");
-          }
+          router.push(role === 'teacher' || role === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
           return;
         }
         
         throw error;
       }
 
-      toast({ title: "Acesso autorizado!", description: "Entrando no portal..." });
       const userRole = data.user?.user_metadata?.role;
-      if (userRole === 'teacher' || userRole === 'admin') {
-        router.push("/dashboard/teacher/home");
-      } else {
-        router.push("/dashboard/home");
-      }
+      toast({ title: "Acesso autorizado!" });
+      router.push(userRole === 'teacher' || userRole === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
 
     } catch (err: any) {
       toast({ 
@@ -143,12 +156,6 @@ export function LoginForm() {
             <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black h-14 text-base shadow-xl rounded-2xl active:scale-95 transition-all">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
             </Button>
-            
-            <div className="text-center">
-                <Link href="/register" className="text-xs font-bold text-primary/60 hover:text-primary transition-colors">
-                    Não tem uma conta? Crie uma agora
-                </Link>
-            </div>
           </form>
 
           <div className="pt-6 space-y-4">
