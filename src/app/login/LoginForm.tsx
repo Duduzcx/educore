@@ -78,6 +78,7 @@ export function LoginForm() {
               name: fullName,
               email: email,
               profile_type: 'uni',
+              last_access: new Date().toISOString(),
               created_at: new Date().toISOString()
             });
           }
@@ -88,6 +89,13 @@ export function LoginForm() {
         }
         
         throw error;
+      }
+
+      // Atualiza o último acesso para monitoramento de BI
+      if (data.user) {
+        const role = data.user.user_metadata?.role;
+        const table = (role === 'teacher' || role === 'admin') ? 'teachers' : 'profiles';
+        await supabase.from(table).update({ last_access: new Date().toISOString() }).eq('id', data.user.id);
       }
 
       const userRole = data.user?.user_metadata?.role;

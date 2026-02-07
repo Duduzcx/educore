@@ -5,19 +5,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, PlayCircle, TrendingUp, Bell, ArrowRight, Sparkles, Loader2 } from "lucide-react";
+import { Users, PlayCircle, TrendingUp, Bell, ArrowRight, Sparkles, Loader2, AlertCircle } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
-
-const performanceData = [
-  { name: "Seg", avg: 7.2 },
-  { name: "Ter", avg: 8.5 },
-  { name: "Qua", avg: 6.8 },
-  { name: "Qui", avg: 9.1 },
-  { name: "Sex", avg: 7.8 },
-];
 
 export default function TeacherHomePage() {
   const { user } = useAuth();
@@ -25,6 +17,7 @@ export default function TeacherHomePage() {
     totalStudents: 0,
     socialSupport: 0,
     myTrails: 0,
+    atRisk: 0,
     loading: true
   });
   const [socialAlerts, setSocialAlerts] = useState<any[]>([]);
@@ -40,10 +33,10 @@ export default function TeacherHomePage() {
           .from('profiles')
           .select('*', { count: 'exact', head: true });
 
-        // 2. Alunos com Apoio Social
-        const { count: socialCount } = await supabase
+        // 2. Alunos com Apoio Social (Isenção)
+        const { data: socialData, count: socialCount } = await supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
+          .select('name, id, is_financial_aid_eligible')
           .eq('is_financial_aid_eligible', true);
 
         // 3. Minhas Trilhas
@@ -52,20 +45,23 @@ export default function TeacherHomePage() {
           .select('*', { count: 'exact' })
           .eq('teacher_id', user.id);
 
-        // 4. Alertas Sociais Recentes
-        const { data: alerts } = await supabase
+        // 4. Identificar Alunos em Risco (Inativos há mais de 7 dias)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const { count: atRiskCount } = await supabase
           .from('profiles')
-          .select('name, id')
-          .eq('is_financial_aid_eligible', true)
-          .limit(3);
+          .select('*', { count: 'exact', head: true })
+          .lt('last_access', sevenDaysAgo.toISOString());
 
         setStats({
           totalStudents: studentCount || 0,
           socialSupport: socialCount || 0,
           myTrails: trailsCount || 0,
+          atRisk: atRiskCount || 0,
           loading: false
         });
-        setSocialAlerts(alerts || []);
+        
+        setSocialAlerts(socialData?.slice(0, 3) || []);
         setRecentTrails(trails || []);
 
       } catch (error) {
@@ -99,7 +95,7 @@ export default function TeacherHomePage() {
               Mural Institucional
             </Link>
           </Button>
-          <Button className="rounded-xl h-11 bg-accent text-accent-foreground font-black hover:bg-accent/90" asChild>
+          <Button className="rounded-xl h-11 bg-accent text-accent-foreground font-black hover:bg-accent/90 shadow-xl" asChild>
             <Link href="/dashboard/teacher/trails">Nova Trilha de Estudo</Link>
           </Button>
         </div>
@@ -110,7 +106,7 @@ export default function TeacherHomePage() {
           { label: "Total Alunos", value: stats.totalStudents, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Apoio Social", value: stats.socialSupport, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
           { label: "Minhas Trilhas", value: stats.myTrails, icon: PlayCircle, color: "text-orange-600", bg: "bg-orange-50" },
-          { label: "Média Turma", value: "7.8", icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50" },
+          { label: "Alunos em Risco", value: stats.atRisk, icon: AlertCircle, color: "text-red-600", bg: "bg-red-50" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-xl overflow-hidden group hover:shadow-2xl transition-all rounded-[2rem] bg-white">
             <CardContent className="p-6">
@@ -118,7 +114,7 @@ export default function TeacherHomePage() {
                 <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 shadow-sm`}>
                   <stat.icon className="h-6 w-6" />
                 </div>
-                <Badge variant="secondary" className="text-[8px] font-black uppercase tracking-widest bg-muted/30">Tempo Real</Badge>
+                <Badge variant="secondary" className="text-[8px] font-black uppercase tracking-widest bg-muted/30">Atualizado</Badge>
               </div>
               <div className="mt-4">
                 <p className="text-3xl font-black text-primary leading-none">{stat.value}</p>
@@ -132,30 +128,20 @@ export default function TeacherHomePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2 border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
           <CardHeader className="p-8 pb-0">
-            <CardTitle className="text-xl font-black text-primary italic">Engajamento Semanal</CardTitle>
-            <CardDescription className="font-medium">Média de desempenho da rede em tempo real.</CardDescription>
+            <CardTitle className="text-xl font-black text-primary italic">Engajamento de Rede</CardTitle>
+            <CardDescription className="font-medium">Atividade dos estudantes baseada no último acesso.</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-4">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={performanceData}>
+                <BarChart data={[
+                  { name: "Ativos", value: stats.totalStudents - stats.atRisk },
+                  { name: "Inativos (+7d)", value: stats.atRisk },
+                ]}>
                   <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip 
-                    cursor={{fill: 'transparent'}}
-                    content={({active, payload}) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="bg-primary text-white p-3 rounded-xl shadow-xl border-none">
-                            <p className="text-xs font-bold">{payload[0].payload.name}</p>
-                            <p className="text-sm font-black text-accent">Média: {payload[0].value}</p>
-                          </div>
-                        )
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="avg" fill="hsl(var(--accent))" radius={[8, 8, 0, 0]} barSize={40} />
+                  <Tooltip cursor={{fill: 'transparent'}} />
+                  <Bar dataKey="value" fill="hsl(var(--accent))" radius={[8, 8, 0, 0]} barSize={60} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -175,18 +161,18 @@ export default function TeacherHomePage() {
               {socialAlerts.length > 0 ? (
                 socialAlerts.map((aluno, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-white/10 border border-white/10">
-                    <div className="flex flex-col">
+                    <div className="flex flex-col overflow-hidden">
                       <span className="text-xs font-black truncate max-w-[120px] italic">{aluno.name}</span>
                       <span className="text-[8px] font-black text-accent uppercase tracking-widest">Elegível Isenção</span>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase text-accent hover:bg-white hover:text-primary transition-all px-3 rounded-lg" asChild>
+                    <Button variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase text-accent hover:bg-white hover:text-primary transition-all px-3 rounded-lg shrink-0" asChild>
                       <Link href="/dashboard/teacher/students">Orientar</Link>
                     </Button>
                   </div>
                 ))
               ) : (
-                <div className="py-6 text-center">
-                  <p className="text-[10px] font-black uppercase text-white/40">Nenhum alerta social hoje</p>
+                <div className="py-6 text-center opacity-40">
+                  <p className="text-[10px] font-black uppercase">Sem pendências sociais</p>
                 </div>
               )}
               <Button asChild variant="secondary" className="w-full h-11 rounded-xl bg-accent text-accent-foreground font-black text-[10px] uppercase shadow-lg">
@@ -196,26 +182,26 @@ export default function TeacherHomePage() {
           </Card>
 
           <Card className="border-none shadow-xl bg-white rounded-[2.5rem] overflow-hidden">
-            <CardHeader className="p-6">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary/40">Minhas Trilhas Gerenciadas</CardTitle>
+            <CardHeader className="p-6 pb-2">
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary/40">Últimas Trilhas</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="flex flex-col">
                 {recentTrails.length > 0 ? (
                   recentTrails.slice(0, 3).map((trail, i) => (
-                    <Link key={i} href={`/dashboard/teacher/trails/${trail.id}`} className="flex items-center justify-between p-5 hover:bg-muted/30 transition-colors border-b last:border-0">
+                    <Link key={i} href={`/dashboard/teacher/trails/${trail.id}`} className="flex items-center justify-between p-5 hover:bg-muted/30 transition-colors border-b last:border-0 group">
                       <div>
-                        <p className="text-sm font-black text-primary italic truncate max-w-[180px]">{trail.title}</p>
-                        <Badge variant="outline" className="text-[8px] font-bold uppercase tracking-widest px-2 mt-1">
+                        <p className="text-sm font-black text-primary group-hover:text-accent italic truncate max-w-[180px] transition-colors">{trail.title}</p>
+                        <Badge variant="outline" className={`text-[8px] font-bold uppercase tracking-widest px-2 mt-1 border-none ${trail.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
                           {trail.status === 'active' ? 'Publicada' : 'Rascunho'}
                         </Badge>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                     </Link>
                   ))
                 ) : (
-                  <div className="p-8 text-center">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Sem trilhas criadas</p>
+                  <div className="p-8 text-center opacity-30">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Sem trilhas</p>
                   </div>
                 )}
               </div>
