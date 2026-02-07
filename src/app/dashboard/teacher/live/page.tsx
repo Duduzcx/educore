@@ -141,7 +141,6 @@ export default function TeacherLiveManagement() {
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-700 pb-20 max-w-[1600px] mx-auto">
-      {/* Comand Center Header */}
       <div className="relative bg-slate-950 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl border-b-8 border-red-600">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/10 to-transparent pointer-events-none" />
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -233,7 +232,6 @@ export default function TeacherLiveManagement() {
         </div>
       </div>
 
-      {/* Main Studio Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
         <div className="xl:col-span-3 space-y-6">
           <div className="flex items-center justify-between px-4">
@@ -329,7 +327,6 @@ export default function TeacherLiveManagement() {
           )}
         </div>
 
-        {/* Sidebar Analytics */}
         <div className="space-y-8">
           <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
             <div className="relative z-10 space-y-6">

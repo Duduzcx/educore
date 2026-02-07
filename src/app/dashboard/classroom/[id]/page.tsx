@@ -24,7 +24,8 @@ import {
   Users,
   Lightbulb,
   Youtube,
-  MessageCircle
+  MessageCircle,
+  ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -84,7 +85,6 @@ export default function ClassroomPage() {
         setActiveLive(liveData);
 
         if (liveData) {
-          // Carregar histórico inicial do chat
           const { data: msgs } = await supabase
             .from('forum_posts')
             .select('*')
@@ -104,7 +104,7 @@ export default function ClassroomPage() {
             })
             .on('postgres_changes', {
               event: 'UPDATE',
-              schema: 'public',
+              schema: 'public', 
               table: 'forum_posts',
               filter: `forum_id=eq.${liveData.id}`
             }, (payload) => {
@@ -146,7 +146,7 @@ export default function ClassroomPage() {
     if (!liveChatInput.trim() || !user || !activeLive) return;
 
     const messageContent = liveChatInput;
-    setLiveChatInput(""); // Limpa o input imediatamente (Optimistic UI)
+    setLiveChatInput(""); 
 
     try {
       const { error } = await supabase.from('forum_posts').insert({
@@ -323,6 +323,7 @@ export default function ClassroomPage() {
                               ? (msg.is_question ? 'bg-amber-500 text-white' : 'bg-primary text-white ml-4') 
                               : (msg.is_question ? 'bg-white text-amber-900 border border-amber-200' : 'bg-muted/30 text-primary mr-4')
                           }`}>
+                            {msg.is_answered && <ShieldCheck className="h-3 w-3 inline mr-1" />}
                             {msg.content}
                           </div>
                         </div>
