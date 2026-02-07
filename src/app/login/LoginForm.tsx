@@ -8,18 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Lock, Mail, ChevronRight, Loader2, Sparkles, ShieldCheck, GraduationCap, UserCircle, Users } from "lucide-react";
-import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { supabase } from "@/lib/supabaseClient";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const auth = useAuth();
-  const db = useFirestore();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -27,50 +23,62 @@ export function LoginForm() {
     if (!email || !password) return;
     
     setLoading(true);
-    
-    try {
-      await setPersistence(auth, browserLocalPersistence);
-      await signInWithEmailAndPassword(auth, email, password);
-      
-      toast({ title: "Bem-vindo ao EduCore!", description: "Acesso autorizado com sucesso." });
-      router.push("/dashboard/home");
-    } catch (err: any) {
-      // Lógica de Autocriação para demonstração EduCore
-      const testEmails = ["aluno@educore.gov.br", "professor@educore.gov.br", "coordenacao@educore.gov.br"];
-      
-      if ((err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-email' || err.code === 'auth/user-disabled') && testEmails.includes(email)) {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const user = userCredential.user;
 
-          if (email === "aluno@educore.gov.br") {
-            await setDoc(doc(db, "users", user.uid), {
-              uid: user.uid,
-              name: "Estudante Demo",
-              email,
-              profileType: "etec",
-              institution: "ETEC Jorge Street",
-              createdAt: new Date().toISOString()
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        const testEmails = ["aluno@educore.gov.br", "professor@educore.gov.br", "coordenacao@educore.gov.br"];
+        
+        // Se for um e-mail de teste e não existir, tentamos criar a conta demo
+        if (error.message.includes('Invalid login credentials') && testEmails.includes(email)) {
+          const role = email.includes('aluno') ? 'student' : (email.includes('professor') ? 'teacher' : 'admin');
+          const fullName = email.includes('aluno') ? 'Estudante Demo' : (email.includes('professor') ? 'Prof. Marcos Mendes' : 'Coordenação Municipal');
+
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName,
+                role: role,
+              }
+            }
+          });
+
+          if (signUpError) throw signUpError;
+
+          // Se o cadastro funcionou mas não retornou sessão, é porque precisa confirmar e-mail
+          if (!signUpData.session) {
+            toast({ 
+              title: "Conta Demo Criada!", 
+              description: "Como a confirmação de e-mail está ativa no Supabase, verifique sua caixa de entrada ou desative essa opção no console.",
+              variant: "default" 
             });
-          } else {
-            await setDoc(doc(db, "teachers", user.uid), {
-              uid: user.uid,
-              name: email === "professor@educore.gov.br" ? "Prof. Marcos Mendes" : "Coordenação Municipal",
-              email,
-              subjects: "Gestão e Tecnologia",
-              createdAt: new Date().toISOString()
-            });
+            setLoading(false);
+            return;
           }
-          toast({ title: "Conta Demo Criada!", description: "Acesso inicial configurado com sucesso." });
+
+          toast({ title: "Bem-vindo!", description: "Sua conta demo foi configurada." });
           router.push("/dashboard/home");
           return;
-        } catch (createErr: any) {
-          console.error("Erro ao criar usuário demo:", createErr);
-          toast({ variant: "destructive", title: "Erro na Demo", description: createErr.message });
         }
-      } else {
-        toast({ variant: "destructive", title: "Falha na Autenticação", description: "Verifique suas credenciais." });
+        
+        throw error;
       }
+
+      toast({ title: "Acesso autorizado!", description: "Entrando no portal..." });
+      router.push("/dashboard/home");
+
+    } catch (err: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Erro no Login", 
+        description: err.message || "Credenciais inválidas." 
+      });
     } finally {
       setLoading(false);
     }

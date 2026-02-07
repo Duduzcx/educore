@@ -8,24 +8,20 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { GraduationCap, School, User, ArrowRight, ArrowLeft, CheckCircle2, Loader2, Mail, Lock, Sparkles } from "lucide-react";
+import { GraduationCap, School, User, ArrowRight, CheckCircle2, Loader2, Mail, Lock, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useFirebase } from "@/firebase";
-import { createUserWithEmailAndPassword, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { doc } from "firebase/firestore";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import { supabase } from "@/lib/supabaseClient"; // Importa o cliente Supabase
 
 type Step = 1 | 2 | 3;
-type Profile = "etec" | "uni" | "teacher";
+type ProfileType = "etec" | "uni" | "teacher";
 
 export default function RegisterPage() {
   const [step, setStep] = useState<Step>(1);
-  const [profile, setProfile] = useState<Profile>("etec");
+  const [profileType, setProfileType] = useState<ProfileType>("etec");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { auth, firestore } = useFirebase();
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -53,45 +49,60 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      // SOLUÇÃO PARA IOS: Garante que a sessão persista no LocalStorage
-      await setPersistence(auth, browserLocalPersistence);
-      
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-
-      const profileData = {
-        uid: user.uid,
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
+      // 1. Criar o usuário no Supabase Auth
+      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
-        createdAt: new Date().toISOString()
-      };
+        password: formData.password,
+        options: {
+          data: { // Esses dados são adicionados à coluna `raw_user_meta_data` do objeto `user` do Auth
+            full_name: fullName,
+            profile_type: profileType,
+          }
+        }
+      });
 
-      if (profile === "teacher") {
-        const teacherRef = doc(firestore, "teachers", user.uid);
-        setDocumentNonBlocking(teacherRef, {
-          ...profileData,
-          userId: user.uid,
+      if (signUpError) throw signUpError;
+
+      // Pega o usuário recém-criado da resposta do signUp
+      const user = data.user;
+      if (!user) throw new Error("Criação de usuário falhou. Nenhum usuário retornado.");
+
+      // 2. Inserir os dados do perfil na tabela apropriada
+      let profileError;
+      if (profileType === "teacher") {
+        const { error } = await supabase.from('teachers').insert({
+          id: user.id, // Chave estrangeira para auth.users.id
+          name: fullName,
+          email: formData.email,
           subjects: formData.subject,
           experience: formData.experience,
           interests: formData.interests,
-        }, { merge: true });
+        });
+        profileError = error;
       } else {
-        const profileRef = doc(firestore, "users", user.uid);
-        setDocumentNonBlocking(profileRef, {
-          ...profileData,
-          profileType: profile,
-          institution: profile === "etec" ? formData.school : formData.university,
-          course: profile === "etec" ? formData.course : formData.major,
+        const { error } = await supabase.from('profiles').insert({
+          id: user.id, // Chave estrangeira para auth.users.id
+          name: fullName,
+          email: formData.email,
+          profile_type: profileType,
+          institution: profileType === "etec" ? formData.school : formData.university,
+          course: profileType === "etec" ? formData.course : formData.major,
           interests: formData.interests,
-        }, { merge: true });
+        });
+        profileError = error;
       }
+
+      if (profileError) throw profileError;
 
       toast({
         title: "Conta criada com sucesso!",
-        description: "Bem-vindo à nossa comunidade de aprendizado.",
+        description: "Você será redirecionado em breve. Verifique seu e-mail para confirmação.",
       });
       
+      // Redireciona para o dashboard. O onAuthStateChange cuidará do estado de login.
       router.push("/dashboard/home");
+
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -126,9 +137,7 @@ export default function RegisterPage() {
             <span>Passo {step} de 3: {step === 1 ? "Básico" : step === 2 ? "Perfil" : "Detalhes"}</span>
             <span>{Math.round((step / 3) * 100)}%</span>
           </div>
-          <Progress value={(step / 3) * 100} className="h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-accent transition-all duration-500" />
-          </Progress>
+          <Progress value={(step / 3) * 100} className="h-2 bg-muted rounded-full overflow-hidden" />
         </div>
 
         <Card className="shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-none overflow-hidden bg-white/90 backdrop-blur-md">
@@ -143,7 +152,7 @@ export default function RegisterPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-8 min-h-[420px]">
-            {step === 1 && (
+             {step === 1 && (
               <div key="step1" className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -173,10 +182,10 @@ export default function RegisterPage() {
             )}
 
             {step === 2 && (
-              <div key="step2" className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <RadioGroup 
-                  value={profile} 
-                  onValueChange={(v) => setProfile(v as Profile)} 
+               <div key="step2" className="animate-in fade-in slide-in-from-right-4 duration-500">
+                 <RadioGroup 
+                  value={profileType} 
+                  onValueChange={(v) => setProfileType(v as ProfileType)} 
                   className="grid grid-cols-1 md:grid-cols-3 gap-6"
                 >
                   {[
@@ -188,11 +197,11 @@ export default function RegisterPage() {
                       <Label
                         htmlFor={p.id}
                         className={`flex flex-col items-center justify-center rounded-2xl border-2 p-6 hover:bg-white cursor-pointer transition-all h-full text-center group ${
-                          profile === p.id ? "border-accent bg-white shadow-xl ring-4 ring-accent/5" : "border-border bg-white/50"
+                          profileType === p.id ? "border-accent bg-white shadow-xl ring-4 ring-accent/5" : "border-border bg-white/50"
                         }`}
                       >
                         <RadioGroupItem value={p.id} id={p.id} className="sr-only" />
-                        <div className={`p-5 rounded-full mb-4 transition-all ${profile === p.id ? "bg-accent text-accent-foreground scale-110" : "bg-muted text-primary"}`}>
+                        <div className={`p-5 rounded-full mb-4 transition-all ${profileType === p.id ? "bg-accent text-accent-foreground scale-110" : "bg-muted text-primary"}`}>
                           <p.icon className="h-10 w-10" />
                         </div>
                         <p className="font-bold text-lg">{p.label}</p>
@@ -206,7 +215,7 @@ export default function RegisterPage() {
 
             {step === 3 && (
               <div key="step3" className="grid gap-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                {profile === "etec" && (
+                {profileType === "etec" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="school">Unidade ETEC</Label>
@@ -218,7 +227,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
                 )}
-                {profile === "uni" && (
+                {profileType === "uni" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="university">Universidade</Label>
@@ -230,7 +239,7 @@ export default function RegisterPage() {
                     </div>
                   </div>
                 )}
-                {profile === "teacher" && (
+                {profileType === "teacher" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="subject">Disciplinas que Leciona</Label>

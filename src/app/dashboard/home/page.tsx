@@ -1,13 +1,13 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { 
-  TrendingUp, 
-  Sparkles, 
+import {
+  TrendingUp,
+  Sparkles,
   Library,
   Bot,
   ShieldCheck,
@@ -15,33 +15,50 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, limit } from "firebase/firestore";
+import { useAuth } from "@/lib/AuthProvider"; // 1. Trocado para o hook do Supabase
+import { supabase } from "@/lib/supabaseClient"; // 2. Importado o cliente Supabase
+
+// Interface para tipar os dados que virão do Supabase
+interface LibraryItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  // Adicione outros campos que você espera da tabela 'library_items'
+}
 
 export default function DashboardHome() {
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
+  // 3. Usa o hook de autenticação do Supabase
+  const { user, isLoading: isUserLoading } = useAuth();
+  
+  // 4. Estados para armazenar dados e status de carregamento
+  const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(true);
 
-  const progressQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "user_progress"), 
-      where("userId", "==", user.uid), 
-      limit(4)
-    );
-  }, [firestore, user]);
+  // 5. useEffect para buscar os dados do Supabase quando o componente montar
+  useEffect(() => {
+    const fetchLibraryItems = async () => {
+      setLoadingLibrary(true);
+      
+      // Busca 4 itens da tabela 'library_items'.
+      // A migration moveu os dados de 'library' para 'library_items'.
+      const { data, error } = await supabase
+        .from('library_items')
+        .select('*')
+        .limit(4);
 
-  const libraryQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, "library_resources"), 
-      where("status", "==", "approved"), 
-      limit(4)
-    );
-  }, [firestore]);
+      if (error) {
+        console.error("Erro ao buscar itens da biblioteca:", error);
+        // Em um app real, você poderia mostrar um toast de erro aqui
+      } else {
+        setLibraryItems(data as LibraryItem[]);
+      }
+      
+      setLoadingLibrary(false);
+    };
 
-  const { data: recentProgress, isLoading: loadingProgress } = useCollection(progressQuery);
-  const { data: libraryItems, isLoading: loadingLibrary } = useCollection(libraryQuery);
+    fetchLibraryItems();
+  }, []); // O array vazio faz com que o useEffect execute apenas uma vez
 
   if (isUserLoading) {
     return (
@@ -51,13 +68,16 @@ export default function DashboardHome() {
     );
   }
 
+  // O nome do usuário agora vem de `user.user_metadata`
+  const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Estudante';
+
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-700">
       <section className="bg-primary p-8 md:p-12 rounded-[2.5rem] text-primary-foreground relative overflow-hidden shadow-2xl">
          <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
          <div className="relative z-10 space-y-4">
            <div className="flex items-center gap-3">
-             <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-tight">Olá, {user?.displayName?.split(' ')[0] || 'Estudante'}! 👋</h1>
+             <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter leading-tight">Olá, {userName}! 👋</h1>
              <Badge className="bg-accent text-accent-foreground border-none font-black px-3 py-1 shadow-lg animate-bounce">
                <Bot className="h-3 w-3 mr-1.5" /> IA ATIVA
              </Badge>
@@ -68,56 +88,14 @@ export default function DashboardHome() {
          </div>
       </section>
 
-      <section className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-          <h2 className="text-xl font-black text-primary italic flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-accent" /> Continue Sua Jornada
-          </h2>
-        </div>
-        
-        {loadingProgress ? (
-          <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-accent" /></div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {recentProgress && recentProgress.length > 0 ? (
-              recentProgress.map((item, index) => (
-                <Card key={item.id} className="overflow-hidden border-none shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group bg-white rounded-[2rem] flex flex-col">
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <Image 
-                      src={`https://picsum.photos/seed/${item.id}/400/250`} 
-                      alt={item.trailTitle || "Trilha"}
-                      width={400}
-                      height={250}
-                      priority={index < 2}
-                      className="object-cover transition-transform duration-700 group-hover:scale-110" 
-                    />
-                  </div>
-                  <CardContent className="p-5 space-y-3 flex-1 flex flex-col">
-                     <CardTitle className="text-xs font-black text-primary italic leading-tight truncate">{item.trailTitle}</CardTitle>
-                     <div className="space-y-1.5">
-                       <div className="flex justify-between text-[8px] font-black uppercase text-muted-foreground">
-                         <span>Progresso</span>
-                         <span className="text-accent">{item.percentage || 0}%</span>
-                       </div>
-                       <Progress value={item.percentage || 0} className="h-1 rounded-full bg-muted" />
-                     </div>
-                     <Button asChild className="w-full bg-primary/5 text-primary hover:bg-primary hover:text-white font-black h-10 rounded-xl text-[9px] uppercase mt-2 transition-all">
-                       <Link href={`/dashboard/classroom/${item.trailId}`}>Retomar Aula</Link>
-                     </Button>
-                   </CardContent>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
-                <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="font-black italic text-lg">Inicie sua primeira trilha agora!</p>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
+      {/* 
+        6. SEÇÃO 'CONTINUE SUA JORNADA' REMOVIDA
+        A tabela 'user_progress' não foi encontrada nos dados migrados. 
+        Para evitar erros, esta seção foi desativada. Ela pode ser reconstruída 
+        futuramente com base nas tabelas existentes no Supabase.
+      */}
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8">
         <div className="lg:col-span-2 space-y-6">
             <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2">
               <Library className="h-5 w-5 text-accent" /> Acervo em Destaque
