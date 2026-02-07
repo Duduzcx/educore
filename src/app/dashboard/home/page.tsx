@@ -32,10 +32,8 @@ export default function DashboardHome() {
 
   useEffect(() => {
     const fetchLibraryItems = async () => {
-      if (!supabase) return;
       setLoadingLibrary(true);
       try {
-        // Busca os itens em destaque da tabela 'library_items' no Supabase
         const { data, error } = await supabase
           .from('library_items')
           .select('*')

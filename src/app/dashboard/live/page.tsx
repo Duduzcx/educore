@@ -1,22 +1,22 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { collection, orderBy, query } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, PlayCircle, Radio, Calendar, ExternalLink } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useAuth } from '@/lib/AuthProvider';
+import { supabase } from '@/lib/supabase';
 
 interface Live {
   id: string;
   title: string;
   description: string;
-  teacherName: string;
-  startTime: { seconds: number };
-  youtubeId: string;
-  youtubeUrl: string;
+  teacher_name: string;
+  start_time: string;
+  youtube_id: string;
+  youtube_url: string;
 }
 
 const DEMO_LIVES: Live[] = [
@@ -24,45 +24,54 @@ const DEMO_LIVES: Live[] = [
     id: 'demo-live-1',
     title: 'Aulão Especial: Redação Nota 1000 para o ENEM',
     description: 'Análise profunda dos critérios de correção e como estruturar uma proposta de intervenção impecável.',
-    teacherName: 'Prof. Marcos Mendes',
-    startTime: { seconds: Math.floor(Date.now() / 1000) - 1800 },
-    youtubeId: 'rfscVS0vtbw',
-    youtubeUrl: 'https://www.youtube.com/watch?v=rfscVS0vtbw'
+    teacher_name: 'Prof. Marcos Mendes',
+    start_time: new Date().toISOString(),
+    youtube_id: 'rfscVS0vtbw',
+    youtube_url: 'https://www.youtube.com/watch?v=rfscVS0vtbw'
   }
 ];
 
 export default function LivePage() {
-  const firestore = useFirestore();
-  const { user } = useUser();
-  
-  // Query otimizada para carregar as lives reais
-  const livesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // Removido o orderBy temporariamente para evitar erros de índice se a coleção estiver vazia
-    return query(collection(firestore, "lives"));
-  }, [firestore, user]);
+  const { user } = useAuth();
+  const [lives, setLives] = useState<Live[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: dbLives, isLoading, error } = useCollection(livesQuery);
+  useEffect(() => {
+    async function fetchLives() {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('lives')
+          .select('*')
+          .order('start_time', { ascending: false });
 
-  const allLives = useMemo(() => {
-    const lives = dbLives || [];
-    // Se houver erro de permissão ou a lista estiver vazia, usamos a demo para não travar a UI
-    if (lives.length === 0) return DEMO_LIVES;
-    return lives;
-  }, [dbLives]);
+        if (error) {
+          console.error("Erro ao carregar lives:", error);
+          setLives(DEMO_LIVES);
+        } else {
+          setLives(data.length > 0 ? data : DEMO_LIVES);
+        }
+      } catch (err) {
+        setLives(DEMO_LIVES);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLives();
+  }, [user]);
 
   const now = new Date();
 
-  const liveNow = allLives.filter(l => {
-    if (!l.startTime) return false;
-    const start = new Date(l.startTime.seconds * 1000);
+  const liveNow = lives.filter(l => {
+    const start = new Date(l.start_time);
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000); 
     return now >= start && now <= end;
   });
 
-  const upcomingLives = allLives.filter(l => {
-    if (!l.startTime) return false;
-    const start = new Date(l.startTime.seconds * 1000);
+  const upcomingLives = lives.filter(l => {
+    const start = new Date(l.start_time);
     return start > now;
   });
 
@@ -73,7 +82,7 @@ export default function LivePage() {
         <p className="text-muted-foreground font-medium">Acompanhe transmissões em tempo real e interaja com os mentores.</p>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-accent" />
           <p className="font-black text-muted-foreground uppercase text-[10px] tracking-widest animate-pulse">Sincronizando Rede...</p>
@@ -94,7 +103,7 @@ export default function LivePage() {
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-xl font-black text-primary italic">{live.title}</CardTitle>
-                          <p className="text-xs font-bold text-muted-foreground mt-1">{live.teacherName}</p>
+                          <p className="text-xs font-bold text-muted-foreground mt-1">{live.teacher_name}</p>
                         </div>
                         <Badge className="bg-red-600 text-white font-black animate-pulse px-3 h-6 border-none">AO VIVO</Badge>
                       </div>
@@ -104,7 +113,7 @@ export default function LivePage() {
                          <iframe 
                            width="100%" 
                            height="100%" 
-                           src={`https://www.youtube.com/embed/${live.youtubeId}?modestbranding=1&rel=0&autoplay=0`} 
+                           src={`https://www.youtube.com/embed/${live.youtube_id}?modestbranding=1&rel=0&autoplay=0`} 
                            title={live.title} 
                            frameBorder="0" 
                            allowFullScreen
@@ -132,24 +141,24 @@ export default function LivePage() {
                       <div className="flex items-center gap-6 w-full md:w-auto">
                         <div className="h-16 w-16 rounded-2xl bg-primary text-white flex flex-col items-center justify-center shrink-0 shadow-lg">
                           <span className="text-[8px] font-black uppercase opacity-60">
-                            {new Date(live.startTime?.seconds * 1000 || Date.now()).toLocaleDateString('pt-BR', { month: 'short' })}
+                            {new Date(live.start_time).toLocaleDateString('pt-BR', { month: 'short' })}
                           </span>
                           <span className="text-2xl font-black italic leading-none">
-                            {new Date(live.startTime?.seconds * 1000 || Date.now()).getDate()}
+                            {new Date(live.start_time).getDate()}
                           </span>
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-black text-lg text-primary italic truncate">{live.title}</h3>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{live.teacherName}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{live.teacher_name}</span>
                             <span className="text-[10px] text-accent font-black">
-                              {new Date(live.startTime?.seconds * 1000 || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(live.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>
                       </div>
                       <Button variant="outline" className="w-full md:w-auto rounded-xl font-black text-[10px] uppercase border-dashed hover:bg-primary hover:text-white transition-all" asChild>
-                        <a href={live.youtubeUrl} target="_blank" rel="noopener noreferrer">Lembrar-me</a>
+                        <a href={live.youtube_url} target="_blank" rel="noopener noreferrer">Lembrar-me</a>
                       </Button>
                     </CardContent>
                   </Card>

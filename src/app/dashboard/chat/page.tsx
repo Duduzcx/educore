@@ -1,62 +1,49 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, UserCircle, Loader2, Sparkles, Send, Users, GraduationCap, MessageCircle, Bot, BookOpen, School } from "lucide-react";
 import Link from "next/link";
-import { useFirestore, useCollection, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, limit, where } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function ChatListPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [students, setStudents] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, "users"), limit(50));
-  }, [firestore, user]);
-
-  const teachersQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, "teachers"), limit(50));
-  }, [firestore, user]);
-
-  const { data: students, isLoading: loadingStudents } = useCollection(usersQuery);
-  const { data: teachers, isLoading: loadingTeachers } = useCollection(teachersQuery);
-
-  const unreadMessagesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "chat_messages"),
-      where("receiverId", "==", user.uid),
-      where("isRead", "==", false)
-    );
-  }, [firestore, user]);
-
-  const { data: unreadMessages } = useCollection(unreadMessagesQuery);
+  useEffect(() => {
+    async function fetchData() {
+      if (!user) return;
+      setLoading(true);
+      
+      const { data: profilesData } = await supabase.from('profiles').select('*').limit(50);
+      const { data: teachersData } = await supabase.from('teachers').select('*').limit(50);
+      
+      setStudents(profilesData || []);
+      setTeachers(teachersData || []);
+      setLoading(false);
+    }
+    fetchData();
+  }, [user]);
 
   const allContacts = [
     ...(students || []).map(s => ({ ...s, type: 'student', expertise: s.course || 'Estudante' })),
     ...(teachers || []).map(t => ({ ...t, type: 'teacher', expertise: t.subjects || 'Mentor Geral' }))
-  ].filter(c => c.id !== user?.uid);
+  ].filter(c => c.id !== user?.id);
 
   const filteredContacts = allContacts.filter(c => 
     c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.expertise?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const getUnreadCountForContact = (contactId: string) => {
-    return unreadMessages?.filter(m => m.senderId === contactId).length || 0;
-  };
-
-  const isLoading = loadingStudents || loadingTeachers;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-full mx-auto overflow-hidden px-1">
@@ -118,7 +105,7 @@ export default function ChatListPage() {
 
       <div className="space-y-4">
         <h3 className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 px-4">Corpo Docente e Mentores</h3>
-        {isLoading ? (
+        {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-accent" />
             <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-widest text-[10px]">Sincronizando Mentores...</p>
@@ -126,11 +113,10 @@ export default function ChatListPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {filteredContacts?.map((contact, index) => {
-              const unreadCount = getUnreadCountForContact(contact.id);
               const isTeacher = contact.type === 'teacher';
               
               return (
-                <Card key={contact.id} className={`border-none shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] rounded-[2.5rem] bg-white overflow-hidden group hover:shadow-[0_20px_60px_-15px_hsl(var(--accent)/0.3)] hover:-translate-y-2 transition-all duration-500 ${unreadCount > 0 ? 'ring-2 ring-accent' : ''}`} style={{ animationDelay: `${index * 50}ms` }}>
+                <Card key={contact.id} className="border-none shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] rounded-[2.5rem] bg-white overflow-hidden group hover:shadow-[0_20px_60px_-15px_hsl(var(--accent)/0.3)] hover:-translate-y-2 transition-all duration-500" style={{ animationDelay: `${index * 50}ms` }}>
                   <CardContent className="p-8">
                     <div className="flex flex-col items-center text-center space-y-4">
                       <div className="relative">
@@ -141,11 +127,6 @@ export default function ChatListPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 rounded-full border-4 border-white shadow-sm" />
-                        {unreadCount > 0 && (
-                          <div className="absolute -top-1 -right-1 h-8 w-8 bg-accent text-accent-foreground rounded-full border-4 border-white flex items-center justify-center font-black text-xs animate-bounce shadow-lg">
-                            {unreadCount}
-                          </div>
-                        )}
                       </div>
                       
                       <div className="space-y-2">
@@ -167,18 +148,13 @@ export default function ChatListPage() {
                               {contact.expertise}
                             </span>
                           </div>
-                          {contact.institution && (
-                            <span className="text-[8px] font-black text-primary/30 uppercase tracking-tighter">
-                              {contact.institution}
-                            </span>
-                          )}
                         </div>
                       </div>
 
                       <div className="w-full pt-4">
-                        <Button className={`w-full ${unreadCount > 0 ? 'bg-accent text-accent-foreground hover:bg-accent/90 shadow-accent/20' : 'bg-primary text-white hover:bg-primary/95 shadow-primary/20'} font-black h-12 rounded-2xl shadow-xl group/btn transition-all active:scale-95`} asChild>
+                        <Button className="w-full bg-primary text-white hover:bg-primary/95 shadow-primary/20 font-black h-12 rounded-2xl shadow-xl group/btn transition-all active:scale-95" asChild>
                           <Link href={`/dashboard/chat/${contact.id}`}>
-                            {unreadCount > 0 ? 'Responder Mentor' : 'Iniciar Mentoria'}
+                            Iniciar Mentoria
                             <Send className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
                           </Link>
                         </Button>
@@ -188,7 +164,7 @@ export default function ChatListPage() {
                 </Card>
               );
             })}
-            {!filteredContacts?.length && !isLoading && (
+            {!filteredContacts?.length && !loading && (
               <div className="col-span-full py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5 animate-in fade-in duration-1000">
                 <UserCircle className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
                 <p className="font-black text-primary italic text-xl">Nenhum mentor encontrado</p>
