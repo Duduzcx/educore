@@ -74,16 +74,19 @@ export default function LearningTrailsPage() {
       setLoading(true);
       
       try {
+        // Busca perfil no Supabase
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         setUserProfile(profile);
 
+        // Busca trilhas ativas
         const { data: trails } = await supabase.from('learning_trails').select('*').eq('status', 'active');
         setDbTrails(trails || []);
 
+        // Busca progresso do usuário
         const { data: progress } = await supabase.from('user_progress').select('*').eq('user_id', user.id);
         setAllProgress(progress || []);
       } catch (err) {
-        console.error("Erro ao carregar trilhas:", err);
+        console.error("Erro ao carregar trilhas do Supabase:", err);
       } finally {
         setLoading(false);
       }
@@ -95,8 +98,8 @@ export default function LearningTrailsPage() {
     const all = [...dbTrails, ...EXAMPLE_TRAILS];
     
     return all.filter(trail => {
-      const matchesSearch = trail.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            trail.category.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = trail.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            trail.category?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = activeCategory === "Todos" || trail.category === activeCategory;
       const matchesAudience = activeAudience === "all" || trail.targetAudience === activeAudience || trail.targetAudience === "both";
       
@@ -191,7 +194,7 @@ export default function LearningTrailsPage() {
                   <div className="relative aspect-[16/10] overflow-hidden cursor-pointer">
                     <Link href={`/dashboard/classroom/${trail.id}`}>
                       <Image 
-                        src={trail.image || `https://picsum.photos/seed/trail-${trail.id}/600/400`} 
+                        src={trail.image_url || trail.image || `https://picsum.photos/seed/trail-${trail.id}/600/400`} 
                         alt={trail.title} 
                         fill 
                         className="object-cover transition-transform duration-1000 group-hover/card:scale-110"
