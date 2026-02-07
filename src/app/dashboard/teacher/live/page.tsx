@@ -64,7 +64,12 @@ export default function TeacherLiveManagement() {
         start_time: liveForm.start_time || new Date().toISOString()
       }).select().single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('column "teacher_id" does not exist')) {
+          throw new Error("Coluna 'teacher_id' não encontrada. Rode o SQL de correção no Supabase.");
+        }
+        throw error;
+      }
 
       setLives([data, ...lives]);
       toast({ title: "Aula Agendada!" });
@@ -74,9 +79,7 @@ export default function TeacherLiveManagement() {
       toast({ 
         variant: "destructive", 
         title: "Erro ao Agendar", 
-        description: err.message.includes('teacher_id') 
-          ? "Coluna 'teacher_id' não encontrada. Execute o SQL de emergência no Supabase." 
-          : err.message 
+        description: err.message
       });
     } finally {
       setLoading(false);
@@ -119,14 +122,19 @@ export default function TeacherLiveManagement() {
 
     try {
       const { error } = await supabase.from('lives').insert(demoLives);
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('column "teacher_id" does not exist')) {
+          throw new Error("Erro de Estrutura: A coluna 'teacher_id' ainda não existe na tabela 'lives'.");
+        }
+        throw error;
+      }
       toast({ title: "Lives Geradas!", description: "3 novas transmissões foram adicionadas." });
       fetchLives();
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
-        title: "Erro no Seed", 
-        description: "Verifique se as colunas 'teacher_id' e 'teacher_name' existem na tabela 'lives'." 
+        title: "Falha no Seed", 
+        description: err.message
       });
     } finally {
       setIsSeeding(false);
@@ -212,6 +220,7 @@ export default function TeacherLiveManagement() {
                     <div className="flex-1 space-y-2">
                       <Badge variant="secondary" className="text-[10px] font-black uppercase tracking-widest bg-primary/5 text-primary border-none">{new Date(live.start_time).toLocaleString('pt-BR')}</Badge>
                       <h3 className="text-xl font-black text-primary italic leading-none">{live.title}</h3>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{live.teacher_name || "Docente da Rede"}</p>
                       <div className="pt-4 flex items-center gap-4">
                         <Button variant="outline" size="sm" className="rounded-xl font-bold h-10 px-6" asChild>
                           <a href={live.youtube_url} target="_blank"><ExternalLink className="h-4 w-4 mr-2" /> Assistir</a>
