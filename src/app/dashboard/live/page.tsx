@@ -19,6 +19,8 @@ interface Live {
   youtube_url: string;
 }
 
+const DEFAULT_VIDEO_ID = 'rfscVS0vtbw'; // Aulão de Redação como fallback
+
 const DEMO_LIVES: Live[] = [
   {
     id: 'demo-live-1',
@@ -26,8 +28,8 @@ const DEMO_LIVES: Live[] = [
     description: 'Análise profunda dos critérios de correção e como estruturar uma proposta de intervenção impecável.',
     teacher_name: 'Prof. Marcos Mendes',
     start_time: new Date().toISOString(),
-    youtube_id: 'rfscVS0vtbw',
-    youtube_url: 'https://www.youtube.com/watch?v=rfscVS0vtbw'
+    youtube_id: DEFAULT_VIDEO_ID,
+    youtube_url: `https://www.youtube.com/watch?v=${DEFAULT_VIDEO_ID}`
   }
 ];
 
@@ -48,12 +50,18 @@ export default function LivePage() {
           .order('start_time', { ascending: false });
 
         if (error) {
-          console.warn("Entrando em modo de resiliência (Demo Data)");
+          console.warn("Entrando em modo de resiliência (Erro de Estrutura)");
           setIsDemoMode(true);
           setLives(DEMO_LIVES);
         } else {
-          setLives(data && data.length > 0 ? data : DEMO_LIVES);
-          setIsDemoMode(data && data.length > 0 ? false : true);
+          // Se o banco retornar vazio, usamos demo. Se retornar dados, validamos o youtube_id.
+          if (data && data.length > 0) {
+            setLives(data);
+            setIsDemoMode(false);
+          } else {
+            setLives(DEMO_LIVES);
+            setIsDemoMode(true);
+          }
         }
       } catch (err: any) {
         setIsDemoMode(true);
@@ -85,7 +93,7 @@ export default function LivePage() {
           <h1 className="text-3xl font-black text-primary italic leading-none">Aulas ao Vivo</h1>
           {isDemoMode && (
             <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 font-black text-[8px] animate-pulse">
-              MODO RESILIÊNCIA ATIVO
+              DADOS DE DEMONSTRAÇÃO ATIVOS
             </Badge>
           )}
         </div>
@@ -123,7 +131,7 @@ export default function LivePage() {
                          <iframe 
                            width="100%" 
                            height="100%" 
-                           src={`https://www.youtube.com/embed/${live.youtube_id || 'rfscVS0vtbw'}?modestbranding=1&rel=0&autoplay=0&showinfo=0`} 
+                           src={`https://www.youtube.com/embed/${live.youtube_id || DEFAULT_VIDEO_ID}?modestbranding=1&rel=0&autoplay=0&showinfo=0`} 
                            title={live.title} 
                            frameBorder="0" 
                            allowFullScreen
@@ -170,7 +178,7 @@ export default function LivePage() {
                         </div>
                       </div>
                       <Button variant="outline" className="w-full md:w-auto rounded-xl font-black text-[10px] uppercase border-dashed hover:bg-primary hover:text-white transition-all h-12 px-8" asChild>
-                        <a href={live.youtube_url || `https://youtube.com/watch?v=${live.youtube_id}`} target="_blank" rel="noopener noreferrer">Ativar Lembrete</a>
+                        <a href={live.youtube_url || `https://youtube.com/watch?v=${live.youtube_id || DEFAULT_VIDEO_ID}`} target="_blank" rel="noopener noreferrer">Ativar Lembrete</a>
                       </Button>
                     </CardContent>
                   </Card>
