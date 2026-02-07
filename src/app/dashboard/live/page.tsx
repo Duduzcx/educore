@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, PlayCircle, Radio, Calendar, ExternalLink } from 'lucide-react';
+import { Loader2, PlayCircle, Radio, Calendar, ExternalLink, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 
@@ -35,6 +35,7 @@ export default function LivePage() {
   const { user } = useAuth();
   const [lives, setLives] = useState<Live[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasSchemaError, setHasSchemaError] = useState(false);
 
   useEffect(() => {
     async function fetchLives() {
@@ -47,6 +48,9 @@ export default function LivePage() {
           .order('start_time', { ascending: false });
 
         if (error) {
+          if (error.message.includes('column') && error.message.includes('not found')) {
+            setHasSchemaError(true);
+          }
           console.error("Erro ao carregar lives:", error);
           setLives(DEMO_LIVES);
         } else {
@@ -82,6 +86,16 @@ export default function LivePage() {
         <p className="text-muted-foreground font-medium">Acompanhe transmissões em tempo real e interaja com os mentores.</p>
       </div>
 
+      {hasSchemaError && (
+        <div className="p-6 bg-orange-50 border-2 border-dashed border-orange-200 rounded-[2rem] flex items-start gap-4 animate-bounce">
+          <AlertTriangle className="h-6 w-6 text-orange-600 shrink-0" />
+          <div className="space-y-1">
+            <p className="font-black text-orange-800 text-sm italic">Aviso de Configuração (Modo Demo)</p>
+            <p className="text-xs text-orange-700 font-medium">Algumas colunas (como youtube_id) não foram encontradas no seu Supabase. Usando dados de reserva para a apresentação.</p>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-accent" />
@@ -113,7 +127,7 @@ export default function LivePage() {
                          <iframe 
                            width="100%" 
                            height="100%" 
-                           src={`https://www.youtube.com/embed/${live.youtube_id}?modestbranding=1&rel=0&autoplay=0`} 
+                           src={`https://www.youtube.com/embed/${live.youtube_id || 'rfscVS0vtbw'}?modestbranding=1&rel=0&autoplay=0`} 
                            title={live.title} 
                            frameBorder="0" 
                            allowFullScreen

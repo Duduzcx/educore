@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MonitorPlay, Plus, Trash2, Youtube, Loader2, ExternalLink, Video, Radio, FlaskConical } from "lucide-react";
+import { MonitorPlay, Plus, Trash2, Youtube, Loader2, ExternalLink, Video, Radio, FlaskConical, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -65,8 +65,8 @@ export default function TeacherLiveManagement() {
       }).select().single();
 
       if (error) {
-        if (error.message.includes('column "teacher_id" does not exist')) {
-          throw new Error("Coluna 'teacher_id' não encontrada. Rode o SQL de correção no Supabase.");
+        if (error.message.includes('column') && error.message.includes('not found')) {
+          throw new Error(`Coluna faltando no banco: ${error.message}. Rode o SQL de correção.`);
         }
         throw error;
       }
@@ -78,7 +78,7 @@ export default function TeacherLiveManagement() {
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
-        title: "Erro ao Agendar", 
+        title: "Erro de Banco de Dados", 
         description: err.message
       });
     } finally {
@@ -122,19 +122,14 @@ export default function TeacherLiveManagement() {
 
     try {
       const { error } = await supabase.from('lives').insert(demoLives);
-      if (error) {
-        if (error.message.includes('column "teacher_id" does not exist')) {
-          throw new Error("Erro de Estrutura: A coluna 'teacher_id' ainda não existe na tabela 'lives'.");
-        }
-        throw error;
-      }
+      if (error) throw error;
       toast({ title: "Lives Geradas!", description: "3 novas transmissões foram adicionadas." });
       fetchLives();
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
-        title: "Falha no Seed", 
-        description: err.message
+        title: "Falha na Estrutura", 
+        description: "A coluna 'youtube_id' ou 'teacher_id' não foi encontrada. Verifique o SQL."
       });
     } finally {
       setIsSeeding(false);
@@ -215,7 +210,7 @@ export default function TeacherLiveManagement() {
                 <Card key={live.id} className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group">
                   <CardContent className="p-8 flex flex-col md:flex-row gap-8 items-center">
                     <div className="relative aspect-video w-full md:w-48 bg-black rounded-2xl overflow-hidden shadow-lg shrink-0">
-                      <img src={`https://img.youtube.com/vi/${live.youtube_id}/mqdefault.jpg`} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
+                      <img src={`https://img.youtube.com/vi/${live.youtube_id || 'default'}/mqdefault.jpg`} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
                     </div>
                     <div className="flex-1 space-y-2">
                       <Badge variant="secondary" className="text-[10px] font-black uppercase tracking-widest bg-primary/5 text-primary border-none">{new Date(live.start_time).toLocaleString('pt-BR')}</Badge>
