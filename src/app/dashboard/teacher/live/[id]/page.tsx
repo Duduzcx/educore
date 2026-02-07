@@ -20,7 +20,8 @@ import {
   Eye,
   CheckCircle2,
   AlertCircle,
-  Loader2
+  Loader2,
+  Trophy
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -93,7 +94,7 @@ export default function TeacherLiveStudioPage() {
       .eq('id', msgId);
     
     if (!error) {
-      toast({ title: "Dúvida Marcada como Respondida" });
+      toast({ title: "Dúvida Respondida!" });
     }
   };
 
@@ -112,87 +113,96 @@ export default function TeacherLiveStudioPage() {
     }
   }, [filteredMessages]);
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin h-12 w-12 text-red-600" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin h-12 w-12 text-red-600" /></div>;
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] space-y-6 animate-in fade-in duration-700">
-      {/* Studio Monitor Top Bar */}
-      <div className="flex items-center justify-between bg-primary p-6 rounded-3xl text-white shadow-2xl border-b-4 border-red-600">
+      {/* Studio Monitor Top Bar - Visual Dark Profissional */}
+      <div className="flex items-center justify-between bg-slate-950 p-6 rounded-3xl text-white shadow-2xl border-b-4 border-red-600">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-white/10 rounded-full">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-white/10 rounded-full h-12 w-12">
             <ChevronLeft className="h-6 w-6" />
           </Button>
           <div>
-            <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none">{live?.title}</h1>
-            <p className="text-[10px] font-bold text-white/60 tracking-widest mt-1 uppercase">Monitoramento de Estúdio • Signal: 100%</p>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-red-600 animate-pulse" />
+              <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none">{live?.title}</h1>
+            </div>
+            <p className="text-[10px] font-bold text-slate-500 tracking-[0.3em] mt-1 uppercase">Monitoramento em Tempo Real • Studio Master</p>
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <div className="flex flex-col items-end">
-            <span className="text-[8px] font-black text-accent uppercase">Espectadores</span>
+            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Engajamento Alunos</span>
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-accent" />
-              <span className="text-xl font-black tabular-nums">42</span>
+              <Users className="h-5 w-5 text-blue-400" />
+              <span className="text-2xl font-black tabular-nums">42</span>
             </div>
           </div>
-          <Badge className="bg-red-600 text-white font-black animate-pulse border-none px-4 py-1.5 rounded-xl flex items-center gap-2">
-            <Signal className="h-3 w-3" /> ON AIR
+          <Badge className="bg-red-600 text-white font-black animate-pulse border-none px-6 h-12 rounded-2xl flex items-center gap-3 shadow-[0_0_20px_rgba(220,38,38,0.4)]">
+            <Signal className="h-4 w-4" /> ON AIR
           </Badge>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
-        {/* Left Column: Preview & Stats */}
+        {/* Left Column: Preview & Intelligence */}
         <div className="lg:col-span-2 flex flex-col space-y-6">
-          <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/5 relative group">
+          <Card className="aspect-video bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-slate-800 relative group">
             <iframe 
               width="100%" 
               height="100%" 
-              src={`https://www.youtube.com/embed/${live?.youtube_id}?autoplay=1&mute=1`} 
+              src={`https://www.youtube.com/embed/${live?.youtube_id}?autoplay=1&mute=1&modestbranding=1`} 
               frameBorder="0" 
               allowFullScreen 
             />
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Badge className="bg-black/60 backdrop-blur-md text-white border-none font-bold">Preview do Estúdio</Badge>
+            <div className="absolute top-6 right-6">
+              <Badge className="bg-slate-950/80 backdrop-blur-md text-white border-slate-700 font-black text-[9px] uppercase tracking-widest px-4 py-2">Preview do Monitor</Badge>
             </div>
           </Card>
 
-          <div className="grid grid-cols-3 gap-4">
-            <Card className="bg-white p-6 rounded-3xl shadow-xl flex flex-col items-center justify-center text-center">
-              <Zap className="h-6 w-6 text-accent mb-2" />
-              <p className="text-[8px] font-black uppercase text-muted-foreground">Engajamento</p>
-              <p className="text-xl font-black text-primary">Alto</p>
+          <div className="grid grid-cols-3 gap-6">
+            <Card className="bg-white p-8 rounded-[2rem] shadow-xl flex flex-col items-center justify-center text-center group hover:bg-slate-50 transition-all">
+              <div className="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                <Zap className="h-6 w-6" />
+              </div>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Saúde do Sinal</p>
+              <p className="text-xl font-black text-slate-900">Excelente</p>
             </Card>
-            <Card className="bg-white p-6 rounded-3xl shadow-xl flex flex-col items-center justify-center text-center border-2 border-amber-100">
-              <Lightbulb className="h-6 w-6 text-amber-500 mb-2" />
-              <p className="text-[8px] font-black uppercase text-muted-foreground">Perguntas Pendentes</p>
-              <p className="text-xl font-black text-amber-600 tabular-nums">{questionCount}</p>
+            <Card className="bg-white p-8 rounded-[2rem] shadow-xl flex flex-col items-center justify-center text-center border-2 border-amber-100 group hover:border-amber-300 transition-all">
+              <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3">
+                <Lightbulb className="h-6 w-6 animate-pulse" />
+              </div>
+              <p className="text-[10px] font-black uppercase text-amber-600/60 tracking-widest">Questões Pendentes</p>
+              <p className="text-2xl font-black text-amber-600 tabular-nums">{questionCount}</p>
             </Card>
-            <Card className="bg-white p-6 rounded-3xl shadow-xl flex flex-col items-center justify-center text-center">
-              <Clock className="h-6 w-6 text-blue-500 mb-2" />
-              <p className="text-[8px] font-black uppercase text-muted-foreground">Tempo de Live</p>
-              <p className="text-xl font-black text-primary tabular-nums">14:20</p>
+            <Card className="bg-white p-8 rounded-[2rem] shadow-xl flex flex-col items-center justify-center text-center group hover:bg-slate-50 transition-all">
+              <div className="h-12 w-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-3">
+                <Trophy className="h-6 w-6" />
+              </div>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tempo Decorrido</p>
+              <p className="text-xl font-black text-slate-900 tabular-nums">14:20</p>
             </Card>
           </div>
         </div>
 
-        {/* Right Column: Interaction Hub */}
-        <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col h-full relative">
+        {/* Right Column: Interaction Hub - Visual Diferenciado */}
+        <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden flex flex-col h-full relative">
           <div className="flex flex-col h-full">
-            <div className="p-4 bg-muted/30 border-b flex items-center justify-between shrink-0">
-              <div className="flex bg-white p-1 rounded-xl shadow-sm">
+            <div className="p-6 bg-slate-50 border-b flex items-center justify-between shrink-0">
+              <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 w-full">
                 <button 
                   onClick={() => setActiveTab('all')}
-                  className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeTab === 'all' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-muted'}`}
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'all' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
                 >
-                  Chat Geral
+                  Stream Chat
                 </button>
                 <button 
                   onClick={() => setActiveTab('questions')}
-                  className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-2 ${activeTab === 'questions' ? 'bg-amber-500 text-white' : 'text-muted-foreground hover:bg-muted'}`}
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'questions' ? 'bg-amber-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
                 >
                   Perguntas
-                  {questionCount > 0 && <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />}
+                  {questionCount > 0 && <Badge className="bg-white/20 text-white border-none h-4 min-w-4 text-[8px] flex items-center justify-center px-1.5">{questionCount}</Badge>}
                 </button>
               </div>
             </div>
@@ -202,18 +212,18 @@ export default function TeacherLiveStudioPage() {
                 {filteredMessages.map((msg, i) => (
                   <div 
                     key={msg.id || i} 
-                    className={`group flex flex-col gap-1.5 p-4 rounded-2xl transition-all ${
+                    className={`group flex flex-col gap-2 p-5 rounded-3xl transition-all ${
                       msg.is_question 
-                        ? (msg.is_answered ? 'bg-green-50 border border-green-100' : 'bg-amber-50 border border-amber-200 shadow-sm') 
-                        : 'bg-muted/20'
+                        ? (msg.is_answered ? 'bg-slate-50 border border-slate-100 opacity-60' : 'bg-amber-50 border border-amber-200 shadow-md scale-[1.02]') 
+                        : 'bg-slate-50/50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">{msg.author_name}</span>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{msg.author_name}</span>
                         {msg.is_question && (
-                          <Badge className={`${msg.is_answered ? 'bg-green-500' : 'bg-amber-500'} text-white border-none text-[6px] font-black h-3 px-1.5`}>
-                            {msg.is_answered ? 'RESPONDIDA' : 'PERGUNTA'}
+                          <Badge className={`${msg.is_answered ? 'bg-slate-200 text-slate-500' : 'bg-amber-500 text-white shadow-sm'} border-none text-[7px] font-black h-4 px-2 uppercase`}>
+                            {msg.is_answered ? 'CONCLUÍDA' : 'PENDENTE'}
                           </Badge>
                         )}
                       </div>
@@ -222,34 +232,35 @@ export default function TeacherLiveStudioPage() {
                           onClick={() => markAsAnswered(msg.id)}
                           size="icon" 
                           variant="ghost" 
-                          className="h-6 w-6 rounded-full text-amber-600 hover:bg-amber-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                          className="h-8 w-8 rounded-full text-amber-600 hover:bg-amber-500 hover:text-white transition-all shadow-sm"
+                          title="Marcar como respondida"
                         >
-                          <CheckCircle2 className="h-3 w-3" />
+                          <CheckCircle2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
-                    <p className={`text-xs font-medium leading-relaxed ${msg.is_question && !msg.is_answered ? 'text-amber-900 font-bold' : 'text-primary'}`}>
+                    <p className={`text-sm leading-relaxed ${msg.is_question && !msg.is_answered ? 'text-amber-900 font-bold italic' : 'text-slate-700 font-medium'}`}>
                       {msg.content}
                     </p>
                   </div>
                 ))}
                 {filteredMessages.length === 0 && (
-                  <div className="py-20 text-center opacity-30 flex flex-col items-center">
-                    <MessageCircle className="h-10 w-10 mb-2" />
-                    <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma interação no momento</p>
+                  <div className="py-24 text-center opacity-20 flex flex-col items-center">
+                    <MessageCircle className="h-16 w-16 mb-4" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em]">Silêncio no Estúdio</p>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
-            <div className="p-4 bg-muted/5 border-t shrink-0">
-              <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl shadow-lg border border-muted/20">
+            <div className="p-6 bg-slate-50 border-t shrink-0">
+              <div className="flex items-center gap-3 bg-white p-2 pl-6 rounded-full shadow-2xl border border-slate-200">
                 <Input 
-                  placeholder="Responder no chat..." 
-                  className="flex-1 border-none shadow-none text-xs font-bold italic h-10" 
+                  placeholder="Feedback para o chat..." 
+                  className="flex-1 border-none shadow-none text-sm font-bold italic h-12 bg-transparent focus-visible:ring-0" 
                 />
-                <Button size="icon" className="h-10 w-10 bg-primary rounded-xl shrink-0">
-                  <Send className="h-4 w-4 text-white" />
+                <Button size="icon" className="h-12 w-12 bg-slate-900 rounded-full shrink-0 shadow-lg active:scale-95 transition-all">
+                  <Send className="h-5 w-5 text-white" />
                 </Button>
               </div>
             </div>

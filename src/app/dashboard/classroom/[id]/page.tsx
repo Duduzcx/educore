@@ -135,20 +135,24 @@ export default function ClassroomPage() {
   const handleSendLiveMessage = async (isQuestion: boolean = false) => {
     if (!liveChatInput.trim() || !user || !activeLive) return;
 
-    const { error } = await supabase.from('forum_posts').insert({
-      forum_id: activeLive.id,
-      content: liveChatInput,
-      author_id: user.id,
-      author_name: user.user_metadata?.full_name || "Estudante",
-      is_question: isQuestion,
-      created_at: new Date().toISOString()
-    });
+    try {
+      const { error } = await supabase.from('forum_posts').insert({
+        forum_id: activeLive.id,
+        content: liveChatInput,
+        author_id: user.id,
+        author_name: user.user_metadata?.full_name || "Estudante",
+        is_question: isQuestion,
+        created_at: new Date().toISOString()
+      });
 
-    if (!error) {
+      if (error) throw error;
+
       setLiveChatInput("");
       if (isQuestion) {
-        toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi enviada para o painel do professor." });
+        toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi destacada para o professor." });
       }
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro ao enviar", description: "O sistema de chat está sendo configurado. Tente novamente em instantes." });
     }
   };
 
@@ -235,7 +239,7 @@ export default function ClassroomPage() {
               </TabsTrigger>
               {activeLive && (
                 <TabsTrigger value="live" className="rounded-xl gap-2 font-black uppercase text-[10px] data-[state=active]:bg-red-600 data-[state=active]:text-white shadow-sm flex-1">
-                  <Radio className="h-4 w-4" /> Live Room
+                  <Radio className="h-4 w-4" /> Live Classroom
                 </TabsTrigger>
               )}
               <TabsTrigger value="assessment" className="rounded-xl gap-2 font-black uppercase text-[10px] data-[state=active]:bg-white shadow-sm flex-1">
@@ -286,7 +290,7 @@ export default function ClassroomPage() {
                   <div className="p-4 bg-red-600 text-white flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Chat da Turma</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">Chat em Tempo Real</span>
                     </div>
                     <Badge className="bg-white/20 text-white border-none text-[8px]">{liveMessages.length}</Badge>
                   </div>
@@ -296,11 +300,11 @@ export default function ClassroomPage() {
                         <div key={i} className={`flex flex-col gap-1 ${msg.is_question ? 'bg-amber-50 p-2 rounded-xl border border-amber-200' : ''}`}>
                           <div className="flex items-center justify-between px-1">
                             <span className="text-[8px] font-black text-primary/40 uppercase">{msg.author_name}</span>
-                            {msg.is_question && <Badge className="bg-amber-500 text-white border-none text-[6px] font-black px-1.5 h-3">PERGUNTA</Badge>}
+                            {msg.is_question && <Badge className="bg-amber-500 text-white border-none text-[6px] font-black px-1.5 h-3">PERGUNTA AO MENTOR</Badge>}
                           </div>
                           <div className={`px-4 py-2 rounded-2xl text-xs font-medium ${
                             msg.author_id === user?.id 
-                              ? (msg.is_question ? 'bg-amber-500 text-white' : 'bg-primary text-white ml-4') 
+                              ? (msg.is_question ? 'bg-amber-500 text-white shadow-lg' : 'bg-primary text-white ml-4') 
                               : 'bg-muted/30 text-primary mr-4'
                           }`}>
                             {msg.content}
@@ -313,20 +317,20 @@ export default function ClassroomPage() {
                     <div className="flex gap-2">
                       <Input 
                         placeholder="Comentar na aula..." 
-                        className="rounded-xl h-10 text-xs italic" 
+                        className="rounded-xl h-10 text-xs italic bg-white" 
                         value={liveChatInput} 
                         onChange={(e) => setLiveChatInput(e.target.value)} 
                       />
-                      <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-10 w-10 bg-red-600 rounded-xl shrink-0">
+                      <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-10 w-10 bg-slate-900 rounded-xl shrink-0">
                         <Send className="h-4 w-4 text-white" />
                       </Button>
                     </div>
                     <Button 
                       onClick={() => handleSendLiveMessage(true)} 
                       variant="outline" 
-                      className="w-full h-10 border-amber-500/50 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[9px] uppercase gap-2 rounded-xl transition-all"
+                      className="w-full h-10 border-amber-500/50 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[9px] uppercase gap-2 rounded-xl transition-all shadow-sm"
                     >
-                      <Lightbulb className="h-3 w-3" /> Fazer Pergunta para o Mentor
+                      <Lightbulb className="h-3 w-3" /> 💡 Fazer Pergunta Especial ao Mentor
                     </Button>
                   </div>
                 </Card>
@@ -381,8 +385,8 @@ export default function ClassroomPage() {
         <div className="space-y-6">
           <Card className="shadow-2xl border-none bg-white rounded-[2.5rem] overflow-hidden">
             <div className="p-6 bg-primary text-white flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest">Estrutura da Trilha</span>
-              <Badge className="bg-white/20 text-white border-none text-[8px]">{modules.length} Módulos</Badge>
+              <span className="text-[10px] font-black uppercase tracking-widest">Conteúdo da Trilha</span>
+              <Badge className="bg-white/20 text-white border-none text-[8px]">{modules.length} Blocos</Badge>
             </div>
             <div className="flex flex-col">
               {modules.map((mod, i) => (
@@ -402,7 +406,7 @@ export default function ClassroomPage() {
 
           {activeModuleId && (
             <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/40 px-4">Conteúdo do Módulo</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary/40 px-4">Material de Apoio</p>
               <div className="grid gap-2">
                 {contents.map((c) => (
                   <button 

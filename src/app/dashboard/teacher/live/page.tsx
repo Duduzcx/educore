@@ -25,7 +25,8 @@ import {
   Signal,
   Eye,
   ExternalLink,
-  Activity
+  Activity,
+  History
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -101,7 +102,7 @@ export default function TeacherLiveManagement() {
       setForm({ title: "", description: "", youtube_id: "", start_time: "", trail_id: "none" });
       setIsAddOpen(false);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro no Estúdio", description: "Verifique os dados da transmissão." });
+      toast({ variant: "destructive", title: "Erro no Estúdio", description: "Verifique os dados da transmissão ou se as tabelas existem." });
     } finally {
       setLoading(false);
     }
@@ -143,18 +144,23 @@ export default function TeacherLiveManagement() {
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-700 pb-20 max-w-[1600px] mx-auto">
-      {/* Comand Center Header */}
-      <div className="relative bg-primary rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl border-b-8 border-red-600">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/20 to-transparent pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+      {/* Comand Center Header - Visual Dark Estúdio */}
+      <div className="relative bg-slate-950 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl border-b-8 border-red-600">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/10 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-red-600 flex items-center justify-center shadow-[0_0_20px_rgba(220,38,38,0.5)] animate-pulse">
-                <Signal className="h-6 w-6 text-white" />
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-red-600 flex items-center justify-center shadow-[0_0_30px_rgba(220,38,38,0.6)] animate-pulse">
+                <Signal className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-3xl md:text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Studio Core</h1>
+              <div>
+                <h1 className="text-3xl md:text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Studio Core</h1>
+                <p className="text-red-500 font-bold text-[10px] tracking-[0.3em] uppercase mt-2">Master Control Room • V 2.0</p>
+              </div>
             </div>
-            <p className="text-white/60 font-medium max-w-xl italic text-sm md:text-lg">
+            <p className="text-slate-400 font-medium max-w-xl italic text-sm md:text-lg">
               Gerencie transmissões e interaja com alunos em tempo real através do monitoramento de estúdio integrado.
             </p>
           </div>
@@ -164,15 +170,15 @@ export default function TeacherLiveManagement() {
               variant="outline" 
               onClick={handleSeedLives} 
               disabled={isSeeding}
-              className="rounded-2xl h-14 border-dashed border-white/20 bg-white/5 text-white hover:bg-white/10 px-6 font-black uppercase text-[10px] tracking-widest"
+              className="rounded-2xl h-14 border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 px-6 font-black uppercase text-[10px] tracking-widest transition-all"
             >
-              {isSeeding ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <FlaskConical className="h-4 w-4 mr-2 text-red-500" />}
-              Gerar Lives Demo
+              {isSeeding ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <History className="h-4 w-4 mr-2 text-red-500" />}
+              Restaurar Demos
             </Button>
             
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-2xl h-14 bg-red-600 text-white font-black px-8 shadow-[0_10px_30px_rgba(220,38,38,0.3)] hover:bg-red-700 hover:scale-105 active:scale-95 transition-all">
+                <Button className="rounded-2xl h-14 bg-red-600 text-white font-black px-8 shadow-[0_10px_40px_rgba(220,38,38,0.4)] hover:bg-red-700 hover:scale-105 active:scale-95 transition-all">
                   <Plus className="h-6 w-6 mr-2" /> Agendar Nova Live
                 </Button>
               </DialogTrigger>
@@ -189,7 +195,7 @@ export default function TeacherLiveManagement() {
                       <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-none font-bold">
                         <SelectValue placeholder="Selecione uma trilha" />
                       </SelectTrigger>
-                      <SelectContent className="rounded-2xl">
+                      <SelectContent className="rounded-xl">
                         <SelectItem value="none">Live Geral (Mural de Lives)</SelectItem>
                         {trails.map(t => (
                           <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
@@ -236,129 +242,145 @@ export default function TeacherLiveManagement() {
           <div className="flex items-center justify-between px-4">
             <h2 className="text-xl font-black text-primary italic flex items-center gap-3">
               <MonitorPlay className="h-6 w-6 text-red-600" />
-              Transmissões Ativas e Agendadas
+              Monitoramento de Sinais
             </h2>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Studio Sync On</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sistema Operacional</span>
             </div>
           </div>
 
           {livesLoading ? (
             <div className="py-32 flex flex-col items-center justify-center gap-4">
               <Loader2 className="animate-spin h-12 w-12 text-red-600" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Sincronizando Sinal...</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Sincronizando Estúdio...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {lives.map((live) => (
-                <Card key={live.id} className="group border-none bg-white rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 flex flex-col">
-                  <div className="relative aspect-video bg-black overflow-hidden">
+                <Card key={live.id} className="group border-none bg-white rounded-[2.5rem] overflow-hidden shadow-xl hover:shadow-[0_20px_60px_-15px_rgba(220,38,38,0.2)] transition-all duration-500 flex flex-col border-t-4 border-transparent hover:border-red-600">
+                  <div className="relative aspect-video bg-slate-900 overflow-hidden">
                     <img 
                       src={`https://img.youtube.com/vi/${live.youtube_id}/maxresdefault.jpg`} 
-                      className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-1000"
+                      className="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-1000"
                       alt={live.title}
                       onError={(e) => { (e.target as any).src = `https://img.youtube.com/vi/${live.youtube_id}/mqdefault.jpg` }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent opacity-90" />
+                    
                     <div className="absolute top-4 left-4 flex gap-2">
                       <Badge className="bg-red-600 text-white border-none font-black text-[8px] uppercase px-3 py-1 shadow-lg">
-                        {new Date(live.start_time) <= new Date() ? 'AO VIVO' : 'AGENDADA'}
+                        {new Date(live.start_time) <= new Date() ? 'LIVE NOW' : 'SCHEDULED'}
                       </Badge>
                     </div>
-                    <div className="absolute bottom-4 left-4 right-4">
-                       <h3 className="text-xl font-black text-white italic leading-tight line-clamp-1">{live.title}</h3>
-                       <div className="flex items-center gap-3 mt-2 text-white/60">
-                         <div className="flex items-center gap-1">
-                           <Clock className="h-3 w-3" />
-                           <span className="text-[10px] font-bold uppercase">{new Date(live.start_time).toLocaleDateString()}</span>
+
+                    <div className="absolute bottom-6 left-6 right-6">
+                       <div className="flex items-center gap-2 mb-2">
+                         <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                         <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Stream ID: {live.id.slice(0,8)}</span>
+                       </div>
+                       <h3 className="text-2xl font-black text-white italic leading-tight line-clamp-1">{live.title}</h3>
+                       <div className="flex items-center gap-4 mt-3 text-white/60">
+                         <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-md">
+                           <Clock className="h-3.5 w-3.5 text-red-500" />
+                           <span className="text-[10px] font-bold uppercase">{new Date(live.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                          </div>
-                         <div className="h-1 w-1 rounded-full bg-white/20" />
-                         <div className="flex items-center gap-1">
-                           <Users className="h-3 w-3" />
-                           <span className="text-[10px] font-bold uppercase">Interativo</span>
+                         <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-md">
+                           <Users className="h-3.5 w-3.5 text-blue-400" />
+                           <span className="text-[10px] font-bold uppercase">42 On</span>
                          </div>
                        </div>
                     </div>
                   </div>
-                  <CardContent className="p-6 flex flex-col gap-4 bg-white mt-auto">
+                  
+                  <CardContent className="p-8 flex flex-col gap-6 bg-white mt-auto">
                     <div className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Destino do Sinal</p>
-                        <p className="text-xs font-bold text-primary truncate max-w-[150px]">
-                          {trails.find(t => t.id === live.trail_id)?.title || 'Mural Geral'}
-                        </p>
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Destino do Canal</p>
+                        <Badge variant="outline" className="border-slate-200 text-slate-600 font-bold truncate max-w-[180px]">
+                          {trails.find(t => t.id === live.trail_id)?.title || 'Feed de Lives Geral'}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button 
                           variant="ghost" 
                           size="icon" 
                           onClick={() => handleDelete(live.id)}
-                          className="h-10 w-10 rounded-xl hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-all"
+                          className="h-12 w-12 rounded-2xl hover:bg-red-50 text-slate-300 hover:text-red-600 transition-all"
                         >
                           <Trash2 className="h-5 w-5" />
                         </Button>
                       </div>
                     </div>
-                    <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-black h-12 rounded-xl shadow-lg gap-2">
+                    
+                    <Button asChild className="w-full bg-slate-900 text-white hover:bg-red-600 font-black h-14 rounded-2xl shadow-xl gap-3 transition-all">
                       <Link href={`/dashboard/teacher/live/${live.id}`}>
-                        <Activity className="h-4 w-4" /> Monitorar Estúdio
+                        <Activity className="h-5 w-5" /> Monitorar Estúdio
                       </Link>
                     </Button>
                   </CardContent>
                 </Card>
               ))}
               {lives.length === 0 && (
-                <div className="col-span-full p-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
-                  <MonitorPlay className="h-16 w-16 mx-auto mb-4" />
-                  <p className="font-black italic text-xl">Estúdio em Silêncio</p>
-                  <p className="text-sm font-medium mt-2">Clique em "Agendar Nova Live" para iniciar suas transmissões.</p>
+                <div className="col-span-full p-20 text-center border-4 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50 opacity-40">
+                  <MonitorPlay className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+                  <p className="font-black italic text-xl text-slate-400 uppercase tracking-tighter">Estúdio em Silêncio</p>
+                  <p className="text-sm font-medium mt-2">Configure o sinal no botão "Agendar Nova Live" acima.</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Sidebar Status Panels */}
+        {/* Sidebar Analytics - Visual Diferente */}
         <div className="space-y-8">
           <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-red-600/10 flex items-center justify-center">
-                  <Zap className="h-6 w-6 text-red-600" />
+                <div className="h-14 w-14 rounded-3xl bg-blue-50 flex items-center justify-center">
+                  <Zap className="h-7 w-7 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase text-muted-foreground">Monitoramento</p>
-                  <p className="text-xl font-black italic">Sinal Ativo</p>
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Network Health</p>
+                  <p className="text-xl font-black italic">Sinal: 100%</p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-[10px] font-bold uppercase opacity-60">
-                  <span>Qualidade</span>
-                  <span className="text-green-600">4K Ultra HD</span>
+                  <span>Stream Quality</span>
+                  <span className="text-green-600 font-black">4K ULTRACAST</span>
                 </div>
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full w-[95%] bg-green-500" />
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full w-[98%] bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
                 </div>
               </div>
             </div>
           </Card>
 
-          <Card className="border-none bg-primary text-white rounded-[2.5rem] p-8 shadow-2xl overflow-hidden relative">
-            <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-red-600/20 rounded-full blur-2xl" />
+          <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] p-8 shadow-2xl overflow-hidden relative">
+            <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-blue-600/20 rounded-full blur-3xl" />
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-red-500">
+                <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center text-blue-400">
                   <MessageCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase text-white/40">Moderação Social</p>
-                  <p className="text-xl font-black italic">Dúvidas Ativas</p>
+                  <p className="text-[10px] font-black uppercase text-white/40">Pedagogia Ativa</p>
+                  <p className="text-xl font-black italic">Interação IA</p>
                 </div>
               </div>
               <p className="text-[11px] font-medium leading-relaxed italic text-white/60">
-                O sistema de moderação prioriza as dúvidas enviadas pelo botão especial do aluno, permitindo que você responda as questões mais importantes primeiro.
+                O sistema prioriza automaticamente dúvidas enviadas pelo botão especial do aluno, permitindo que você as visualize na aba "Perguntas" do monitor de estúdio.
               </p>
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[9px] font-black uppercase text-white/40">Questões do Mês</span>
+                  <span className="text-[9px] font-black text-blue-400">120+</span>
+                </div>
+                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full w-[70%] bg-blue-400" />
+                </div>
+              </div>
             </div>
           </Card>
         </div>
