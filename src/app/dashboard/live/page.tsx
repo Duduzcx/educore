@@ -17,21 +17,10 @@ interface Live {
   start_time: string;
   youtube_id: string;
   youtube_url: string;
+  url?: string;
 }
 
 const DEFAULT_VIDEO_ID = 'rfscVS0vtbw'; // Aulão de Redação como fallback
-
-const DEMO_LIVES: Live[] = [
-  {
-    id: 'demo-live-1',
-    title: 'Aulão Especial: Redação Nota 1000 para o ENEM',
-    description: 'Análise profunda dos critérios de correção e como estruturar uma proposta de intervenção impecável.',
-    teacher_name: 'Prof. Marcos Mendes',
-    start_time: new Date().toISOString(),
-    youtube_id: DEFAULT_VIDEO_ID,
-    youtube_url: `https://www.youtube.com/watch?v=${DEFAULT_VIDEO_ID}`
-  }
-];
 
 export default function LivePage() {
   const { user } = useAuth();
@@ -44,42 +33,31 @@ export default function LivePage() {
       if (!user) return;
       setLoading(true);
       try {
-        // Tenta buscar todas as colunas
         const { data, error } = await supabase
           .from('lives')
           .select('*')
           .order('start_time', { ascending: false });
 
         if (error) {
-          // Se houver erro de coluna, tenta buscar apenas o básico ou usa Demo
-          console.warn("Schema Cache mismatch detectado. Entrando em modo de resiliência.");
+          console.warn("Schema mismatch. Entrando em modo de resiliência.");
           setIsResilienceMode(true);
-          
-          const { data: fallbackData } = await supabase.from('lives').select('id, title').limit(5);
-          if (fallbackData && fallbackData.length > 0) {
-             // Mapeia o fallback para o formato da interface com valores padrão
-             const mapped = fallbackData.map((l: any) => ({
-               ...l,
-               teacher_name: "Docente da Rede",
-               start_time: new Date().toISOString(),
-               youtube_id: DEFAULT_VIDEO_ID
-             }));
-             setLives(mapped as any);
-          } else {
-            setLives(DEMO_LIVES);
+          // Tenta carregar apenas o que estiver disponível
+          const { data: fallback } = await supabase.from('lives').select('id, title').limit(10);
+          if (fallback && fallback.length > 0) {
+            setLives(fallback.map(l => ({
+              ...l,
+              teacher_name: "Docente da Rede",
+              start_time: new Date().toISOString(),
+              youtube_id: DEFAULT_VIDEO_ID,
+              youtube_url: `https://youtube.com/watch?v=${DEFAULT_VIDEO_ID}`
+            })) as any);
           }
         } else {
-          if (data && data.length > 0) {
-            setLives(data);
-            setIsResilienceMode(false);
-          } else {
-            setLives(DEMO_LIVES);
-            setIsResilienceMode(true);
-          }
+          setLives(data || []);
+          setIsResilienceMode(false);
         }
       } catch (err: any) {
         setIsResilienceMode(true);
-        setLives(DEMO_LIVES);
       } finally {
         setLoading(false);
       }
@@ -88,10 +66,18 @@ export default function LivePage() {
     fetchLives();
   }, [user]);
 
+  // Função robusta para extrair o link da live
+  const getLiveLink = (live: Live) => {
+    if (live.youtube_url) return live.youtube_url;
+    if (live.url) return live.url;
+    if (live.youtube_id) return `https://www.youtube.com/watch?v=${live.youtube_id}`;
+    return `https://www.youtube.com/watch?v=${DEFAULT_VIDEO_ID}`;
+  };
+
   const now = new Date();
   const liveNow = lives.filter(l => {
     const start = new Date(l.start_time);
-    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000); 
+    const end = new Date(start.getTime() + 3 * 60 * 60 * 1000); // 3 horas de duração estimada
     return now >= start && now <= end;
   });
 
@@ -106,18 +92,18 @@ export default function LivePage() {
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-black text-primary italic leading-none">Aulas ao Vivo</h1>
           {isResilienceMode && (
-            <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 font-black text-[8px] animate-pulse">
-              MODO DE RESILIÊNCIA ATIVO (DADOS DE BACKUP)
+            <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 font-black text-[8px] animate-pulse">
+              MODO DE SEGURANÇA ATIVO
             </Badge>
           )}
         </div>
-        <p className="text-muted-foreground font-medium italic">Acompanhe transmissões em tempo real da Rede EduCore.</p>
+        <p className="text-muted-foreground font-medium italic">Transmissões em tempo real da Rede EduCore para todo o Brasil.</p>
       </div>
 
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-4 text-center">
           <Loader2 className="h-12 w-12 animate-spin text-accent" />
-          <p className="font-black text-primary uppercase text-[10px] tracking-widest animate-pulse">Sincronizando...</p>
+          <p className="font-black text-primary uppercase text-[10px] tracking-widest animate-pulse">Sincronizando Estúdio...</p>
         </div>
       ) : (
         <>
@@ -137,7 +123,7 @@ export default function LivePage() {
                           <CardTitle className="text-xl md:text-2xl font-black text-primary italic truncate leading-tight">{live.title}</CardTitle>
                           <p className="text-xs font-bold text-muted-foreground mt-1 opacity-60 uppercase tracking-widest">{live.teacher_name || 'Docente da Rede'}</p>
                         </div>
-                        <Badge className="bg-red-600 text-white font-black animate-pulse px-4 h-7 border-none shrink-0 text-[10px] shadow-lg">LIVE</Badge>
+                        <Badge className="bg-red-600 text-white font-black animate-pulse px-4 h-7 border-none shrink-0 text-[10px] shadow-lg">AO VIVO</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="px-8 pb-8">
@@ -151,6 +137,14 @@ export default function LivePage() {
                            allowFullScreen
                          ></iframe>
                        </div>
+                       <div className="mt-6">
+                         <Button className="w-full bg-primary text-white h-12 rounded-xl font-black text-xs uppercase group" asChild>
+                           <a href={getLiveLink(live)} target="_blank" rel="noopener noreferrer">
+                             Assistir no YouTube
+                             <ExternalLink className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                           </a>
+                         </Button>
+                       </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -159,7 +153,7 @@ export default function LivePage() {
               <div className="p-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5 opacity-40">
                 <PlayCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                 <p className="font-black italic text-xl">O estúdio está em silêncio...</p>
-                <p className="text-sm font-medium mt-2 italic">Nenhuma transmissão acontecendo neste minuto.</p>
+                <p className="text-sm font-medium mt-2 italic">Não há transmissões acontecendo agora. Confira a agenda!</p>
               </div>
             )}
           </section>
@@ -192,7 +186,7 @@ export default function LivePage() {
                         </div>
                       </div>
                       <Button variant="outline" className="w-full md:w-auto rounded-xl font-black text-[10px] uppercase border-dashed hover:bg-primary hover:text-white transition-all h-12 px-8" asChild>
-                        <a href={live.youtube_url || `https://youtube.com/watch?v=${live.youtube_id || DEFAULT_VIDEO_ID}`} target="_blank" rel="noopener noreferrer">Ativar Lembrete</a>
+                        <a href={getLiveLink(live)} target="_blank" rel="noopener noreferrer">Ativar Lembrete</a>
                       </Button>
                     </CardContent>
                   </Card>
