@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 import { 
   Users, 
   MessageCircle, 
@@ -46,36 +47,81 @@ export default function TeacherLiveStudioPage() {
         const { data: liveData } = await supabase.from('lives').select('*').eq('id', liveId).single();
         setLive(liveData);
 
-        const { data: msgs } = await supabase.from('forum_posts').select('*').eq('forum_id', liveId).order('created_at', { ascending: true });
+        const { data: msgs } = await supabase
+          .from('forum_posts')
+          .select('*')
+          .eq('forum_id', liveId)
+          .order('created_at', { ascending: true });
         setMessages(msgs || []);
 
+        // Inscrição em tempo real para o chat do estúdio
         const channel = supabase.channel(`studio_chat_${liveId}`)
-          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'forum_posts', filter: `forum_id=eq.${liveId}` }, 
-          (payload) => { setMessages(prev => [...prev, payload.new]); })
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'forum_posts', filter: `forum_id=eq.${liveId}` }, 
-          (payload) => { setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m)); })
+          .on('postgres_changes', { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'forum_posts',
+            filter: `forum_id=eq.${liveId}`
+          }, (payload) => {
+            setMessages(prev => [...prev, payload.new]);
+          })
+          .on('postgres_changes', { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'forum_posts',
+            filter: `forum_id=eq.${liveId}`
+          }, (payload) => {
+            setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
+          })
           .subscribe();
-        return () => { supabase.removeChannel(channel); };
-      } catch (err) { console.error(err); } finally { setLoading(false); }
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, [user, liveId]);
 
   const markAsAnswered = async (msgId: string) => {
-    const { error } = await supabase.from('forum_posts').update({ is_answered: true }).eq('id', msgId);
-    if (!error) toast({ title: "Dúvida Marcada como Respondida" });
+    const { error } = await supabase
+      .from('forum_posts')
+      .update({ is_answered: true })
+      .eq('id', msgId);
+    
+    if (!error) {
+      toast({ title: "Dúvida Marcada como Respondida" });
+    }
   };
 
-  const filteredMessages = activeTab === 'all' ? messages : messages.filter(m => m.is_question);
+  const filteredMessages = activeTab === 'all' 
+    ? messages 
+    : messages.filter(m => m.is_question);
+
   const questionCount = messages.filter(m => m.is_question && !m.is_answered).length;
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+      }
+    }
+  }, [filteredMessages]);
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin h-12 w-12 text-red-600" /></div>;
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] space-y-6 animate-in fade-in duration-700">
+      {/* Studio Monitor Top Bar */}
       <div className="flex items-center justify-between bg-primary p-6 rounded-3xl text-white shadow-2xl border-b-4 border-red-600">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-white/10 rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-white/10 rounded-full">
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
           <div>
             <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none">{live?.title}</h1>
             <p className="text-[10px] font-bold text-white/60 tracking-widest mt-1 uppercase">Monitoramento de Estúdio • Signal: 100%</p>
@@ -96,9 +142,16 @@ export default function TeacherLiveStudioPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
+        {/* Left Column: Preview & Stats */}
         <div className="lg:col-span-2 flex flex-col space-y-6">
           <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/5 relative group">
-            <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${live?.youtube_id}?autoplay=1&mute=1`} frameBorder="0" allowFullScreen />
+            <iframe 
+              width="100%" 
+              height="100%" 
+              src={`https://www.youtube.com/embed/${live?.youtube_id}?autoplay=1&mute=1`} 
+              frameBorder="0" 
+              allowFullScreen 
+            />
             <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
               <Badge className="bg-black/60 backdrop-blur-md text-white border-none font-bold">Preview do Estúdio</Badge>
             </div>
@@ -123,6 +176,7 @@ export default function TeacherLiveStudioPage() {
           </div>
         </div>
 
+        {/* Right Column: Interaction Hub */}
         <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col h-full relative">
           <div className="flex flex-col h-full">
             <div className="p-4 bg-muted/30 border-b flex items-center justify-between shrink-0">
@@ -130,7 +184,9 @@ export default function TeacherLiveStudioPage() {
                 <button 
                   onClick={() => setActiveTab('all')}
                   className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${activeTab === 'all' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-muted'}`}
-                >Chat Geral</button>
+                >
+                  Chat Geral
+                </button>
                 <button 
                   onClick={() => setActiveTab('questions')}
                   className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all flex items-center gap-2 ${activeTab === 'questions' ? 'bg-amber-500 text-white' : 'text-muted-foreground hover:bg-muted'}`}
@@ -144,11 +200,22 @@ export default function TeacherLiveStudioPage() {
             <ScrollArea className="flex-1 p-6" ref={scrollRef}>
               <div className="flex flex-col gap-4">
                 {filteredMessages.map((msg, i) => (
-                  <div key={i} className={`group flex flex-col gap-1.5 p-4 rounded-2xl transition-all ${msg.is_question ? (msg.is_answered ? 'bg-green-50 border border-green-100' : 'bg-amber-50 border border-amber-200 shadow-sm') : 'bg-muted/20'}`}>
+                  <div 
+                    key={msg.id || i} 
+                    className={`group flex flex-col gap-1.5 p-4 rounded-2xl transition-all ${
+                      msg.is_question 
+                        ? (msg.is_answered ? 'bg-green-50 border border-green-100' : 'bg-amber-50 border border-amber-200 shadow-sm') 
+                        : 'bg-muted/20'
+                    }`}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">{msg.author_name}</span>
-                        {msg.is_question && <Badge className={`${msg.is_answered ? 'bg-green-500' : 'bg-amber-500'} text-white border-none text-[6px] font-black h-3 px-1.5`}>{msg.is_answered ? 'RESPONDIDA' : 'PERGUNTA'}</Badge>}
+                        {msg.is_question && (
+                          <Badge className={`${msg.is_answered ? 'bg-green-500' : 'bg-amber-500'} text-white border-none text-[6px] font-black h-3 px-1.5`}>
+                            {msg.is_answered ? 'RESPONDIDA' : 'PERGUNTA'}
+                          </Badge>
+                        )}
                       </div>
                       {msg.is_question && !msg.is_answered && (
                         <Button 
@@ -161,7 +228,9 @@ export default function TeacherLiveStudioPage() {
                         </Button>
                       )}
                     </div>
-                    <p className={`text-xs font-medium leading-relaxed ${msg.is_question && !msg.is_answered ? 'text-amber-900 font-bold' : 'text-primary'}`}>{msg.content}</p>
+                    <p className={`text-xs font-medium leading-relaxed ${msg.is_question && !msg.is_answered ? 'text-amber-900 font-bold' : 'text-primary'}`}>
+                      {msg.content}
+                    </p>
                   </div>
                 ))}
                 {filteredMessages.length === 0 && (
@@ -175,8 +244,13 @@ export default function TeacherLiveStudioPage() {
 
             <div className="p-4 bg-muted/5 border-t shrink-0">
               <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl shadow-lg border border-muted/20">
-                <Input placeholder="Responder no chat..." className="flex-1 border-none shadow-none text-xs font-bold italic" />
-                <Button size="icon" className="h-10 w-10 bg-primary rounded-xl shrink-0"><Send className="h-4 w-4" /></Button>
+                <Input 
+                  placeholder="Responder no chat..." 
+                  className="flex-1 border-none shadow-none text-xs font-bold italic h-10" 
+                />
+                <Button size="icon" className="h-10 w-10 bg-primary rounded-xl shrink-0">
+                  <Send className="h-4 w-4 text-white" />
+                </Button>
               </div>
             </div>
           </div>
