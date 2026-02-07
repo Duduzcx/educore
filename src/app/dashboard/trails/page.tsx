@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,8 +31,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { useFirestore, useCollection, useUser, useDoc, useMemoFirebase } from "@/firebase";
-import { query, where, collection, doc } from "firebase/firestore";
+import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 const TRAIL_CATEGORIES = ["Todos", "Matemática", "Tecnologia", "Linguagens", "Física", "História"];
 const AUDIENCE_FILTERS = [
@@ -58,38 +58,41 @@ const EXAMPLE_TRAILS = [
 ];
 
 export default function LearningTrailsPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [activeAudience, setActiveAudience] = useState("all");
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, "users", user.uid);
-  }, [user, firestore]);
   
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [dbTrails, setDbTrails] = useState<any[]>([]);
+  const [allProgress, setAllProgress] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const trailsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(
-      collection(firestore, "learning_trails"), 
-      where("status", "==", "active")
-    );
-  }, [firestore]);
+  useEffect(() => {
+    async function fetchData() {
+      if (!user) return;
+      setLoading(true);
+      
+      try {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setUserProfile(profile);
 
-  const { data: dbTrails, isLoading: isTrailsLoading } = useCollection(trailsQuery);
+        const { data: trails } = await supabase.from('learning_trails').select('*').eq('status', 'active');
+        setDbTrails(trails || []);
 
-  const progressQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, "user_progress"), where("userId", "==", user.uid));
-  }, [firestore, user]);
-
-  const { data: allProgress } = useCollection(progressQuery);
+        const { data: progress } = await supabase.from('user_progress').select('*').eq('user_id', user.id);
+        setAllProgress(progress || []);
+      } catch (err) {
+        console.error("Erro ao carregar trilhas:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [user]);
 
   const filteredTrails = useMemo(() => {
-    const all = [...(dbTrails || []), ...EXAMPLE_TRAILS];
+    const all = [...dbTrails, ...EXAMPLE_TRAILS];
     
     return all.filter(trail => {
       const matchesSearch = trail.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -101,7 +104,7 @@ export default function LearningTrailsPage() {
     });
   }, [dbTrails, searchTerm, activeCategory, activeAudience]);
 
-  if (isProfileLoading || isTrailsLoading) {
+  if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
         <Loader2 className="h-12 w-12 animate-spin text-accent" />
@@ -115,14 +118,14 @@ export default function LearningTrailsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black tracking-tight text-primary italic leading-none animate-in slide-in-from-left-4 duration-500">Trilhas de Aprendizado</h1>
+            <h1 className="text-3xl font-black tracking-tight text-primary italic leading-none">Trilhas de Aprendizado</h1>
             {userProfile && (
               <Badge className="bg-accent text-accent-foreground font-black text-[9px] uppercase px-3 shadow-lg border-none h-6 tracking-widest animate-pulse">
-                {userProfile.profileType === 'etec' ? 'PERFIL ETEC' : 'PERFIL VESTIBULAR'}
+                {userProfile.profile_type === 'etec' ? 'PERFIL ETEC' : 'PERFIL VESTIBULAR'}
               </Badge>
             )}
           </div>
-          <p className="text-muted-foreground font-medium text-lg animate-in fade-in duration-1000">Caminhos pedagógicos estruturados para sua evolução.</p>
+          <p className="text-muted-foreground font-medium text-lg">Caminhos pedagógicos estruturados para sua evolução.</p>
         </div>
         <div className="relative w-full md:w-80 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-accent transition-colors" />
@@ -178,7 +181,7 @@ export default function LearningTrailsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {filteredTrails.length > 0 ? (
             filteredTrails.map((trail, index) => {
-              const userProgress = allProgress?.find(p => p.trailId === trail.id);
+              const userProgress = allProgress?.find(p => p.trail_id === trail.id);
               const percentage = userProgress?.percentage || 0;
               const isCompleted = percentage === 100;
 
@@ -197,16 +200,16 @@ export default function LearningTrailsPage() {
                         <div className="flex gap-2">
                           <Badge className="bg-white/80 backdrop-blur-md text-primary border-none shadow-lg flex items-center gap-2 px-4 py-1.5 rounded-xl">
                             <Layers className="h-4 w-4 text-accent" />
-                            <span className="text-[10px] font-black uppercase tracking-wider">{trail.modulesCount || 0} Módulos</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider">{trail.modules_count || trail.modulesCount || 0} Módulos</span>
                           </Badge>
-                          {trail.isNew && (
+                          {(trail.is_new || trail.isNew) && (
                             <Badge className="bg-orange-500 text-white border-none shadow-lg px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-bounce">
                               <Zap className="h-3 w-3 fill-white" />
                               <span className="text-[8px] font-black uppercase">NOVO</span>
                             </Badge>
                           )}
                         </div>
-                        {trail.isFundamental && (
+                        {(trail.is_fundamental || trail.isFundamental) && (
                           <Badge className="bg-accent text-accent-foreground border-none shadow-xl px-4 py-1.5 rounded-xl flex items-center gap-2 w-fit animate-pulse">
                             <Flame className="h-3.5 w-3.5 fill-accent-foreground" />
                             <span className="text-[9px] font-black uppercase tracking-tighter">ALTA RECORRÊNCIA</span>
@@ -267,7 +270,7 @@ export default function LearningTrailsPage() {
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-primary/5 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden shrink-0 transition-transform duration-500 group-hover/card:scale-110">
                           <Image 
-                            src={`https://picsum.photos/seed/prof-${trail.teacherId || 'default'}/100/100`} 
+                            src={`https://picsum.photos/seed/prof-${trail.teacher_id || trail.teacherId || 'default'}/100/100`} 
                             alt="Professor" 
                             width={36} 
                             height={36} 
@@ -276,7 +279,7 @@ export default function LearningTrailsPage() {
                         </div>
                         <div className="flex flex-col overflow-hidden">
                           <span className="text-[10px] font-black text-primary italic truncate max-w-[120px]">
-                            {trail.teacherName || "Mentor da Rede"}
+                            {trail.teacher_name || trail.teacherName || "Mentor da Rede"}
                           </span>
                           <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Docente</span>
                         </div>

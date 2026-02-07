@@ -10,10 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Send, ChevronLeft, Loader2, MessageSquare, Shield, Paperclip, FileText, Download, Sparkles, Bot, Info, BookOpen } from "lucide-react";
-import { useFirestore, useCollection, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, where, doc, updateDoc } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { useDoc } from "@/firebase/firestore/use-doc";
+import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 
@@ -21,72 +19,73 @@ export default function DirectChatPage() {
   const params = useParams();
   const contactId = params.id as string;
   const isAurora = contactId === "aurora-ai";
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  
   const [input, setInput] = useState("");
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{name: string, type: string, size: number} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const updatingMessagesRef = useRef<Set<string>>(new Set());
-
-  const contactRef = useMemoFirebase(() => {
-    if (!firestore || !contactId || isAurora) return null;
-    return doc(firestore, "users", contactId);
-  }, [firestore, contactId, isAurora]);
-  
-  const teacherContactRef = useMemoFirebase(() => {
-    if (!firestore || !contactId || isAurora) return null;
-    return doc(firestore, "teachers", contactId);
-  }, [firestore, contactId, isAurora]);
-
-  const { data: contactData } = useDoc(contactRef);
-  const { data: teacherContactData } = useDoc(teacherContactRef);
-  
-  const contact = isAurora ? { name: "Aurora IA", expertise: "Mentoria Geral & IA" } : (teacherContactData || contactData);
-  const isTeacher = !!teacherContactData;
-
-  const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !user || !contactId) return null;
-    const participantsCombo1 = [user.uid, contactId];
-    const participantsCombo2 = [contactId, user.uid];
-    return query(
-      collection(firestore, "chat_messages"),
-      where("participants", "in", [participantsCombo1, participantsCombo2])
-    );
-  }, [firestore, user, contactId]);
-
-  const { data: messages, isLoading } = useCollection(messagesQuery);
-
-  const filteredMessages = useMemo(() => {
-    if (!messages) return [];
-    return messages
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }, [messages]);
+  const [contact, setContact] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (filteredMessages.length > 0 && user && firestore && !isAurora) {
-      const unreadToMe = filteredMessages.filter(m => 
-        m.receiverId === user.uid && 
-        m.isRead === false && 
-        !updatingMessagesRef.current.has(m.id)
-      );
-
-      if (unreadToMe.length > 0) {
-        unreadToMe.forEach(m => {
-          updatingMessagesRef.current.add(m.id);
-          const mRef = doc(firestore, "chat_messages", m.id);
-          updateDoc(mRef, { isRead: true }).catch((err) => {
-            console.error("Erro ao marcar como lida:", err);
-            updatingMessagesRef.current.delete(m.id);
-          });
-        });
+    async function loadContact() {
+      if (!contactId || isAurora) {
+        if (isAurora) setContact({ name: "Aurora IA", expertise: "Mentoria Geral & IA" });
+        return;
+      }
+      
+      // Tenta buscar no perfil de professor primeiro
+      const { data: teacher } = await supabase.from('teachers').select('*').eq('id', contactId).single();
+      if (teacher) {
+        setContact({ ...teacher, type: 'teacher' });
+      } else {
+        const { data: student } = await supabase.from('profiles').select('*').eq('id', contactId).single();
+        setContact({ ...student, type: 'student' });
       }
     }
-  }, [filteredMessages, user, firestore, isAurora]);
+    loadContact();
+  }, [contactId, isAurora]);
+
+  useEffect(() => {
+    if (!user || !contactId) return;
+
+    async function loadMessages() {
+      setIsLoading(true);
+      const { data } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${contactId}),and(sender_id.eq.${contactId},receiver_id.eq.${user.id})`)
+        .order('created_at', { ascending: true });
+      
+      setMessages(data || []);
+      setIsLoading(false);
+    }
+
+    loadMessages();
+
+    // Inscrição em tempo real
+    const channel = supabase
+      .channel(`chat_${user.id}_${contactId}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'chat_messages',
+        filter: `receiver_id=eq.${user.id}`
+      }, (payload) => {
+        setMessages(prev => [...prev, payload.new]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, contactId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -95,37 +94,40 @@ export default function DirectChatPage() {
         viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
       }
     }
-  }, [filteredMessages, isAiThinking]);
+  }, [messages, isAiThinking]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !selectedFile) || !user || !contactId || !firestore) return;
+    if ((!input.trim() && !selectedFile) || !user || !contactId) return;
 
     const userText = input;
     const messageData: any = {
-      senderId: user.uid,
-      receiverId: contactId,
+      sender_id: user.id,
+      receiver_id: contactId,
       message: userText || `Enviou um arquivo: ${selectedFile?.name}`,
-      timestamp: new Date().toISOString(),
-      participants: [user.uid, contactId],
-      isRead: isAurora 
+      created_at: new Date().toISOString(),
+      is_read: isAurora 
     };
 
     if (selectedFile) {
-      messageData.fileName = selectedFile.name;
-      messageData.fileType = selectedFile.type;
-      messageData.fileUrl = "https://picsum.photos/seed/file/800/600";
+      messageData.file_name = selectedFile.name;
+      messageData.file_type = selectedFile.type;
+      messageData.file_url = "https://picsum.photos/seed/file/800/600";
     }
 
-    addDocumentNonBlocking(collection(firestore, "chat_messages"), messageData);
+    const { data: sentMsg, error } = await supabase.from('chat_messages').insert(messageData).select().single();
+    if (!error) {
+      setMessages(prev => [...prev, sentMsg]);
+    }
+    
     setInput("");
     setSelectedFile(null);
 
     if (isAurora) {
       setIsAiThinking(true);
       try {
-        const history = filteredMessages.slice(-5).map(m => ({
-          role: (m.senderId === "aurora-ai" ? 'model' : 'user') as 'user' | 'model',
+        const history = messages.slice(-5).map(m => ({
+          role: (m.sender_id === "aurora-ai" ? 'model' : 'user') as 'user' | 'model',
           content: m.message
         }));
 
@@ -135,14 +137,15 @@ export default function DirectChatPage() {
         });
 
         if (result && result.response) {
-          addDocumentNonBlocking(collection(firestore, "chat_messages"), {
-            senderId: "aurora-ai",
-            receiverId: user.uid,
+          const { data: aiMsg } = await supabase.from('chat_messages').insert({
+            sender_id: "aurora-ai",
+            receiver_id: user.id,
             message: result.response,
-            timestamp: new Date().toISOString(),
-            participants: [user.uid, "aurora-ai"],
-            isRead: false
-          });
+            created_at: new Date().toISOString(),
+            is_read: false
+          }).select().single();
+          
+          if (aiMsg) setMessages(prev => [...prev, aiMsg]);
         }
       } catch (err) {
         toast({ title: "Aurora está ocupada", description: "Tente novamente em instantes.", variant: "destructive" });
@@ -176,9 +179,9 @@ export default function DirectChatPage() {
             <div className="min-w-0">
               <h1 className="text-sm md:text-lg font-black text-primary italic leading-none truncate">{contact?.name || "Carregando..."}</h1>
               <div className="flex items-center gap-1.5 mt-1 truncate">
-                {isTeacher && <BookOpen className="h-2.5 w-2.5 text-accent shrink-0" />}
+                {contact?.type === 'teacher' && <BookOpen className="h-2.5 w-2.5 text-accent shrink-0" />}
                 <p className="text-[8px] md:text-[9px] font-black text-muted-foreground uppercase tracking-widest truncate">
-                  {isAurora ? 'Tutor IA Integrado' : isTeacher ? `Mentor de ${contact?.subjects || 'Educação'}` : 'Estudante da Rede'}
+                  {isAurora ? 'Tutor IA Integrado' : contact?.type === 'teacher' ? `Mentor de ${contact?.subjects || 'Educação'}` : 'Estudante da Rede'}
                 </p>
               </div>
             </div>
@@ -198,7 +201,7 @@ export default function DirectChatPage() {
                 <Loader2 className="h-10 w-10 animate-spin text-accent" />
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Sincronizando Mensagens...</p>
               </div>
-            ) : filteredMessages?.length === 0 ? (
+            ) : messages.length === 0 ? (
               <div className="text-center py-20 opacity-30 flex flex-col items-center animate-in fade-in duration-1000">
                 <div className={`h-16 w-16 md:h-20 md:w-20 rounded-full ${isAurora ? 'bg-accent/20' : 'bg-muted'} flex items-center justify-center mb-4`}>
                   {isAurora ? <Sparkles className="h-10 w-10 text-accent" /> : <MessageSquare className="h-10 w-10" />}
@@ -207,19 +210,16 @@ export default function DirectChatPage() {
                 <p className="text-[10px] font-medium mt-1">{isAurora ? 'Como posso acelerar seu aprendizado hoje?' : `Envie sua dúvida para o mentor.`}</p>
               </div>
             ) : (
-              filteredMessages?.map((msg, i) => {
-                const isMe = msg.senderId === user?.uid;
-                const isFromAurora = msg.senderId === "aurora-ai";
-                const isImage = msg.fileType?.startsWith('image/');
+              messages.map((msg, i) => {
+                const isMe = msg.sender_id === user?.id;
+                const isFromAurora = msg.sender_id === "aurora-ai";
+                const isImage = msg.file_type?.startsWith('image/');
                 
                 return (
-                  // OTIMIZAÇÃO DE PERFORMANCE (TBT): Animações removidas.
-                  // Renderizar centenas de animações de uma vez causava um bloqueio de 26s na thread principal.
-                  // A remoção garante que a UI permaneça responsiva, mesmo em conversas com histórico longo.
                   <div key={msg.id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                     <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[90%] md:max-w-[75%] space-y-1`}>
                       {!isMe && (
-                        <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest px-2">{msg.senderId === "aurora-ai" ? "AURORA IA" : "MENTOR"}</span>
+                        <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest px-2">{msg.sender_id === "aurora-ai" ? "AURORA IA" : "CONTATO"}</span>
                       )}
                       <div className={`px-5 py-3 md:px-6 md:py-4 rounded-[1.5rem] md:rounded-[2rem] text-xs md:text-sm leading-relaxed font-medium shadow-sm border transition-all ${
                         isMe 
@@ -228,13 +228,13 @@ export default function DirectChatPage() {
                             ? 'bg-accent/10 text-primary rounded-tl-none border-accent/20'
                             : 'bg-muted/30 text-primary rounded-tl-none border-muted/20'
                       }`}>
-                        {msg.fileUrl && (
+                        {msg.file_url && (
                           <div className="mb-3 animate-in zoom-in duration-500">
                             {isImage ? (
-                              <div className="relative rounded-xl overflow-hidden mb-2 border-2 border-white/20"><img src={msg.fileUrl} alt="Anexo" className="w-full h-auto max-h-64 object-cover" /></div>
+                              <div className="relative rounded-xl overflow-hidden mb-2 border-2 border-white/20"><img src={msg.file_url} alt="Anexo" className="w-full h-auto max-h-64 object-cover" /></div>
                             ) : (
                               <div className={`flex items-center gap-3 p-3 rounded-xl ${isMe ? 'bg-white/10' : 'bg-white'} border border-white/10`}>
-                                <FileText className={`h-6 w-6 ${isMe ? 'text-white' : 'text-primary'}`} /><div className="flex-1 min-w-0"><p className="text-[9px] font-black uppercase truncate">{msg.fileName}</p></div>
+                                <FileText className={`h-6 w-6 ${isMe ? 'text-white' : 'text-primary'}`} /><div className="flex-1 min-w-0"><p className="text-[9px] font-black uppercase truncate">{msg.file_name}</p></div>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full shrink-0"><Download className="h-4 w-4" /></Button>
                               </div>
                             )}
@@ -244,9 +244,9 @@ export default function DirectChatPage() {
                       </div>
                       <div className={`flex items-center gap-2 px-2 ${isMe ? 'flex-row-reverse' : ''}`}>
                         <p className="text-[7px] font-black uppercase tracking-widest opacity-30">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(msg.created_at || msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        {isMe && <div className={`h-1 w-1 rounded-full ${msg.isRead ? 'bg-accent' : 'bg-muted-foreground/20'}`} />}
+                        {isMe && <div className={`h-1 w-1 rounded-full ${msg.is_read ? 'bg-accent' : 'bg-muted-foreground/20'}`} />}
                       </div>
                     </div>
                   </div>

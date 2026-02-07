@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +26,8 @@ import {
   Sparkles
 } from "lucide-react";
 import Link from "next/link";
-import { useFirestore, useCollection, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
-import { addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -50,37 +49,44 @@ const FORUM_CATEGORIES = [
 ];
 
 export default function ForumPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newForum, setNewForum] = useState({ name: "", description: "", category: "Dúvidas" });
+  const [forums, setForums] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const forumsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, "forums"), orderBy("createdAt", "desc"));
-  }, [firestore, user]);
+  useEffect(() => {
+    async function fetchForums() {
+      if (!user) return;
+      setLoading(true);
+      const { data, error } = await supabase.from('forums').select('*').order('created_at', { ascending: false });
+      if (!error) setForums(data || []);
+      setLoading(false);
+    }
+    fetchForums();
+  }, [user]);
 
-  const { data: forums, isLoading } = useCollection(forumsQuery);
+  const handleCreateForum = async () => {
+    if (!newForum.name.trim() || !user) return;
 
-  const handleCreateForum = () => {
-    if (!newForum.name.trim() || !firestore || !user) return;
-
-    addDocumentNonBlocking(collection(firestore, "forums"), {
+    const { data, error } = await supabase.from('forums').insert({
       name: newForum.name,
       description: newForum.description,
       category: newForum.category,
-      authorId: user.uid,
-      authorName: user.displayName || "Usuário",
-      createdAt: new Date().toISOString(),
-      blockedUsers: []
-    });
+      author_id: user.id,
+      author_name: user.user_metadata?.full_name || "Usuário",
+      created_at: new Date().toISOString()
+    }).select().single();
 
-    toast({ title: "Discussão Iniciada!", description: "Sua pergunta já está na rede." });
-    setIsCreateOpen(false);
-    setNewForum({ name: "", description: "", category: "Dúvidas" });
+    if (!error) {
+      setForums([data, ...forums]);
+      toast({ title: "Discussão Iniciada!", description: "Sua pergunta já está na rede." });
+      setIsCreateOpen(false);
+      setNewForum({ name: "", description: "", category: "Dúvidas" });
+    }
   };
 
   const filteredForums = forums?.filter(f => {
@@ -175,20 +181,6 @@ export default function ForumPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-12 w-12 md:h-14 md:w-14 rounded-2xl bg-white border-none shadow-xl shadow-accent/5 hover:bg-accent hover:text-white transition-all active:scale-90 shrink-0 hidden md:flex">
-              <Filter className="h-6 w-6" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 border-none shadow-2xl bg-white">
-            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3 py-3">Filtros</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-muted/50 mx-2" />
-            <DropdownMenuItem className="rounded-xl px-3 py-2.5 font-bold text-sm cursor-pointer mb-1 bg-primary text-white">Todos os Tópicos</DropdownMenuItem>
-            <DropdownMenuItem className="rounded-xl px-3 py-2.5 font-bold text-sm cursor-pointer mb-1 hover:bg-muted">Meus Tópicos</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <div className="w-full px-1 overflow-hidden shrink-0">
@@ -208,7 +200,7 @@ export default function ForumPage() {
       </div>
 
       <div className="flex-1 min-w-0 w-full">
-        {isLoading ? (
+        {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-10 w-10 animate-spin text-accent" />
             <p className="font-black text-muted-foreground uppercase text-[9px] tracking-widest animate-pulse">Sincronizando Rede...</p>
@@ -259,12 +251,12 @@ export default function ForumPage() {
                   <div className="flex items-center justify-between pt-4 border-t border-muted/20">
                     <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
                       <Avatar className="h-7 w-7 md:h-8 md:w-8 border-2 border-primary/10 shadow-sm shrink-0">
-                        <AvatarImage src={`https://picsum.photos/seed/author-${forum.authorId}/50/50`} />
+                        <AvatarImage src={`https://picsum.photos/seed/author-${forum.author_id}/50/50`} />
                         <AvatarFallback className="text-[8px] md:text-[10px] font-black bg-primary text-white italic">
-                          {forum.authorName?.charAt(0) || "?"}
+                          {forum.author_name?.charAt(0) || "?"}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-[9px] md:text-[10px] font-bold text-primary italic truncate max-w-[80px] md:max-w-[100px]">{forum.authorName}</span>
+                      <span className="text-[9px] md:text-[10px] font-bold text-primary italic truncate max-w-[80px] md:max-w-[100px]">{forum.author_name}</span>
                     </div>
                     <Button variant="ghost" className="font-black text-[9px] md:text-[11px] uppercase text-accent hover:bg-accent/10 gap-1.5 h-9 md:h-10 px-3 md:px-4 rounded-xl group/btn active:scale-90 transition-all" asChild>
                       <Link href={`/dashboard/forum/${forum.id}`}>
@@ -279,14 +271,6 @@ export default function ForumPage() {
           </div>
         )}
       </div>
-
-      {!filteredForums?.length && !isLoading && (
-        <div className="col-span-full py-20 md:py-32 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] md:rounded-[3rem] bg-muted/5 animate-in fade-in duration-1000 mx-1">
-          <Hash className="h-12 w-12 md:h-20 md:w-20 text-muted-foreground/20 mx-auto mb-4" />
-          <p className="font-black text-primary italic text-xl md:text-2xl">Nenhuma discussão encontrada</p>
-          <p className="text-muted-foreground font-medium mt-2 text-sm md:text-base">Seja o primeiro a iniciar um tópico nesta categoria!</p>
-        </div>
-      )}
     </div>
   );
 }

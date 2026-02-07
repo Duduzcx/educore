@@ -30,11 +30,10 @@ import {
   HelpCircle
 } from "lucide-react";
 import Link from "next/link";
-import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/lib/supabase";
 import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 import { useToast } from "@/hooks/use-toast";
-import { setDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 declare global {
   interface Window {
@@ -47,10 +46,15 @@ export default function ClassroomPage() {
   const params = useParams();
   const trailId = params.id as string;
   const isDemo = trailId.startsWith("ex-");
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+
+  const [trail, setTrail] = useState<any>(null);
+  const [modules, setModules] = useState<any[]>([]);
+  const [contents, setContents] = useState<any[]>([]);
+  const [progress, setProgress] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [activeContentId, setActiveContentId] = useState<string | null>(null);
@@ -71,42 +75,40 @@ export default function ClassroomPage() {
   const playerRef = useRef<any>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  const trailRef = useMemoFirebase(() => {
-    if (isDemo || !firestore || !trailId) return null;
-    return doc(firestore, "learning_trails", trailId);
-  }, [firestore, trailId, isDemo]);
-  const { data: trailData } = useDoc(trailRef);
+  useEffect(() => {
+    async function loadData() {
+      if (!user || isDemo) return;
+      setLoading(true);
+      try {
+        const { data: trailData } = await supabase.from('learning_trails').select('*').eq('id', trailId).single();
+        setTrail(trailData);
 
-  const progressRef = useMemoFirebase(() => {
-    if (!firestore || !user || isDemo) return null;
-    return doc(firestore, "user_progress", `${user.uid}_${trailId}`);
-  }, [firestore, user, trailId, isDemo]);
-  const { data: progressData } = useDoc(progressRef);
+        const { data: modulesData } = await supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order', { ascending: true });
+        setModules(modulesData || []);
 
-  const trail = isDemo ? { title: "Aula Digital Exemplo", category: "Demonstração", totalContents: 10 } : trailData;
+        const { data: progData } = await supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).single();
+        setProgress(progData);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [user, trailId, isDemo]);
 
-  const modulesQuery = useMemoFirebase(() => {
-    if (isDemo || !firestore || !trailId) return null;
-    return collection(firestore, "learning_trails", trailId, "modules");
-  }, [firestore, trailId, isDemo]);
-  const { data: dbModules } = useCollection(modulesQuery);
-
-  const modules = isDemo ? [] : (dbModules || []);
-
-  const contentsQuery = useMemoFirebase(() => {
-    if (isDemo || !firestore || !trailId || !activeModuleId) return null;
-    return collection(firestore, "learning_trails", trailId, "modules", activeModuleId, "contents");
-  }, [firestore, trailId, activeModuleId, isDemo]);
-  const { data: dbContents } = useCollection(contentsQuery);
-
-  const contents = useMemo(() => {
-    return isDemo ? [] : (dbContents || []).sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [dbContents, isDemo]);
+  useEffect(() => {
+    async function loadContents() {
+      if (!activeModuleId || isDemo) return;
+      const { data } = await supabase.from('learning_contents').select('*').eq('module_id', activeModuleId).order('order', { ascending: true });
+      setContents(data || []);
+    }
+    loadContents();
+  }, [activeModuleId, isDemo]);
 
   useEffect(() => {
     if (modules.length > 0 && !activeModuleId) {
-      const sorted = [...modules].sort((a, b) => (a.order || 0) - (b.order || 0));
-      setActiveModuleId(sorted[0].id);
+      setActiveModuleId(modules[0].id);
     }
   }, [modules, activeModuleId]);
 
@@ -210,32 +212,34 @@ export default function ClassroomPage() {
     }
   }, [activeContentId, videoId]);
 
-  const handleCompleteActivity = () => {
-    if (!activeContentId || !user || !firestore || isDemo || !trail) return;
+  const handleCompleteActivity = async () => {
+    if (!activeContentId || !user || isDemo || !trail) return;
 
-    const isAlreadyCompleted = progressData?.completedContents?.includes(activeContentId);
+    const isAlreadyCompleted = progress?.completed_contents?.includes(activeContentId);
     if (isAlreadyCompleted) {
       toast({ title: "Aula já concluída" });
       return;
     }
 
-    const pRef = doc(firestore, "user_progress", `${user.uid}_${trailId}`);
-    const currentCompleted = progressData?.completedContents || [];
+    const currentCompleted = progress?.completed_contents || [];
     const newCompletedList = [...currentCompleted, activeContentId];
-    const totalContents = trail.totalContents || 1;
+    const totalContents = trail.total_contents || 1;
     const newPercentage = Math.min(Math.round((newCompletedList.length / totalContents) * 100), 100);
 
-    setDocumentNonBlocking(pRef, {
-      userId: user.uid,
-      trailId: trailId,
-      trailTitle: trail.title,
-      lastAccessedContentId: activeContentId,
-      lastAccessedAt: new Date().toISOString(),
-      completedContents: newCompletedList,
+    const { data, error } = await supabase.from('user_progress').upsert({
+      user_id: user.id,
+      trail_id: trailId,
+      trail_title: trail.title,
+      last_accessed_content_id: activeContentId,
+      last_accessed_at: new Date().toISOString(),
+      completed_contents: newCompletedList,
       percentage: newPercentage
-    }, { merge: true });
+    }, { onConflict: 'user_id,trail_id' }).select().single();
 
-    toast({ title: "Progresso Salvo! 🎉" });
+    if (!error) {
+      setProgress(data);
+      toast({ title: "Progresso Salvo! 🎉" });
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -270,18 +274,18 @@ export default function ClassroomPage() {
     }
   };
 
-  const handleFinishQuiz = () => {
+  const handleFinishQuiz = async () => {
     if (!activeContent?.questions) return;
     const correctCount = activeContent.questions.filter((q: any, i: number) => q.correctIndex === quizAnswers[i]).length;
     setShowResults(true);
 
-    if (user && firestore && !isDemo) {
-      addDocumentNonBlocking(collection(firestore, "quiz_submissions"), {
-        userId: user.uid,
-        studentName: user.displayName || "Estudante",
-        trailId: trailId,
-        moduleId: activeModuleId,
-        contentId: activeContentId,
+    if (user && !isDemo) {
+      await supabase.from('quiz_submissions').insert({
+        user_id: user.id,
+        student_name: user.user_metadata?.full_name || "Estudante",
+        trail_id: trailId,
+        module_id: activeModuleId,
+        content_id: activeContentId,
         score: correctCount,
         total: activeContent.questions.length,
         timestamp: new Date().toISOString()
@@ -313,9 +317,11 @@ export default function ClassroomPage() {
     }
   }, [chatMessages, isAiLoading]);
 
-  const currentPercentage = progressData?.percentage || 0;
-  const isCurrentCompleted = progressData?.completedContents?.includes(activeContentId);
+  const currentPercentage = progress?.percentage || 0;
+  const isCurrentCompleted = progress?.completed_contents?.includes(activeContentId);
   const canGoNext = isCurrentCompleted || activeContent?.type === 'text' || (activeContent?.type === 'video' && classProgress >= 70);
+
+  if (loading) return <div className="h-96 flex items-center justify-center"><Loader2 className="animate-spin text-accent" /></div>;
 
   return (
     <div className="flex flex-col h-full space-y-4 md:space-y-6 animate-in fade-in duration-700 pb-safe overflow-x-hidden">
@@ -342,7 +348,7 @@ export default function ClassroomPage() {
             </div>
             <Progress value={currentPercentage} className="h-1.5 md:h-2 rounded-full overflow-hidden" />
           </div>
-          <Badge className="bg-green-100 text-green-700 border-none font-black text-[9px] px-3 h-6 flex items-center">{progressData?.completedContents?.length || 0}/{trail?.totalContents || "?"}</Badge>
+          <Badge className="bg-green-100 text-green-700 border-none font-black text-[9px] px-3 h-6 flex items-center">{progress?.completed_contents?.length || 0}/{trail?.total_contents || "?"}</Badge>
         </div>
       </div>
 
@@ -437,7 +443,7 @@ export default function ClassroomPage() {
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-accent flex items-center justify-center text-accent-foreground shadow-lg"><Bot className="h-5 w-5 md:h-6 md:w-6" /></div>
                     <div>
-                      <p className="text-xs md:text-sm font-black italic">Aurora Aurora</p>
+                      <p className="text-xs md:text-sm font-black italic">Aurora IA</p>
                       <p className="text-[7px] md:text-[8px] font-black uppercase opacity-60 tracking-widest">IA Pedagógica</p>
                     </div>
                   </div>
@@ -617,7 +623,7 @@ export default function ClassroomPage() {
               <div className="grid gap-2">
                 {contents.length > 0 ? (
                   contents.map((c: any, index: number) => {
-                    const isCompleted = progressData?.completedContents?.includes(c.id);
+                    const isCompleted = progress?.completed_contents?.includes(c.id);
                     return (
                       <button key={c.id} onClick={() => setActiveContentId(c.id)}
                         className={`w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl transition-all border-2 active:scale-95 duration-300 ${activeContentId === c.id ? 'bg-white border-accent shadow-xl text-primary' : 'bg-white/50 border-transparent hover:border-muted-foreground/20 text-muted-foreground'}`}>

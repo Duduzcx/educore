@@ -10,13 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShieldCheck, Sparkles, CheckCircle2, AlertCircle, Wallet2, Users2, ArrowRight, Info, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { useUser, useFirestore } from "@/firebase";
-import { doc } from "firebase/firestore";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function FinancialAidPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     eligible: boolean;
@@ -30,7 +28,7 @@ export default function FinancialAidPage() {
     familySize: "1",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const income = Number(formData.monthlyIncome);
     const size = Number(formData.familySize);
@@ -46,34 +44,31 @@ export default function FinancialAidPage() {
 
     setLoading(true);
 
-    setTimeout(() => {
-      const perCapita = income / size;
-      const minWage = 1621; // Salário Mínimo R$ 1.621,00
-      const threshold = minWage * 1.5; // Teto de 1,5 SM = R$ 2.431,50
-      const eligible = perCapita <= threshold;
+    const perCapita = income / size;
+    const minWage = 1621; // Salário Mínimo R$ 1.621,00
+    const threshold = minWage * 1.5; // Teto de 1,5 SM = R$ 2.431,50
+    const eligible = perCapita <= threshold;
 
-      setResult({
-        eligible: eligible,
-        perCapita: perCapita,
-        threshold: threshold
-      });
+    setResult({
+      eligible: eligible,
+      perCapita: perCapita,
+      threshold: threshold
+    });
 
-      // Atualizar perfil do aluno no Firestore para comunicação com o professor
-      if (user && firestore) {
-        const userRef = doc(firestore, "users", user.uid);
-        updateDocumentNonBlocking(userRef, {
-          isFinancialAidEligible: eligible,
-          lastFinancialSimulation: new Date().toISOString()
-        });
-      }
+    if (user) {
+      const { error } = await supabase.from('profiles').update({
+        is_financial_aid_eligible: eligible,
+        last_financial_simulation: new Date().toISOString()
+      }).eq('id', user.id);
 
-      setLoading(false);
-      
-      toast({
-        title: "Cálculo Concluído",
-        description: "Seu perfil foi atualizado para acompanhamento pedagógico.",
-      });
-    }, 800);
+      if (error) console.error("Erro ao salvar elegibilidade:", error);
+    }
+
+    setLoading(false);
+    toast({
+      title: "Cálculo Concluído",
+      description: "Seu perfil foi atualizado para acompanhamento pedagógico.",
+    });
   };
 
   return (
