@@ -2,17 +2,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Plus, CheckCircle2, ExternalLink, Trash2, Loader2, Search, FileText, Video, RadioTower, Clock } from "lucide-react";
+import { BookOpen, Plus, Trash2, Loader2, Search, FileText, Video } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function TeacherLibraryManagement() {
@@ -22,6 +22,7 @@ export default function TeacherLibraryManagement() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [resourceForm, setResourceForm] = useState({
     title: "",
@@ -43,21 +44,32 @@ export default function TeacherLibraryManagement() {
   }, [user]);
 
   const handleAddOfficial = async () => {
-    if (!user) return;
-    const { data, error } = await supabase.from('library_items').insert({
-      ...resourceForm,
-      status: "approved",
-      author: user.user_metadata?.full_name || "Docente da Rede",
-      user_id: user.id,
-      created_at: new Date().toISOString(),
-      image_url: `https://picsum.photos/seed/${resourceForm.title}/400/250`
-    }).select().single();
+    if (!resourceForm.title || !user) {
+      toast({ title: "Título é obrigatório", variant: "destructive" });
+      return;
+    }
 
-    if (!error) {
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase.from('library_items').insert({
+        ...resourceForm,
+        status: "approved",
+        author: user.user_metadata?.full_name || "Docente da Rede",
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        image_url: `https://picsum.photos/seed/${encodeURIComponent(resourceForm.title)}/400/250`
+      }).select().single();
+
+      if (error) throw error;
+
       setResources([data, ...resources]);
       toast({ title: "Material Adicionado!" });
       setIsAddOpen(false);
       setResourceForm({ title: "", type: "PDF", category: "Geral", url: "", description: "" });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -115,7 +127,9 @@ export default function TeacherLibraryManagement() {
                 <Textarea value={resourceForm.description} onChange={(e) => setResourceForm({...resourceForm, description: e.target.value})} className="min-h-[100px] rounded-xl bg-muted/30 border-none resize-none p-4" />
               </div>
             </div>
-            <Button onClick={handleAddOfficial} className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl">Publicar Material</Button>
+            <Button onClick={handleAddOfficial} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl">
+              {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Material"}
+            </Button>
           </DialogContent>
         </Dialog>
       </div>

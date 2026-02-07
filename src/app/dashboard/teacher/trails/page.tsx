@@ -8,13 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { PlayCircle, Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, Globe, Clock, Flame } from "lucide-react";
+import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TeacherTrailsPage() {
@@ -24,13 +23,18 @@ export default function TeacherTrailsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [trails, setTrails] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newTrail, setNewTrail] = useState({ title: "", category: "", description: "", isFundamental: false });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newTrail, setNewTrail] = useState({ title: "", category: "", description: "" });
 
   useEffect(() => {
     async function fetchTrails() {
       if (!user) return;
       setLoading(true);
-      const { data, error } = await supabase.from('learning_trails').select('*').eq('teacher_id', user.id).order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('learning_trails')
+        .select('*')
+        .eq('teacher_id', user.id)
+        .order('created_at', { ascending: false });
       if (!error) setTrails(data || []);
       setLoading(false);
     }
@@ -38,24 +42,33 @@ export default function TeacherTrailsPage() {
   }, [user]);
 
   const handleCreateTrail = async () => {
-    if (!newTrail.title || !user) return;
+    if (!newTrail.title || !user) {
+      toast({ title: "Título obrigatório", variant: "destructive" });
+      return;
+    }
 
-    const { data, error } = await supabase.from('learning_trails').insert({
-      title: newTrail.title,
-      category: newTrail.category,
-      description: newTrail.description,
-      is_fundamental: newTrail.isFundamental,
-      teacher_id: user.id,
-      teacher_name: user.user_metadata?.full_name || "Professor",
-      status: "draft",
-      created_at: new Date().toISOString()
-    }).select().single();
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase.from('learning_trails').insert({
+        title: newTrail.title,
+        category: newTrail.category || "Geral",
+        description: newTrail.description,
+        teacher_id: user.id,
+        teacher_name: user.user_metadata?.full_name || "Professor",
+        status: "draft",
+        created_at: new Date().toISOString()
+      }).select().single();
 
-    if (!error) {
+      if (error) throw error;
+
       setTrails([data, ...trails]);
-      toast({ title: "Rascunho criado!" });
+      toast({ title: "Trilha Criada!", description: "Agora você pode adicionar módulos e aulas." });
       setIsCreateDialogOpen(false);
-      setNewTrail({ title: "", category: "", description: "", isFundamental: false });
+      setNewTrail({ title: "", category: "", description: "" });
+    } catch (err: any) {
+      toast({ title: "Erro ao criar trilha", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -99,7 +112,11 @@ export default function TeacherTrailsPage() {
                 <Textarea placeholder="O que o aluno aprenderá?" className="min-h-[120px] rounded-xl bg-muted/30 border-none font-medium" value={newTrail.description} onChange={(e) => setNewTrail({ ...newTrail, description: e.target.value })} />
               </div>
             </div>
-            <DialogFooter><Button onClick={handleCreateTrail} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl">Criar Trilha</Button></DialogFooter>
+            <DialogFooter>
+              <Button onClick={handleCreateTrail} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl">
+                {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Trilha"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
@@ -134,9 +151,9 @@ export default function TeacherTrailsPage() {
                 <CardTitle className="text-xl font-black italic truncate mt-2">{trail.title}</CardTitle>
               </CardHeader>
               <CardFooter className="p-8 pt-4 border-t border-muted/10 mt-auto flex justify-between items-center">
-                <span className="text-xs font-bold text-muted-foreground uppercase">{trail.modules_count || 0} Módulos</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase">Gerenciar Conteúdo</span>
                 <Button variant="ghost" className="text-accent font-black text-[10px] uppercase" asChild>
-                  <Link href={`/dashboard/teacher/trails/${trail.id}`}>Gerenciar <LayoutDashboard className="h-4 w-4 ml-2" /></Link>
+                  <Link href={`/dashboard/teacher/trails/${trail.id}`}>Painel <LayoutDashboard className="h-4 w-4 ml-2" /></Link>
                 </Button>
               </CardFooter>
             </Card>

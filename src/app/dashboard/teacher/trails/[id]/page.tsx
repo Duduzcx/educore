@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,15 +18,13 @@ import {
   Layout, 
   Youtube, 
   Sparkles,
-  CheckCircle2,
-  Video,
   ExternalLink,
   BookOpen
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function TrailManagementPage() {
@@ -40,6 +38,7 @@ export default function TrailManagementPage() {
   const [modules, setModules] = useState<any[]>([]);
   const [contents, setContents] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
   const [isContentDialogOpen, setIsContentDialogOpen] = useState(false);
@@ -53,18 +52,24 @@ export default function TrailManagementPage() {
     setLoading(true);
     
     try {
-      // Carrega a trilha
       const { data: trailData } = await supabase.from('learning_trails').select('*').eq('id', trailId).single();
       setTrail(trailData);
 
-      // Carrega módulos
-      const { data: modulesData } = await supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true });
+      const { data: modulesData } = await supabase
+        .from('learning_modules')
+        .select('*')
+        .eq('trail_id', trailId)
+        .order('order_index', { ascending: true });
+      
       setModules(modulesData || []);
 
-      // Carrega conteúdos de todos os módulos
       if (modulesData && modulesData.length > 0) {
         const moduleIds = modulesData.map(m => m.id);
-        const { data: contentsData } = await supabase.from('learning_contents').select('*').in('module_id', moduleIds).order('created_at', { ascending: true });
+        const { data: contentsData } = await supabase
+          .from('learning_contents')
+          .select('*')
+          .in('module_id', moduleIds)
+          .order('created_at', { ascending: true });
         
         const groupedContents: Record<string, any[]> = {};
         contentsData?.forEach(content => {
@@ -85,45 +90,66 @@ export default function TrailManagementPage() {
   }, [loadData]);
 
   const handleAddModule = async () => {
-    if (!moduleForm.title.trim() || !user) return;
+    if (!moduleForm.title.trim() || !user) {
+      toast({ title: "Preencha o título", variant: "destructive" });
+      return;
+    }
     
-    const { data, error } = await supabase.from('learning_modules').insert({
-      trail_id: trailId,
-      title: moduleForm.title,
-      order_index: modules.length,
-      created_at: new Date().toISOString()
-    }).select().single();
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await supabase.from('learning_modules').insert({
+        trail_id: trailId,
+        title: moduleForm.title,
+        order_index: modules.length,
+        created_at: new Date().toISOString()
+      }).select().single();
 
-    if (!error) {
+      if (error) throw error;
+
       setModules([...modules, data]);
-      toast({ title: "Módulo adicionado" });
+      toast({ title: "Módulo Adicionado!" });
       setModuleForm({ title: "" });
       setIsModuleDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: "Erro ao adicionar módulo", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleAddContent = async () => {
-    if (!activeModuleId || !user) return;
+    if (!activeModuleId || !contentForm.title || !user) {
+      toast({ title: "Preencha os campos obrigatórios", variant: "destructive" });
+      return;
+    }
     
-    const { error } = await supabase.from('learning_contents').insert({
-      module_id: activeModuleId,
-      title: contentForm.title,
-      type: contentForm.type,
-      url: contentForm.url,
-      description: contentForm.description,
-      created_at: new Date().toISOString()
-    });
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('learning_contents').insert({
+        module_id: activeModuleId,
+        title: contentForm.title,
+        type: contentForm.type,
+        url: contentForm.url,
+        description: contentForm.description,
+        created_at: new Date().toISOString()
+      });
 
-    if (!error) {
-      toast({ title: "Material anexado!" });
+      if (error) throw error;
+
+      toast({ title: "Aula Anexada!" });
       setContentForm({ title: "", type: "video", url: "", description: "" });
       setIsContentDialogOpen(false);
       setActiveModuleId(null);
-      loadData(); // Recarrega para mostrar o novo conteúdo
+      loadData(); 
+    } catch (err: any) {
+      toast({ title: "Erro ao anexar material", description: err.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDeleteModule = async (id: string) => {
+    if (!confirm("Isso removerá todas as aulas deste módulo. Confirmar?")) return;
     const { error } = await supabase.from('learning_modules').delete().eq('id', id);
     if (!error) {
       toast({ title: "Módulo removido" });
@@ -240,7 +266,9 @@ export default function TrailManagementPage() {
             <Label className="text-[10px] font-black uppercase opacity-40 mb-2 block">Título do Bloco</Label>
             <Input placeholder="Ex: Introdução ao Tema" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg" />
           </div>
-          <Button onClick={handleAddModule} className="w-full h-14 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">Confirmar Módulo</Button>
+          <Button onClick={handleAddModule} disabled={isSubmitting} className="w-full h-14 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">
+            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Confirmar Módulo"}
+          </Button>
         </DialogContent>
       </Dialog>
 
@@ -266,10 +294,12 @@ export default function TrailManagementPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase opacity-40">Link do Material</Label>
-              <Input placeholder="URL do YouTube ou Arquivo" value={contentForm.url} onChange={(e) => setContentForm({...contentForm, url: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-medium" />
+              <Input placeholder="Ex: https://youtube.com/watch?v=..." value={contentForm.url} onChange={(e) => setContentForm({...contentForm, url: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-medium" />
             </div>
           </div>
-          <Button onClick={handleAddContent} className="w-full h-14 bg-primary text-white font-black rounded-2xl shadow-xl active:scale-95 transition-all">Anexar à Trilha</Button>
+          <Button onClick={handleAddContent} disabled={isSubmitting} className="w-full h-14 bg-primary text-white font-black rounded-2xl shadow-xl active:scale-95 transition-all">
+            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Anexar à Trilha"}
+          </Button>
         </DialogContent>
       </Dialog>
     </div>
