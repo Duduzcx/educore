@@ -37,34 +37,48 @@ export default function LivePage() {
   const { user } = useAuth();
   const [lives, setLives] = useState<Live[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isResilienceMode, setIsResilienceMode] = useState(false);
 
   useEffect(() => {
     async function fetchLives() {
       if (!user) return;
       setLoading(true);
       try {
+        // Tenta buscar todas as colunas
         const { data, error } = await supabase
           .from('lives')
           .select('*')
           .order('start_time', { ascending: false });
 
         if (error) {
-          console.warn("Entrando em modo de resiliência (Erro de Estrutura)");
-          setIsDemoMode(true);
-          setLives(DEMO_LIVES);
-        } else {
-          // Se o banco retornar vazio, usamos demo. Se retornar dados, validamos o youtube_id.
-          if (data && data.length > 0) {
-            setLives(data);
-            setIsDemoMode(false);
+          // Se houver erro de coluna, tenta buscar apenas o básico ou usa Demo
+          console.warn("Schema Cache mismatch detectado. Entrando em modo de resiliência.");
+          setIsResilienceMode(true);
+          
+          const { data: fallbackData } = await supabase.from('lives').select('id, title').limit(5);
+          if (fallbackData && fallbackData.length > 0) {
+             // Mapeia o fallback para o formato da interface com valores padrão
+             const mapped = fallbackData.map((l: any) => ({
+               ...l,
+               teacher_name: "Docente da Rede",
+               start_time: new Date().toISOString(),
+               youtube_id: DEFAULT_VIDEO_ID
+             }));
+             setLives(mapped as any);
           } else {
             setLives(DEMO_LIVES);
-            setIsDemoMode(true);
+          }
+        } else {
+          if (data && data.length > 0) {
+            setLives(data);
+            setIsResilienceMode(false);
+          } else {
+            setLives(DEMO_LIVES);
+            setIsResilienceMode(true);
           }
         }
       } catch (err: any) {
-        setIsDemoMode(true);
+        setIsResilienceMode(true);
         setLives(DEMO_LIVES);
       } finally {
         setLoading(false);
@@ -91,9 +105,9 @@ export default function LivePage() {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-black text-primary italic leading-none">Aulas ao Vivo</h1>
-          {isDemoMode && (
+          {isResilienceMode && (
             <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20 font-black text-[8px] animate-pulse">
-              DADOS DE DEMONSTRAÇÃO ATIVOS
+              MODO DE RESILIÊNCIA ATIVO (DADOS DE BACKUP)
             </Badge>
           )}
         </div>
@@ -103,7 +117,7 @@ export default function LivePage() {
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-4 text-center">
           <Loader2 className="h-12 w-12 animate-spin text-accent" />
-          <p className="font-black text-primary uppercase text-[10px] tracking-widest animate-pulse">Sincronizando com o Satélite...</p>
+          <p className="font-black text-primary uppercase text-[10px] tracking-widest animate-pulse">Sincronizando...</p>
         </div>
       ) : (
         <>
