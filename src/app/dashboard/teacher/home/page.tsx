@@ -1,14 +1,15 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, FilePenLine, PlayCircle, TrendingUp, Bell, ArrowRight, Video, FileText, ClipboardCheck, Sparkles } from "lucide-react";
+import { Users, PlayCircle, TrendingUp, Bell, ArrowRight, Sparkles, Loader2 } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import Link from "next/link";
-import { useUser, useCollection, useMemoFirebase, useFirestore } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 const performanceData = [
   { name: "Seg", avg: 7.2 },
@@ -19,36 +20,77 @@ const performanceData = [
 ];
 
 export default function TeacherHomePage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    socialSupport: 0,
+    myTrails: 0,
+    loading: true
+  });
+  const [socialAlerts, setSocialAlerts] = useState<any[]>([]);
+  const [recentTrails, setRecentTrails] = useState<any[]>([]);
 
-  // Buscar total de alunos reais
-  const studentsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, "users");
-  }, [firestore, user]);
-  const { data: students } = useCollection(studentsQuery);
+  useEffect(() => {
+    async function fetchData() {
+      if (!user) return;
+      
+      try {
+        // 1. Total de Alunos
+        const { count: studentCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
 
-  // Buscar alunos em risco (apoio social)
-  const socialSupportQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, "users"), where("isFinancialAidEligible", "==", true));
-  }, [firestore, user]);
-  const { data: socialSupportAlunos } = useCollection(socialSupportQuery);
+        // 2. Alunos com Apoio Social
+        const { count: socialCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_financial_aid_eligible', true);
 
-  // Buscar trilhas do professor na coleção GLOBAL
-  const myTrailsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, "learning_trails"), where("teacherId", "==", user.uid));
-  }, [firestore, user]);
-  const { data: myTrails } = useCollection(myTrailsQuery);
+        // 3. Minhas Trilhas
+        const { data: trails, count: trailsCount } = await supabase
+          .from('learning_trails')
+          .select('*', { count: 'exact' })
+          .eq('teacher_id', user.id);
+
+        // 4. Alertas Sociais Recentes
+        const { data: alerts } = await supabase
+          .from('profiles')
+          .select('name, id')
+          .eq('is_financial_aid_eligible', true)
+          .limit(3);
+
+        setStats({
+          totalStudents: studentCount || 0,
+          socialSupport: socialCount || 0,
+          myTrails: trailsCount || 0,
+          loading: false
+        });
+        setSocialAlerts(alerts || []);
+        setRecentTrails(trails || []);
+
+      } catch (error) {
+        console.error("Erro ao carregar dashboard:", error);
+        setStats(prev => ({ ...prev, loading: false }));
+      }
+    }
+    fetchData();
+  }, [user]);
+
+  if (stats.loading) {
+    return (
+      <div className="h-96 flex flex-col items-center justify-center gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-accent" />
+        <p className="text-muted-foreground font-black uppercase text-[10px] tracking-widest animate-pulse">Sincronizando Gestão...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black tracking-tight text-primary italic">Painel de Gestão Docente</h1>
-          <p className="text-muted-foreground font-medium">Controle pedagógico para a base de 1.000 alunos.</p>
+          <p className="text-muted-foreground font-medium">Controle pedagógico em tempo real via Supabase.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="rounded-xl h-11 border-primary/20 bg-white" asChild>
@@ -65,9 +107,9 @@ export default function TeacherHomePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Total Alunos", value: students?.length || "0", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "Apoio Social", value: socialSupportAlunos?.length || "0", icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
-          { label: "Minhas Trilhas", value: myTrails?.length || "0", icon: PlayCircle, color: "text-orange-600", bg: "bg-orange-50" },
+          { label: "Total Alunos", value: stats.totalStudents, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Apoio Social", value: stats.socialSupport, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+          { label: "Minhas Trilhas", value: stats.myTrails, icon: PlayCircle, color: "text-orange-600", bg: "bg-orange-50" },
           { label: "Média Turma", value: "7.8", icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-xl overflow-hidden group hover:shadow-2xl transition-all rounded-[2rem] bg-white">
@@ -130,8 +172,8 @@ export default function TeacherHomePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="px-8 pb-8 space-y-4">
-              {socialSupportAlunos && socialSupportAlunos.length > 0 ? (
-                socialSupportAlunos.slice(0, 3).map((aluno, i) => (
+              {socialAlerts.length > 0 ? (
+                socialAlerts.map((aluno, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-white/10 border border-white/10">
                     <div className="flex flex-col">
                       <span className="text-xs font-black truncate max-w-[120px] italic">{aluno.name}</span>
@@ -159,8 +201,8 @@ export default function TeacherHomePage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="flex flex-col">
-                {myTrails && myTrails.length > 0 ? (
-                  myTrails.slice(0, 3).map((trail, i) => (
+                {recentTrails.length > 0 ? (
+                  recentTrails.slice(0, 3).map((trail, i) => (
                     <Link key={i} href={`/dashboard/teacher/trails/${trail.id}`} className="flex items-center justify-between p-5 hover:bg-muted/30 transition-colors border-b last:border-0">
                       <div>
                         <p className="text-sm font-black text-primary italic truncate max-w-[180px]">{trail.title}</p>
