@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, PlayCircle, Radio, Calendar, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Loader2, PlayCircle, Radio, Calendar, ExternalLink, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/lib/AuthProvider';
 import { supabase } from '@/lib/supabase';
 
@@ -35,28 +35,32 @@ export default function LivePage() {
   const { user } = useAuth();
   const [lives, setLives] = useState<Live[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasSchemaError, setHasSchemaError] = useState(false);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchLives() {
       if (!user) return;
       setLoading(true);
       try {
+        // Tenta buscar dados reais
         const { data, error } = await supabase
           .from('lives')
           .select('*')
           .order('start_time', { ascending: false });
 
         if (error) {
-          if (error.message.includes('column') && error.message.includes('not found')) {
-            setHasSchemaError(true);
+          // Se o erro for de coluna faltante, ativa o modo demo e avisa
+          if (error.message.includes('column') || error.code === '42P01') {
+            setSchemaError(error.message);
+            setLives(DEMO_LIVES);
+          } else {
+            throw error;
           }
-          console.error("Erro ao carregar lives:", error);
-          setLives(DEMO_LIVES);
         } else {
           setLives(data.length > 0 ? data : DEMO_LIVES);
         }
-      } catch (err) {
+      } catch (err: any) {
+        console.error("Erro ao carregar lives:", err);
         setLives(DEMO_LIVES);
       } finally {
         setLoading(false);
@@ -82,16 +86,26 @@ export default function LivePage() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-black text-primary italic leading-none">Aulas ao Vivo</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-black text-primary italic leading-none">Aulas ao Vivo</h1>
+          {schemaError && (
+            <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-200 font-black text-[8px] animate-pulse">
+              MODO DEMO ATIVO
+            </Badge>
+          )}
+        </div>
         <p className="text-muted-foreground font-medium">Acompanhe transmissões em tempo real e interaja com os mentores.</p>
       </div>
 
-      {hasSchemaError && (
-        <div className="p-6 bg-orange-50 border-2 border-dashed border-orange-200 rounded-[2rem] flex items-start gap-4 animate-bounce">
-          <AlertTriangle className="h-6 w-6 text-orange-600 shrink-0" />
-          <div className="space-y-1">
-            <p className="font-black text-orange-800 text-sm italic">Aviso de Configuração (Modo Demo)</p>
-            <p className="text-xs text-orange-700 font-medium">Algumas colunas (como youtube_id) não foram encontradas no seu Supabase. Usando dados de reserva para a apresentação.</p>
+      {schemaError && (
+        <div className="p-6 bg-orange-50 border-2 border-dashed border-orange-200 rounded-[2rem] flex items-start gap-4">
+          <ShieldAlert className="h-6 w-6 text-orange-600 shrink-0 mt-1" />
+          <div className="space-y-2">
+            <p className="font-black text-orange-800 text-sm italic">Estrutura de Banco de Dados Incompleta</p>
+            <p className="text-xs text-orange-700 font-medium">
+              A coluna <code className="bg-orange-100 px-1 rounded">youtube_id</code> ou <code className="bg-orange-100 px-1 rounded">teacher_id</code> não foi encontrada na tabela <code className="bg-orange-100 px-1 rounded">lives</code>.
+            </p>
+            <p className="text-[10px] text-orange-600 font-bold uppercase">Ação: Rode o SQL de correção no console do Supabase.</p>
           </div>
         </div>
       )}
@@ -115,11 +129,11 @@ export default function LivePage() {
                   <Card key={live.id} className="border-none shadow-xl rounded-[2rem] bg-white overflow-hidden group hover:shadow-2xl transition-all duration-500">
                     <CardHeader className="p-6 pb-4">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-xl font-black text-primary italic">{live.title}</CardTitle>
-                          <p className="text-xs font-bold text-muted-foreground mt-1">{live.teacher_name}</p>
+                        <div className="min-w-0">
+                          <CardTitle className="text-xl font-black text-primary italic truncate">{live.title}</CardTitle>
+                          <p className="text-xs font-bold text-muted-foreground mt-1">{live.teacher_name || 'Docente da Rede'}</p>
                         </div>
-                        <Badge className="bg-red-600 text-white font-black animate-pulse px-3 h-6 border-none">AO VIVO</Badge>
+                        <Badge className="bg-red-600 text-white font-black animate-pulse px-3 h-6 border-none shrink-0">AO VIVO</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="px-6 pb-6">
@@ -164,7 +178,7 @@ export default function LivePage() {
                         <div className="min-w-0">
                           <h3 className="font-black text-lg text-primary italic truncate">{live.title}</h3>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{live.teacher_name}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{live.teacher_name || 'Docente'}</span>
                             <span className="text-[10px] text-accent font-black">
                               {new Date(live.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
@@ -172,7 +186,7 @@ export default function LivePage() {
                         </div>
                       </div>
                       <Button variant="outline" className="w-full md:w-auto rounded-xl font-black text-[10px] uppercase border-dashed hover:bg-primary hover:text-white transition-all" asChild>
-                        <a href={live.youtube_url} target="_blank" rel="noopener noreferrer">Lembrar-me</a>
+                        <a href={live.youtube_url || `https://youtube.com/watch?v=${live.youtube_id}`} target="_blank" rel="noopener noreferrer">Lembrar-me</a>
                       </Button>
                     </CardContent>
                   </Card>

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MonitorPlay, Plus, Trash2, Youtube, Loader2, ExternalLink, Video, Radio, FlaskConical, AlertCircle } from "lucide-react";
+import { MonitorPlay, Plus, Trash2, Youtube, Loader2, ExternalLink, Video, Radio, FlaskConical, AlertCircle, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ export default function TeacherLiveManagement() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [lives, setLives] = useState<any[]>([]);
   const [livesLoading, setLivesLoading] = useState(true);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
 
   const [liveForm, setForm] = useState({
     title: "",
@@ -35,8 +36,17 @@ export default function TeacherLiveManagement() {
     setLivesLoading(true);
     try {
       const { data, error } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
-      if (error) throw error;
-      setLives(data || []);
+      if (error) {
+        if (error.message.includes('column') || error.code === '42P01') {
+          setSchemaError(error.message);
+          setLives([]);
+        } else {
+          throw error;
+        }
+      } else {
+        setLives(data || []);
+        setSchemaError(null);
+      }
     } catch (err: any) {
       console.error("Erro ao buscar lives:", err);
     } finally {
@@ -64,22 +74,18 @@ export default function TeacherLiveManagement() {
         start_time: liveForm.start_time || new Date().toISOString()
       }).select().single();
 
-      if (error) {
-        if (error.message.includes('column') && error.message.includes('not found')) {
-          throw new Error(`Coluna faltando no banco: ${error.message}. Rode o SQL de correção.`);
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       setLives([data, ...lives]);
       toast({ title: "Aula Agendada!" });
       setForm({ title: "", description: "", youtube_id: "", start_time: "" });
       setIsAddOpen(false);
     } catch (err: any) {
+      setSchemaError(err.message);
       toast({ 
         variant: "destructive", 
-        title: "Erro de Banco de Dados", 
-        description: err.message
+        title: "Erro de Estrutura", 
+        description: "A coluna 'youtube_id' ou 'teacher_id' não foi encontrada. Verifique o alerta laranja."
       });
     } finally {
       setLoading(false);
@@ -126,10 +132,11 @@ export default function TeacherLiveManagement() {
       toast({ title: "Lives Geradas!", description: "3 novas transmissões foram adicionadas." });
       fetchLives();
     } catch (err: any) {
+      setSchemaError(err.message);
       toast({ 
         variant: "destructive", 
-        title: "Falha na Estrutura", 
-        description: "A coluna 'youtube_id' ou 'teacher_id' não foi encontrada. Verifique o SQL."
+        title: "Falha na Gravação", 
+        description: "Verifique se as colunas youtube_id e teacher_id existem no banco."
       });
     } finally {
       setIsSeeding(false);
@@ -199,6 +206,30 @@ export default function TeacherLiveManagement() {
         </div>
       </div>
 
+      {schemaError && (
+        <div className="p-8 bg-orange-50 border-2 border-dashed border-orange-200 rounded-[2.5rem] flex items-start gap-6">
+          <ShieldAlert className="h-10 w-10 text-orange-600 shrink-0 mt-1" />
+          <div className="space-y-3">
+            <p className="font-black text-orange-800 text-lg italic leading-none">Erro de Coluna Detectado</p>
+            <p className="text-sm text-orange-700 font-medium leading-relaxed">
+              O banco de dados retornou: <code className="bg-orange-100 px-2 py-0.5 rounded font-mono text-xs">{schemaError}</code>. 
+              Isso significa que você precisa atualizar a estrutura da tabela no Supabase.
+            </p>
+            <div className="pt-2">
+              <p className="text-[10px] font-black text-orange-600 uppercase mb-2">Comando para rodar no SQL Editor:</p>
+              <pre className="bg-black text-green-400 p-4 rounded-xl text-[10px] font-mono overflow-x-auto shadow-2xl">
+                {`ALTER TABLE public.lives 
+ADD COLUMN IF NOT EXISTS youtube_id TEXT,
+ADD COLUMN IF NOT EXISTS youtube_url TEXT,
+ADD COLUMN IF NOT EXISTS teacher_id UUID,
+ADD COLUMN IF NOT EXISTS teacher_name TEXT,
+ADD COLUMN IF NOT EXISTS start_time TIMESTAMPTZ DEFAULT now();`}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 space-y-6">
           <h2 className="text-xl font-black text-primary italic px-2">Suas Transmissões</h2>
@@ -210,15 +241,17 @@ export default function TeacherLiveManagement() {
                 <Card key={live.id} className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group">
                   <CardContent className="p-8 flex flex-col md:flex-row gap-8 items-center">
                     <div className="relative aspect-video w-full md:w-48 bg-black rounded-2xl overflow-hidden shadow-lg shrink-0">
-                      <img src={`https://img.youtube.com/vi/${live.youtube_id || 'default'}/mqdefault.jpg`} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
+                      <img src={`https://img.youtube.com/vi/${live.youtube_id || 'rfscVS0vtbw'}/mqdefault.jpg`} alt="Thumbnail" className="w-full h-full object-cover opacity-80" />
                     </div>
                     <div className="flex-1 space-y-2">
-                      <Badge variant="secondary" className="text-[10px] font-black uppercase tracking-widest bg-primary/5 text-primary border-none">{new Date(live.start_time).toLocaleString('pt-BR')}</Badge>
+                      <Badge variant="secondary" className="text-[10px] font-black uppercase tracking-widest bg-primary/5 text-primary border-none">
+                        {live.start_time ? new Date(live.start_time).toLocaleString('pt-BR') : 'Sem data'}
+                      </Badge>
                       <h3 className="text-xl font-black text-primary italic leading-none">{live.title}</h3>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">{live.teacher_name || "Docente da Rede"}</p>
                       <div className="pt-4 flex items-center gap-4">
                         <Button variant="outline" size="sm" className="rounded-xl font-bold h-10 px-6" asChild>
-                          <a href={live.youtube_url} target="_blank"><ExternalLink className="h-4 w-4 mr-2" /> Assistir</a>
+                          <a href={live.youtube_url || `https://youtube.com/watch?v=${live.youtube_id}`} target="_blank"><ExternalLink className="h-4 w-4 mr-2" /> Assistir</a>
                         </Button>
                         <Button onClick={() => handleDelete(live.id)} variant="ghost" size="icon" className="rounded-full hover:text-red-500 transition-all"><Trash2 className="h-5 w-5" /></Button>
                       </div>
@@ -226,7 +259,7 @@ export default function TeacherLiveManagement() {
                   </CardContent>
                 </Card>
               ))}
-              {lives.length === 0 && (
+              {lives.length === 0 && !schemaError && (
                 <div className="p-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
                   <MonitorPlay className="h-16 w-16 mx-auto mb-4" />
                   <p className="font-black italic text-xl">Nenhuma live ativa</p>
