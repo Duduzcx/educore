@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, AlertCircle, ShieldAlert } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -23,7 +23,7 @@ export default function TeacherTrailsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [trails, setTrails] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorState, setErrorState] = useState<string | null>(null);
+  const [errorState, setErrorState] = useState<"none" | "missing_table" | "rls_error">("none");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTrail, setNewTrail] = useState({ title: "", category: "", description: "" });
 
@@ -31,7 +31,7 @@ export default function TeacherTrailsPage() {
     async function fetchTrails() {
       if (!user) return;
       setLoading(true);
-      setErrorState(null);
+      setErrorState("none");
       
       const { data, error } = await supabase
         .from('learning_trails')
@@ -40,8 +40,10 @@ export default function TeacherTrailsPage() {
         .order('created_at', { ascending: false });
       
       if (error) {
-        if (error.message.includes('could not find the table')) {
+        if (error.code === '42P01') {
           setErrorState("missing_table");
+        } else if (error.message.includes('row-level security')) {
+          setErrorState("rls_error");
         } else {
           console.error(error);
         }
@@ -75,10 +77,14 @@ export default function TeacherTrailsPage() {
       setIsCreateDialogOpen(false);
       setNewTrail({ title: "", category: "", description: "" });
     } catch (err: any) {
+      let errorMsg = err.message;
+      if (err.message.includes('violates row level security')) {
+        errorMsg = "Bloqueio de Segurança (RLS). Desative o RLS no console do Supabase.";
+      }
       toast({ 
         variant: "destructive", 
         title: "Erro ao salvar", 
-        description: err.message.includes('not find') ? "Tabela ausente no Supabase." : err.message 
+        description: errorMsg
       });
     } finally {
       setIsSubmitting(false);
@@ -92,9 +98,22 @@ export default function TeacherTrailsPage() {
         <h2 className="text-2xl font-black text-primary italic">Configuração Pendente</h2>
         <p className="text-muted-foreground mt-2 max-w-md font-medium">
           A tabela <code className="bg-muted px-2 py-1 rounded">learning_trails</code> não foi encontrada no seu projeto Supabase. 
-          Isso é comum em novos projetos. Por favor, execute o script SQL de criação no seu console.
         </p>
         <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>Tentar Novamente</Button>
+      </div>
+    );
+  }
+
+  if (errorState === "rls_error") {
+    return (
+      <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-white rounded-[2rem] shadow-xl border-2 border-dashed border-red-200">
+        <ShieldAlert className="h-12 w-12 text-red-500 mb-4 animate-bounce" />
+        <h2 className="text-2xl font-black text-primary italic">Bloqueio de Segurança (RLS)</h2>
+        <p className="text-muted-foreground mt-2 max-w-md font-medium">
+          O Supabase está bloqueando o acesso devido a políticas de segurança (RLS). 
+          Vá no SQL Editor e execute: <code className="bg-muted px-2 py-1 rounded">ALTER TABLE learning_trails DISABLE ROW LEVEL SECURITY;</code>
+        </p>
+        <Button variant="outline" className="mt-6 border-red-200 text-red-600" onClick={() => window.location.reload()}>Verificar Novamente</Button>
       </div>
     );
   }

@@ -5,14 +5,16 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, PlayCircle, TrendingUp, Bell, ArrowRight, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Users, PlayCircle, TrendingUp, Bell, ArrowRight, Sparkles, Loader2, AlertCircle, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TeacherHomePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [stats, setStats] = useState({
     totalStudents: 0,
     socialSupport: 0,
@@ -22,30 +24,27 @@ export default function TeacherHomePage() {
   });
   const [socialAlerts, setSocialAlerts] = useState<any[]>([]);
   const [recentTrails, setRecentTrails] = useState<any[]>([]);
+  const [diagLoading, setDiagLoading] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       if (!user) return;
       
       try {
-        // 1. Total de Alunos
         const { count: studentCount } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
 
-        // 2. Alunos com Apoio Social (Isenção)
         const { data: socialData, count: socialCount } = await supabase
           .from('profiles')
           .select('name, id, is_financial_aid_eligible')
           .eq('is_financial_aid_eligible', true);
 
-        // 3. Minhas Trilhas
         const { data: trails, count: trailsCount } = await supabase
           .from('learning_trails')
           .select('*', { count: 'exact' })
           .eq('teacher_id', user.id);
 
-        // 4. Identificar Alunos em Risco (Inativos há mais de 7 dias)
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const { count: atRiskCount } = await supabase
@@ -72,6 +71,29 @@ export default function TeacherHomePage() {
     fetchData();
   }, [user]);
 
+  const runDiagnostic = async () => {
+    setDiagLoading(true);
+    try {
+      const { error } = await supabase.from('learning_trails').select('id').limit(1);
+      
+      if (error) {
+        if (error.code === '42P01') {
+          toast({ variant: "destructive", title: "Erro de Diagnóstico", description: "Tabela 'learning_trails' não encontrada no banco." });
+        } else if (error.message.includes('row-level security')) {
+          toast({ variant: "destructive", title: "Erro de Diagnóstico", description: "Políticas RLS bloqueando o acesso. Desative-as no console." });
+        } else {
+          toast({ variant: "destructive", title: "Erro de Conexão", description: error.message });
+        }
+      } else {
+        toast({ title: "Diagnóstico Concluído", description: "Conexão com o banco de dados está 100% operacional!" });
+      }
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erro Fatal", description: "Não foi possível contatar o Supabase." });
+    } finally {
+      setDiagLoading(false);
+    }
+  };
+
   if (stats.loading) {
     return (
       <div className="h-96 flex flex-col items-center justify-center gap-4">
@@ -89,11 +111,14 @@ export default function TeacherHomePage() {
           <p className="text-muted-foreground font-medium">Controle pedagógico em tempo real via Supabase.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl h-11 border-primary/20 bg-white" asChild>
-            <Link href="/dashboard/teacher/communication">
-              <Bell className="h-4 w-4 mr-2" />
-              Mural Institucional
-            </Link>
+          <Button 
+            variant="outline" 
+            onClick={runDiagnostic} 
+            disabled={diagLoading}
+            className="rounded-xl h-11 border-dashed border-accent/40 bg-white hover:bg-accent/5 text-accent"
+          >
+            {diagLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldAlert className="h-4 w-4 mr-2" />}
+            Diagnóstico de Rede
           </Button>
           <Button className="rounded-xl h-11 bg-accent text-accent-foreground font-black hover:bg-accent/90 shadow-xl" asChild>
             <Link href="/dashboard/teacher/trails">Nova Trilha de Estudo</Link>
