@@ -8,5 +8,13 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Faltam as variáveis de ambiente do Supabase!');
 }
 
-// Cria uma única instância do cliente para usar no app todo
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Para evitar múltiplas instâncias no ambiente de desenvolvimento com HMR (Hot Module Replacement),
+// armazenamos o cliente em uma variável global.
+// Isso garante que a mesma instância seja reutilizada em recarregamentos.
+const globalForSupabase = global as unknown as { supabase: ReturnType<typeof createClient> };
+
+export const supabase = globalForSupabase.supabase ?? createClient(supabaseUrl, supabaseKey);
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForSupabase.supabase = supabase;
+}

@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/lib/AuthProvider"; // Nosso novo hook de autenticação
-import { supabase } from "@/lib/supabaseClient"; // Cliente Supabase
+import { supabase } from "@/lib/supabase"; // Cliente Supabase
 
 // Tipos para os perfis
 interface Profile {

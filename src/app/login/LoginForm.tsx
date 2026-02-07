@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Lock, Mail, ChevronRight, Loader2, Sparkles, ShieldCheck, GraduationCap, UserCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -33,7 +33,6 @@ export function LoginForm() {
       if (error) {
         const testEmails = ["aluno@educore.gov.br", "professor@educore.gov.br", "coordenacao@educore.gov.br"];
         
-        // Se for um e-mail de teste e não existir, tentamos criar a conta demo
         if (error.message.includes('Invalid login credentials') && testEmails.includes(email)) {
           const role = email.includes('aluno') ? 'student' : (email.includes('professor') ? 'teacher' : 'admin');
           const fullName = email.includes('aluno') ? 'Estudante Demo' : (email.includes('professor') ? 'Prof. Marcos Mendes' : 'Coordenação Municipal');
@@ -51,7 +50,6 @@ export function LoginForm() {
 
           if (signUpError) throw signUpError;
 
-          // Se o cadastro funcionou mas não retornou sessão, é porque precisa confirmar e-mail
           if (!signUpData.session) {
             toast({ 
               title: "Conta Demo Criada!", 
@@ -61,9 +59,14 @@ export function LoginForm() {
             setLoading(false);
             return;
           }
-
+          
           toast({ title: "Bem-vindo!", description: "Sua conta demo foi configurada." });
-          router.push("/dashboard/home");
+          const userRole = signUpData.user?.user_metadata?.role;
+          if (userRole === 'teacher' || userRole === 'admin') {
+            router.push("/dashboard/teacher/home");
+          } else {
+            router.push("/dashboard/home");
+          }
           return;
         }
         
@@ -71,7 +74,12 @@ export function LoginForm() {
       }
 
       toast({ title: "Acesso autorizado!", description: "Entrando no portal..." });
-      router.push("/dashboard/home");
+      const userRole = data.user?.user_metadata?.role;
+      if (userRole === 'teacher' || userRole === 'admin') {
+        router.push("/dashboard/teacher/home");
+      } else {
+        router.push("/dashboard/home");
+      }
 
     } catch (err: any) {
       toast({ 

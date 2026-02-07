@@ -1,41 +1,114 @@
 # EduCore | Smart Education
 
-Este é o portal de gestão educacional inteligente do município, focado em alta escala, baixo custo e impacto pedagógico real.
-
-## 🚀 Funcionalidades Atuais (V1.1)
-
-### 👨‍🎓 Para o Aluno
-- **Dashboard Personalizado**: Visão clara do progresso e trilhas recomendadas.
-- **Centro de Transmissões**: Aulas ao vivo com chat integrado e agenda de encontros.
-- **Biblioteca Digital**: Acervo curado com suporte da **Aurora IA** para explicações contextuais.
-- **Simulador de Isenção**: Ferramenta automática para verificar elegibilidade em benefícios estudantis.
-- **Comunidade Ativa**: Fóruns de discussão categorizados por matéria.
-
-### 👨‍🏫 Para o Professor/Gestor
-- **Gestão de Lives**: Painel exclusivo para abrir e agendar transmissões via YouTube.
-- **BI & Analytics**: Inteligência de dados para monitorar o engajamento de 1.000+ alunos em tempo real.
-- **Mural de Avisos**: Sistema de comunicados com 4 níveis de prioridade (incluindo interrupção crítica).
-- **Curadoria de Acervo**: Aprovação ou rejeição de materiais sugeridos pela comunidade.
-- **Avaliações IA**: Suporte na correção de redações e simulados estilo ENEM/Vestibular.
-
-## 🧠 Inteligência Artificial (Aurora)
-A Aurora é alimentada pelo **Genkit + Gemini 1.5 Flash**, oferecendo:
-- Suporte pedagógico 24/7.
-- Gerador de Quizzes automáticos baseados no tema da aula.
-- Consultoria de auxílio financeiro e documentação.
-
-## 🛠️ Arquitetura Técnica
-- **Frontend**: Next.js 15 (App Router) + Tailwind CSS + ShadCN UI.
-- **Backend**: Firebase (Auth, Firestore, Hosting).
-- **IA**: Google Genkit AI Framework.
-- **Segurança**: Firestore Security Rules configuradas para modo desenvolvimento master (Acesso Total para Testes).
-
-## 📈 Análise de Escala (1.000 Usuários)
-O projeto foi otimizado para rodar na camada gratuita/baixo custo do Firebase:
-- **Autenticação**: R$ 0,00 (Até 50k MAU).
-- **Banco de Dados (Firestore)**: ~R$ 20,00/mês.
-- **Servidor (Next.js SSR)**: ~R$ 150,00/mês.
-- **Inteligência Artificial (Gemini Flash)**: ~R$ 50,00/mês.
+*Tecnologia a serviço da aprovação.*
 
 ---
-*EduCore: Tecnologia a serviço da aprovação.*
+
+## 🎯 Visão do Projeto
+
+O EduCore é um portal de gestão educacional inteligente, desenhado para municípios e instituições que buscam oferecer educação de alta qualidade em larga escala, com baixo custo operacional e impacto pedagógico real. A plataforma centraliza ferramentas para alunos, professores e gestores, otimizando o aprendizado, o engajamento e a análise de dados.
+
+---
+
+## 🚀 Guia de Início Rápido (Desenvolvimento)
+
+Siga os passos abaixo para configurar e executar o projeto em seu ambiente local.
+
+### 1. Pré-requisitos
+
+- [Node.js](https://nodejs.org/) (versão 20.x ou superior)
+- [NPM](https://www.npmjs.com/) ou [Yarn](https://yarnpkg.com/)
+
+### 2. Clonar o Repositório
+
+```bash
+git clone <URL_DO_SEU_REPOSITORIO>
+cd <NOME_DA_PASTA_DO_PROJETO>
+```
+
+### 3. Configurar Variáveis de Ambiente
+
+Crie um arquivo chamado `.env.local` na raiz do projeto. Ele guardará as chaves de API e configurações dos serviços externos. Preencha com suas credenciais:
+
+```env
+# Configuração do Firebase
+NEXT_PUBLIC_FIREBASE_API_KEY=SUA_CHAVE_DE_API
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=SEU_DOMINIO.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=SEU_ID_DE_PROJETO
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=SEU_BUCKET.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=SEU_SENDER_ID
+NEXT_PUBLIC_FIREBASE_APP_ID=SEU_APP_ID
+
+# Outras chaves de API (ex: YouTube, etc.)
+YOUTUBE_API_KEY=SUA_CHAVE_DO_YOUTUBE
+```
+
+### 4. Instalar Dependências
+
+Este comando instalará todas as bibliotecas necessárias para rodar o projeto.
+
+```bash
+npm install
+```
+
+### 5. Iniciar o Servidor de Desenvolvimento
+
+Após a instalação, inicie o servidor Next.js.
+
+```bash
+npm run dev
+```
+
+A aplicação estará disponível em [http://localhost:3000](http://localhost:3000).
+
+---
+
+## ✨ Funcionalidades Principais
+
+### Para o Aluno 👨‍🎓
+
+-   **Dashboard Personalizado**: Visão clara do progresso e trilhas de estudo recomendadas.
+-   **Centro de Transmissões**: Aulas ao vivo com chat integrado e agenda de encontros.
+-   **Biblioteca Digital**: Acervo curado com suporte da **Aurora IA** para explicações contextuais.
+-   **Simulador de Isenção**: Ferramenta para verificar elegibilidade em benefícios estudantis.
+-   **Comunidade Ativa**: Fóruns de discussão moderados.
+
+### Para o Professor & Gestor 👨‍🏫
+
+-   **Gestão de Lives**: Painel para agendar e gerenciar transmissões via YouTube.
+-   **BI & Analytics**: Inteligência de dados para monitorar o engajamento de milhares de alunos em tempo real.
+-   **Mural de Avisos**: Sistema de comunicados com múltiplos níveis de prioridade.
+-   **Curadoria de Acervo**: Painel para aprovar ou rejeitar materiais sugeridos pela comunidade.
+-   **Avaliações com IA**: Suporte na correção de redações e simulados.
+
+---
+
+## 🧠 Inteligência Artificial (Aurora)
+
+A Aurora é a assistente de IA da plataforma, construída com **Google Genkit e Gemini 1.5 Flash**. Suas capacidades incluem:
+
+-   Suporte pedagógico 24/7 para tirar dúvidas.
+-   Geração de quizzes automáticos baseados no conteúdo da aula.
+-   Consultoria sobre auxílios financeiros e documentação.
+
+---
+
+## 🛠️ Arquitetura e Tech Stack
+
+-   **Framework**: [Next.js](https://nextjs.org/) (com App Router e SSR)
+-   **Linguagem**: [TypeScript](https://www.typescriptlang.org/)
+-   **Estilização**: [Tailwind CSS](https://tailwindcss.com/)
+-   **Backend & DB**: [Firebase](https://firebase.google.com/) (Auth, Firestore, Storage)
+-   **IA & GenAI**: [Google AI (Genkit & Gemini)](https://firebase.google.com/docs/genkit)
+-   **Deployment**: [Vercel](https://vercel.com/) / [Firebase Hosting](https://firebase.google.com/docs/hosting)
+
+---
+
+## 💰 Projeção de Custos (Estimativa)
+
+A arquitetura foi planejada para ser altamente escalável e de baixo custo, utilizando a camada gratuita/econômica do Firebase e Google Cloud:
+
+-   **Autenticação**: R$ 0,00 (Até 50k usuários/mês).
+-   **Banco de Dados (Firestore)**: ~R$ 20,00/mês para a operação inicial.
+-   **Servidor (Next.js SSR)**: ~R$ 150,00/mês em um provedor como Vercel ou Cloud Run.
+-   **Inteligência Artificial (Gemini Flash)**: ~R$ 50,00/mês para um volume moderado de consultas.

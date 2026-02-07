@@ -15,50 +15,46 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/lib/AuthProvider"; // 1. Trocado para o hook do Supabase
-import { supabase } from "@/lib/supabaseClient"; // 2. Importado o cliente Supabase
+import { useAuth } from "@/lib/AuthProvider"; 
+import { supabase } from "@/lib/supabase"; 
 
-// Interface para tipar os dados que virão do Supabase
 interface LibraryItem {
   id: string;
   title: string;
   description: string;
   category: string;
-  // Adicione outros campos que você espera da tabela 'library_items'
 }
 
 export default function DashboardHome() {
-  // 3. Usa o hook de autenticação do Supabase
-  const { user, isLoading: isUserLoading } = useAuth();
-  
-  // 4. Estados para armazenar dados e status de carregamento
+  const { user, loading: isUserLoading } = useAuth();
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
 
-  // 5. useEffect para buscar os dados do Supabase quando o componente montar
   useEffect(() => {
     const fetchLibraryItems = async () => {
+      if (!supabase) return;
       setLoadingLibrary(true);
-      
-      // Busca 4 itens da tabela 'library_items'.
-      // A migration moveu os dados de 'library' para 'library_items'.
-      const { data, error } = await supabase
-        .from('library_items')
-        .select('*')
-        .limit(4);
+      try {
+        // Busca os itens em destaque da tabela 'library_items' no Supabase
+        const { data, error } = await supabase
+          .from('library_items')
+          .select('*')
+          .limit(4);
 
-      if (error) {
-        console.error("Erro ao buscar itens da biblioteca:", error);
-        // Em um app real, você poderia mostrar um toast de erro aqui
-      } else {
-        setLibraryItems(data as LibraryItem[]);
+        if (error) {
+          console.error("Erro ao buscar itens da biblioteca:", error);
+        } else {
+          setLibraryItems(data as LibraryItem[]);
+        }
+      } catch (err) {
+        console.error("Erro inesperado:", err);
+      } finally {
+        setLoadingLibrary(false);
       }
-      
-      setLoadingLibrary(false);
     };
 
     fetchLibraryItems();
-  }, []); // O array vazio faz com que o useEffect execute apenas uma vez
+  }, []);
 
   if (isUserLoading) {
     return (
@@ -68,7 +64,6 @@ export default function DashboardHome() {
     );
   }
 
-  // O nome do usuário agora vem de `user.user_metadata`
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Estudante';
 
   return (
@@ -87,13 +82,6 @@ export default function DashboardHome() {
            </p>
          </div>
       </section>
-
-      {/* 
-        6. SEÇÃO 'CONTINUE SUA JORNADA' REMOVIDA
-        A tabela 'user_progress' não foi encontrada nos dados migrados. 
-        Para evitar erros, esta seção foi desativada. Ela pode ser reconstruída 
-        futuramente com base nas tabelas existentes no Supabase.
-      */}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8">
         <div className="lg:col-span-2 space-y-6">
@@ -105,7 +93,8 @@ export default function DashboardHome() {
               <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-accent" /></div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {libraryItems && libraryItems.map((item) => (
+                {libraryItems && libraryItems.length > 0 ? (
+                  libraryItems.map((item) => (
                     <Link key={item.id} href="/dashboard/library" className="group block">
                         <Card className="border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-[2rem] flex items-center gap-5 p-5">
                             <div className='w-20 h-20 shrink-0 relative rounded-2xl overflow-hidden shadow-md'>
@@ -115,6 +104,7 @@ export default function DashboardHome() {
                                   width={150}
                                   height={150}
                                   className="object-cover"
+                                  data-ai-hint="educational cover"
                                 />
                             </div>
                             <div className='flex-1 space-y-1.5 overflow-hidden'>
@@ -124,7 +114,12 @@ export default function DashboardHome() {
                             </div>
                         </Card>
                     </Link>
-                ))}
+                  ))
+                ) : (
+                  <div className="col-span-full py-10 text-center opacity-40 italic text-sm">
+                    Nenhum item em destaque no momento.
+                  </div>
+                )}
               </div>
             )}
         </div>

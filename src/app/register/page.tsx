@@ -12,7 +12,7 @@ import { GraduationCap, School, User, ArrowRight, CheckCircle2, Loader2, Mail, L
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient"; // Importa o cliente Supabase
+import { supabase } from "@/lib/supabase"; // Importa o cliente Supabase
 
 type Step = 1 | 2 | 3;
 type ProfileType = "etec" | "uni" | "teacher";
@@ -274,7 +274,7 @@ export default function RegisterPage() {
               </Button>
             ) : (
               <Button onClick={handleFinish} disabled={loading} className="bg-accent text-accent-foreground px-10 font-bold shadow-xl shadow-accent/20 group">
-                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" /> }
                 Finalizar Cadastro
               </Button>
             )}

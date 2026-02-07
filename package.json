@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 9002",
+    "dev": "next dev",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
@@ -49,7 +49,7 @@
     "genkit": "^1.28.0",
     "googleapis": "^171.2.0",
     "lucide-react": "^0.475.0",
-    "next": "15.1.11",
+    "next": "^15.5.12",
     "patch-package": "^8.0.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
