@@ -145,10 +145,13 @@ export default function ClassroomPage() {
   const handleSendLiveMessage = async (isQuestion: boolean = false) => {
     if (!liveChatInput.trim() || !user || !activeLive) return;
 
+    const messageContent = liveChatInput;
+    setLiveChatInput(""); // Limpa o input imediatamente (Optimistic UI)
+
     try {
       const { error } = await supabase.from('forum_posts').insert({
         forum_id: activeLive.id,
-        content: liveChatInput,
+        content: messageContent,
         author_id: user.id,
         author_name: user.user_metadata?.full_name || "Estudante",
         is_question: isQuestion,
@@ -157,12 +160,12 @@ export default function ClassroomPage() {
       });
 
       if (error) throw error;
-      setLiveChatInput("");
+      
       if (isQuestion) {
         toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi destacada para o professor." });
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro ao enviar", description: "Verifique se a tabela 'forum_posts' existe no Supabase." });
+      toast({ variant: "destructive", title: "Erro ao enviar", description: "Verifique se habilitou o Realtime no console do Supabase." });
     }
   };
 
@@ -207,7 +210,6 @@ export default function ClassroomPage() {
 
   return (
     <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-700 pb-20">
-      {/* Top Header Card */}
       <div className="bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white/20 flex flex-col lg:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4 w-full lg:w-auto">
           <Button variant="ghost" size="icon" asChild className="rounded-full h-10 w-10 shrink-0">
@@ -221,7 +223,7 @@ export default function ClassroomPage() {
               <Badge className="bg-accent text-accent-foreground text-[8px] font-black uppercase px-2 h-4">{trail?.category}</Badge>
               {activeLive && (
                 <Badge className="bg-red-600 text-white text-[8px] font-black uppercase px-2 h-4 animate-pulse flex items-center gap-1">
-                  <Radio className="h-2 w-2" /> TRANSMISSÃO ATIVA
+                  <Radio className="h-2 w-2" /> AO VIVO AGORA
                 </Badge>
               )}
             </div>
@@ -296,7 +298,7 @@ export default function ClassroomPage() {
                     allowFullScreen 
                   />
                 </div>
-                <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col h-[500px] xl:h-auto">
+                <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col h-[500px] xl:h-[600px]">
                   <div className="p-4 bg-red-600 text-white flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <MessageCircle className="h-4 w-4" />
@@ -316,9 +318,9 @@ export default function ClassroomPage() {
                               </Badge>
                             )}
                           </div>
-                          <div className={`px-4 py-2 rounded-2xl text-xs font-medium ${
+                          <div className={`px-4 py-2 rounded-2xl text-xs font-medium shadow-sm ${
                             msg.author_id === user?.id 
-                              ? (msg.is_question ? 'bg-amber-500 text-white shadow-md' : 'bg-primary text-white ml-4') 
+                              ? (msg.is_question ? 'bg-amber-500 text-white' : 'bg-primary text-white ml-4') 
                               : (msg.is_question ? 'bg-white text-amber-900 border border-amber-200' : 'bg-muted/30 text-primary mr-4')
                           }`}>
                             {msg.content}
@@ -330,25 +332,25 @@ export default function ClassroomPage() {
                       )}
                     </div>
                   </ScrollArea>
-                  <div className="p-4 border-t bg-muted/5 space-y-2">
+                  <div className="p-4 border-t bg-muted/5 space-y-3">
                     <div className="flex gap-2">
                       <Input 
                         placeholder="Comentar na aula..." 
-                        className="rounded-xl h-10 text-xs italic bg-white" 
+                        className="rounded-xl h-12 text-xs italic bg-white shadow-inner" 
                         value={liveChatInput} 
                         onChange={(e) => setLiveChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendLiveMessage(false)}
                       />
-                      <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-10 w-10 bg-slate-900 rounded-xl shrink-0">
+                      <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-12 w-12 bg-slate-900 rounded-xl shrink-0 shadow-lg active:scale-95 transition-all">
                         <Send className="h-4 w-4 text-white" />
                       </Button>
                     </div>
                     <Button 
                       onClick={() => handleSendLiveMessage(true)} 
                       variant="outline" 
-                      className="w-full h-10 border-amber-500/50 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[9px] uppercase gap-2 rounded-xl transition-all shadow-sm"
+                      className="w-full h-12 border-2 border-amber-500/50 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[10px] uppercase gap-2 rounded-xl transition-all shadow-md active:scale-95"
                     >
-                      <Lightbulb className="h-3 w-3" /> 💡 Fazer Pergunta Especial ao Mentor
+                      <Lightbulb className="h-4 w-4 animate-pulse" /> 💡 Fazer Pergunta Especial ao Mentor
                     </Button>
                   </div>
                 </Card>

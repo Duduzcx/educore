@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   Loader2,
   Trophy,
-  ShieldCheck
+  ShieldCheck,
+  MoreVertical
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -119,7 +120,6 @@ export default function TeacherLiveStudioPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-120px)] space-y-6 animate-in fade-in duration-700">
-      {/* Studio Monitor Top Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between bg-slate-950 p-6 rounded-3xl text-white shadow-2xl border-b-4 border-red-600 gap-4">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="text-white hover:bg-white/10 rounded-full h-12 w-12">
@@ -135,7 +135,7 @@ export default function TeacherLiveStudioPage() {
         </div>
         <div className="flex items-center gap-4 md:gap-8">
           <div className="flex flex-col items-end">
-            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Engajamento Alunos</span>
+            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Espectadores</span>
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-blue-400" />
               <span className="text-xl md:text-2xl font-black tabular-nums">42</span>
@@ -148,7 +148,6 @@ export default function TeacherLiveStudioPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0">
-        {/* Left Column: Preview & Metrics */}
         <div className="lg:col-span-2 flex flex-col space-y-6">
           <Card className="aspect-video bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-slate-800 relative">
             <iframe 
@@ -168,27 +167,26 @@ export default function TeacherLiveStudioPage() {
               <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2 md:mb-3">
                 <Zap className="h-5 w-5 md:h-6 md:w-6" />
               </div>
-              <p className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest">Saúde do Sinal</p>
+              <p className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest">Sinal</p>
               <p className="text-sm md:text-xl font-black text-slate-900">Excelente</p>
             </Card>
-            <Card className="bg-white p-4 md:p-8 rounded-[2rem] shadow-xl flex flex-col items-center justify-center text-center border-2 border-amber-100 group hover:border-amber-300 transition-all">
+            <Card className={`bg-white p-4 md:p-8 rounded-[2rem] shadow-xl flex flex-col items-center justify-center text-center border-2 transition-all ${questionCount > 0 ? 'border-amber-300 bg-amber-50' : 'border-slate-100'}`}>
               <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-2 md:mb-3">
-                <Lightbulb className="h-5 w-5 md:h-6 md:w-6 animate-pulse" />
+                <Lightbulb className={`h-5 w-5 md:h-6 md:w-6 ${questionCount > 0 ? 'animate-pulse' : ''}`} />
               </div>
-              <p className="text-[8px] md:text-[10px] font-black uppercase text-amber-600/60 tracking-widest">Questões Ativas</p>
+              <p className="text-[8px] md:text-[10px] font-black uppercase text-amber-600/60 tracking-widest">Dúvidas Ativas</p>
               <p className="text-sm md:text-xl font-black text-amber-600 tabular-nums">{questionCount}</p>
             </Card>
             <Card className="bg-white p-4 md:p-8 rounded-[2rem] shadow-xl flex flex-col items-center justify-center text-center group hover:bg-slate-50 transition-all">
               <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-2 md:mb-3">
                 <Trophy className="h-5 w-5 md:h-6 md:w-6" />
               </div>
-              <p className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest">Duração</p>
+              <p className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 tracking-widest">Tempo</p>
               <p className="text-sm md:text-xl font-black text-slate-900 tabular-nums">14:20</p>
             </Card>
           </div>
         </div>
 
-        {/* Right Column: Interaction Hub */}
         <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden flex flex-col h-full relative">
           <div className="flex flex-col h-full">
             <div className="p-6 bg-slate-50 border-b flex items-center justify-between shrink-0">
