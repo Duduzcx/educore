@@ -28,20 +28,22 @@
         "youtube_url": { "type": "string" },
         "start_time": { "type": "string", "format": "date-time" },
         "active": { "type": "boolean" },
+        "trail_id": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" }
       }
     },
-    "Notice": {
-      "title": "Notice",
+    "ForumPost": {
+      "title": "ForumPost",
       "type": "object",
-      "description": "Institutional announcements for the students.",
+      "description": "A message in a forum or live chat.",
       "properties": {
         "id": { "type": "string" },
-        "title": { "type": "string" },
+        "forum_id": { "type": "string" },
+        "author_id": { "type": "string" },
+        "author_name": { "type": "string" },
         "content": { "type": "string" },
-        "author": { "type": "string" },
-        "priority": { "type": "string", "enum": ["banner", "popup", "normal", "fullscreen"] },
-        "read_by": { "type": "array", "items": { "type": "string" } },
+        "is_question": { "type": "boolean" },
+        "is_answered": { "type": "boolean" },
         "created_at": { "type": "string", "format": "date-time" }
       }
     }
@@ -58,9 +60,9 @@
       "schema": "Live",
       "description": "Live classes data."
     },
-    "/notices/{noticeId}": {
-      "schema": "Notice",
-      "description": "Mural of notices."
+    "/forum_posts/{postId}": {
+      "schema": "ForumPost",
+      "description": "Chat messages and questions."
     }
   }
 }

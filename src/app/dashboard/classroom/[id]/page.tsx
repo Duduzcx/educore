@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -14,35 +14,26 @@ import {
   Layout, 
   FileText, 
   CheckSquare, 
-  MessageSquare, 
   ChevronLeft, 
-  Play, 
   Loader2, 
-  Youtube, 
   Sparkles, 
-  CheckCircle2, 
   Send,
   Bot,
-  ArrowRight,
-  ArrowLeft,
-  ClipboardCheck,
   TrendingUp,
-  HelpCircle,
   Radio,
   Users,
-  MessageCircle
+  Lightbulb,
+  Youtube
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ClassroomPage() {
   const params = useParams();
   const trailId = params.id as string;
-  const isDemo = trailId.startsWith("ex-");
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -58,21 +49,14 @@ export default function ClassroomPage() {
   const [activeContentId, setActiveContentId] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState("content");
   
-  const [classProgress, setClassProgress] = useState(0);
-  
-  // Chat da Live (União com sistema de fórum)
   const [liveMessages, setLiveMessages] = useState<any[]>([]);
   const [liveChatInput, setLiveChatInput] = useState("");
   const liveScrollRef = useRef<HTMLDivElement>(null);
 
-  // Aurora IA
   const [chatMessages, setChatMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   const auroraScrollRef = useRef<HTMLDivElement>(null);
-
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [showResults, setShowResults] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -88,35 +72,20 @@ export default function ClassroomPage() {
         const { data: progData } = await supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).single();
         setProgress(progData);
 
-        // Busca se há Live ativa para esta trilha
         const { data: liveData } = await supabase.from('lives').select('*').eq('trail_id', trailId).order('created_at', { ascending: false }).limit(1).maybeSingle();
         setActiveLive(liveData);
 
-        // Se houver live, carregar mensagens do chat (fórum da live)
         if (liveData) {
-          const { data: msgs } = await supabase
-            .from('forum_posts')
-            .select('*')
-            .eq('forum_id', liveData.id)
-            .order('created_at', { ascending: true });
+          const { data: msgs } = await supabase.from('forum_posts').select('*').eq('forum_id', liveData.id).order('created_at', { ascending: true });
           setLiveMessages(msgs || []);
 
-          // Inscrever no chat em tempo real
-          const channel = supabase
-            .channel(`live_chat_${liveData.id}`)
+          const channel = supabase.channel(`live_chat_${liveData.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'forum_posts', filter: `forum_id=eq.${liveData.id}` }, 
-            (payload) => {
-              setLiveMessages(prev => [...prev, payload.new]);
-            })
+            (payload) => { setLiveMessages(prev => [...prev, payload.new]); })
             .subscribe();
-          
           return () => { supabase.removeChannel(channel); };
         }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+      } catch (err) { console.error(err); } finally { setLoading(false); }
     }
     loadData();
   }, [user, trailId]);
@@ -131,19 +100,14 @@ export default function ClassroomPage() {
   }, [activeModuleId]);
 
   useEffect(() => {
-    if (modules.length > 0 && !activeModuleId) {
-      setActiveModuleId(modules[0].id);
-    }
+    if (modules.length > 0 && !activeModuleId) setActiveModuleId(modules[0].id);
   }, [modules, activeModuleId]);
 
   useEffect(() => {
-    if (contents.length > 0 && !activeContentId) {
-      setActiveContentId(contents[0].id);
-    }
+    if (contents.length > 0 && !activeContentId) setActiveContentId(contents[0].id);
   }, [contents, activeContentId]);
 
-  const handleSendLiveMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendLiveMessage = async (isQuestion: boolean = false) => {
     if (!liveChatInput.trim() || !user || !activeLive) return;
 
     const { error } = await supabase.from('forum_posts').insert({
@@ -151,29 +115,27 @@ export default function ClassroomPage() {
       content: liveChatInput,
       author_id: user.id,
       author_name: user.user_metadata?.full_name || "Estudante",
+      is_question: isQuestion,
       created_at: new Date().toISOString()
     });
 
-    if (!error) setLiveChatInput("");
+    if (!error) {
+      setLiveChatInput("");
+      if (isQuestion) toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi enviada para o painel do professor." });
+    }
   };
 
   const handleSendMessageAurora = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isAiLoading) return;
-
     const userText = chatInput;
     setChatMessages(prev => [...prev, { role: 'user', content: userText }]);
     setChatInput("");
     setIsAiLoading(true);
-
     try {
       const result = await conceptExplanationAssistant({ query: userText, history: chatMessages.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', content: m.content })) });
       if (result?.response) setChatMessages(prev => [...prev, { role: 'assistant', content: result.response }]);
-    } catch (err) {
-      toast({ title: "Aurora ocupada", variant: "destructive" });
-    } finally {
-      setIsAiLoading(false);
-    }
+    } catch (err) { toast({ title: "Aurora ocupada", variant: "destructive" }); } finally { setIsAiLoading(false); }
   };
 
   useEffect(() => {
@@ -187,7 +149,6 @@ export default function ClassroomPage() {
 
   return (
     <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-700 pb-20">
-      {/* HEADER DA SALA */}
       <div className="bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white/20 flex flex-col lg:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4 w-full lg:w-auto">
           <Button variant="ghost" size="icon" asChild className="rounded-full h-10 w-10 shrink-0">
@@ -241,11 +202,7 @@ export default function ClassroomPage() {
             <TabsContent value="content" className="space-y-6">
               <div className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-primary/5">
                 {contents.find(c => c.id === activeContentId)?.type === 'video' ? (
-                  <iframe 
-                    width="100%" height="100%" 
-                    src={`https://www.youtube.com/embed/${contents.find(c => c.id === activeContentId)?.url.split('v=')[1] || 'rfscVS0vtbw'}`} 
-                    frameBorder="0" allowFullScreen 
-                  />
+                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${contents.find(c => c.id === activeContentId)?.url.split('v=')[1] || 'rfscVS0vtbw'}`} frameBorder="0" allowFullScreen />
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center">
                     <FileText className="h-16 w-16 mb-4 opacity-40" />
@@ -255,23 +212,16 @@ export default function ClassroomPage() {
               </div>
               <Card className="border-none shadow-xl rounded-[2.5rem] p-8 bg-white">
                 <h3 className="text-2xl font-black text-primary italic mb-4">{contents.find(c => c.id === activeContentId)?.title}</h3>
-                <p className="text-muted-foreground leading-relaxed font-medium text-lg italic whitespace-pre-wrap">
-                  {contents.find(c => c.id === activeContentId)?.description || "Material oficial monitorado."}
-                </p>
+                <p className="text-muted-foreground leading-relaxed font-medium text-lg italic whitespace-pre-wrap">{contents.find(c => c.id === activeContentId)?.description || "Material oficial monitorado."}</p>
               </Card>
             </TabsContent>
 
             <TabsContent value="live" className="animate-in zoom-in-95 duration-500">
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="xl:col-span-2 aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-red-600/20">
-                  <iframe 
-                    width="100%" height="100%" 
-                    src={`https://www.youtube.com/embed/${activeLive?.youtube_id || 'rfscVS0vtbw'}?autoplay=1`} 
-                    frameBorder="0" allowFullScreen 
-                  />
+                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${activeLive?.youtube_id || 'rfscVS0vtbw'}?autoplay=1`} frameBorder="0" allowFullScreen />
                 </div>
-                {/* LIVE CHAT INTEGRADO (UNIFICADO COM FÓRUM) */}
-                <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col h-[450px] xl:h-auto">
+                <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col h-[500px] xl:h-auto">
                   <div className="p-4 bg-red-600 text-white flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
@@ -282,24 +232,32 @@ export default function ClassroomPage() {
                   <ScrollArea className="flex-1 p-4" ref={liveScrollRef}>
                     <div className="flex flex-col gap-4">
                       {liveMessages.map((msg, i) => (
-                        <div key={i} className="flex flex-col gap-1">
-                          <span className="text-[8px] font-black text-primary/40 uppercase px-1">{msg.author_name}</span>
-                          <div className={`px-4 py-2 rounded-2xl text-xs font-medium ${msg.author_id === user?.id ? 'bg-primary text-white ml-4' : 'bg-muted/30 text-primary mr-4'}`}>
+                        <div key={i} className={`flex flex-col gap-1 ${msg.is_question ? 'bg-amber-50 p-2 rounded-xl border border-amber-200' : ''}`}>
+                          <div className="flex items-center justify-between px-1">
+                            <span className="text-[8px] font-black text-primary/40 uppercase">{msg.author_name}</span>
+                            {msg.is_question && <Badge className="bg-amber-500 text-white border-none text-[6px] font-black px-1.5 h-3">PERGUNTA</Badge>}
+                          </div>
+                          <div className={`px-4 py-2 rounded-2xl text-xs font-medium ${msg.author_id === user?.id ? (msg.is_question ? 'bg-amber-500 text-white' : 'bg-primary text-white ml-4') : 'bg-muted/30 text-primary mr-4'}`}>
                             {msg.content}
                           </div>
                         </div>
                       ))}
                     </div>
                   </ScrollArea>
-                  <form onSubmit={handleSendLiveMessage} className="p-4 border-t bg-muted/5 flex gap-2">
-                    <Input 
-                      placeholder="Comentar na aula..." 
-                      className="rounded-xl h-10 text-xs italic" 
-                      value={liveChatInput} 
-                      onChange={(e) => setLiveChatInput(e.target.value)} 
-                    />
-                    <Button type="submit" size="icon" className="h-10 w-10 bg-red-600 rounded-xl"><Send className="h-4 w-4 text-white" /></Button>
-                  </form>
+                  <div className="p-4 border-t bg-muted/5 space-y-2">
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="Comentar na aula..." 
+                        className="rounded-xl h-10 text-xs italic" 
+                        value={liveChatInput} 
+                        onChange={(e) => setLiveChatInput(e.target.value)} 
+                      />
+                      <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-10 w-10 bg-red-600 rounded-xl shrink-0"><Send className="h-4 w-4 text-white" /></Button>
+                    </div>
+                    <Button onClick={() => handleSendLiveMessage(true)} variant="outline" className="w-full h-10 border-amber-500/50 text-amber-600 hover:bg-amber-500 hover:text-white font-black text-[9px] uppercase gap-2 rounded-xl transition-all">
+                      <Lightbulb className="h-3 w-3" /> Fazer Pergunta para o Mentor
+                    </Button>
+                  </div>
                 </Card>
               </div>
             </TabsContent>
@@ -309,10 +267,7 @@ export default function ClassroomPage() {
                 <div className="p-6 bg-primary text-white flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-accent flex items-center justify-center text-accent-foreground"><Bot className="h-6 w-6" /></div>
-                    <div>
-                      <p className="text-sm font-black italic">Aurora IA</p>
-                      <p className="text-[8px] font-black uppercase opacity-60 tracking-widest">Suporte Pedagógico</p>
-                    </div>
+                    <div><p className="text-sm font-black italic">Aurora IA</p><p className="text-[8px] font-black uppercase opacity-60 tracking-widest">Suporte Pedagógico</p></div>
                   </div>
                   <Sparkles className="h-5 w-5 text-accent animate-pulse" />
                 </div>
@@ -320,20 +275,13 @@ export default function ClassroomPage() {
                   <div className="flex flex-col gap-6">
                     {chatMessages.map((msg, i) => (
                       <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] px-5 py-3 rounded-2xl text-sm font-medium ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-none' : 'bg-accent/10 text-primary border border-accent/20 rounded-tl-none'}`}>
-                          {msg.content}
-                        </div>
+                        <div className={`max-w-[85%] px-5 py-3 rounded-2xl text-sm font-medium ${msg.role === 'user' ? 'bg-primary text-white rounded-tr-none' : 'bg-accent/10 text-primary border border-accent/20 rounded-tl-none'}`}>{msg.content}</div>
                       </div>
                     ))}
                   </div>
                 </ScrollArea>
                 <form onSubmit={handleSendMessageAurora} className="p-4 border-t flex gap-2">
-                  <Input 
-                    placeholder="Tire uma dúvida com a IA..." 
-                    className="rounded-xl h-12 text-sm italic" 
-                    value={chatInput} 
-                    onChange={(e) => setChatInput(e.target.value)} 
-                  />
+                  <Input placeholder="Tire uma dúvida com a IA..." className="rounded-xl h-12 text-sm italic" value={chatInput} onChange={(e) => setChatInput(e.target.value)} />
                   <Button type="submit" className="h-12 w-12 bg-primary rounded-xl"><Send className="h-5 w-5 text-white" /></Button>
                 </form>
               </Card>
@@ -341,7 +289,6 @@ export default function ClassroomPage() {
           </Tabs>
         </div>
 
-        {/* BARRA LATERAL: MÓDULOS E AULAS */}
         <div className="space-y-6">
           <Card className="shadow-2xl border-none bg-white rounded-[2.5rem] overflow-hidden">
             <div className="p-6 bg-primary text-white flex items-center justify-between">
