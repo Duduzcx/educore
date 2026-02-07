@@ -15,18 +15,14 @@ import {
   Loader2, 
   Video, 
   Radio, 
-  FlaskConical, 
   MessageCircle,
   Users,
   Zap,
-  Play,
   Clock,
-  Settings2,
   Signal,
-  Eye,
-  ExternalLink,
   Activity,
-  History
+  History,
+  ExternalLink
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -102,7 +98,7 @@ export default function TeacherLiveManagement() {
       setForm({ title: "", description: "", youtube_id: "", start_time: "", trail_id: "none" });
       setIsAddOpen(false);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro no Estúdio", description: "Verifique os dados da transmissão ou se as tabelas existem." });
+      toast({ variant: "destructive", title: "Erro no Estúdio", description: "Verifique os dados ou se as tabelas existem." });
     } finally {
       setLoading(false);
     }
@@ -120,6 +116,7 @@ export default function TeacherLiveManagement() {
           teacher_id: user.id,
           youtube_id: "rfscVS0vtbw",
           youtube_url: "https://www.youtube.com/watch?v=rfscVS0vtbw",
+          url: "https://www.youtube.com/watch?v=rfscVS0vtbw",
           start_time: new Date().toISOString()
         }
       ];
@@ -144,7 +141,7 @@ export default function TeacherLiveManagement() {
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-700 pb-20 max-w-[1600px] mx-auto">
-      {/* Comand Center Header - Visual Dark Estúdio */}
+      {/* Comand Center Header */}
       <div className="relative bg-slate-950 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl border-b-8 border-red-600">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/10 to-transparent pointer-events-none" />
         <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -157,7 +154,7 @@ export default function TeacherLiveManagement() {
               </div>
               <div>
                 <h1 className="text-3xl md:text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Studio Core</h1>
-                <p className="text-red-500 font-bold text-[10px] tracking-[0.3em] uppercase mt-2">Master Control Room • V 2.0</p>
+                <p className="text-red-500 font-bold text-[10px] tracking-[0.3em] uppercase mt-2">Master Control Room • Ativo</p>
               </div>
             </div>
             <p className="text-slate-400 font-medium max-w-xl italic text-sm md:text-lg">
@@ -270,7 +267,7 @@ export default function TeacherLiveManagement() {
                     
                     <div className="absolute top-4 left-4 flex gap-2">
                       <Badge className="bg-red-600 text-white border-none font-black text-[8px] uppercase px-3 py-1 shadow-lg">
-                        {new Date(live.start_time) <= new Date() ? 'LIVE NOW' : 'SCHEDULED'}
+                        {new Date(live.start_time) <= new Date() ? 'AO VIVO' : 'AGENDADA'}
                       </Badge>
                     </div>
 
@@ -325,14 +322,14 @@ export default function TeacherLiveManagement() {
                 <div className="col-span-full p-20 text-center border-4 border-dashed border-slate-200 rounded-[3rem] bg-slate-50/50 opacity-40">
                   <MonitorPlay className="h-16 w-16 mx-auto mb-4 text-slate-300" />
                   <p className="font-black italic text-xl text-slate-400 uppercase tracking-tighter">Estúdio em Silêncio</p>
-                  <p className="text-sm font-medium mt-2">Configure o sinal no botão "Agendar Nova Live" acima.</p>
+                  <p className="text-sm font-medium mt-2">Agende uma live para iniciar o monitoramento.</p>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Sidebar Analytics - Visual Diferente */}
+        {/* Sidebar Analytics */}
         <div className="space-y-8">
           <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
             <div className="relative z-10 space-y-6">
@@ -341,13 +338,13 @@ export default function TeacherLiveManagement() {
                   <Zap className="h-7 w-7 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Network Health</p>
+                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Status da Rede</p>
                   <p className="text-xl font-black italic">Sinal: 100%</p>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-[10px] font-bold uppercase opacity-60">
-                  <span>Stream Quality</span>
+                  <span>Qualidade Stream</span>
                   <span className="text-green-600 font-black">4K ULTRACAST</span>
                 </div>
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -365,22 +362,16 @@ export default function TeacherLiveManagement() {
                   <MessageCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase text-white/40">Pedagogia Ativa</p>
-                  <p className="text-xl font-black italic">Interação IA</p>
+                  <p className="text-[10px] font-black uppercase text-white/40">Ecossistema Social</p>
+                  <p className="text-xl font-black italic">Chat Ativo</p>
                 </div>
               </div>
               <p className="text-[11px] font-medium leading-relaxed italic text-white/60">
-                O sistema prioriza automaticamente dúvidas enviadas pelo botão especial do aluno, permitindo que você as visualize na aba "Perguntas" do monitor de estúdio.
+                O chat em tempo real permite que os alunos enviem dúvidas que você gerencia no monitor de estúdio.
               </p>
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[9px] font-black uppercase text-white/40">Questões do Mês</span>
-                  <span className="text-[9px] font-black text-blue-400">120+</span>
-                </div>
-                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full w-[70%] bg-blue-400" />
-                </div>
-              </div>
+              <Button variant="outline" className="w-full border-white/10 text-white font-black text-[9px] uppercase h-10 rounded-xl hover:bg-white/5" asChild>
+                <Link href="/dashboard/forum">Ver Fórum Geral</Link>
+              </Button>
             </div>
           </Card>
         </div>

@@ -23,7 +23,8 @@ import {
   Radio,
   Users,
   Lightbulb,
-  Youtube
+  Youtube,
+  MessageCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -72,7 +73,6 @@ export default function ClassroomPage() {
         const { data: progData } = await supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).single();
         setProgress(progData);
 
-        // Busca live vinculada a esta trilha
         const { data: liveData } = await supabase
           .from('lives')
           .select('*')
@@ -84,6 +84,7 @@ export default function ClassroomPage() {
         setActiveLive(liveData);
 
         if (liveData) {
+          // Carregar histórico inicial do chat
           const { data: msgs } = await supabase
             .from('forum_posts')
             .select('*')
@@ -91,6 +92,7 @@ export default function ClassroomPage() {
             .order('created_at', { ascending: true });
           setLiveMessages(msgs || []);
 
+          // INSCRIÇÃO EM TEMPO REAL (REALTIME)
           const channel = supabase.channel(`live_chat_${liveData.id}`)
             .on('postgres_changes', { 
               event: 'INSERT', 
@@ -99,6 +101,14 @@ export default function ClassroomPage() {
               filter: `forum_id=eq.${liveData.id}`
             }, (payload) => {
               setLiveMessages(prev => [...prev, payload.new]);
+            })
+            .on('postgres_changes', {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'forum_posts',
+              filter: `forum_id=eq.${liveData.id}`
+            }, (payload) => {
+              setLiveMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
             })
             .subscribe();
 
@@ -142,17 +152,17 @@ export default function ClassroomPage() {
         author_id: user.id,
         author_name: user.user_metadata?.full_name || "Estudante",
         is_question: isQuestion,
+        is_answered: false,
         created_at: new Date().toISOString()
       });
 
       if (error) throw error;
-
       setLiveChatInput("");
       if (isQuestion) {
         toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi destacada para o professor." });
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro ao enviar", description: "O sistema de chat está sendo configurado. Tente novamente em instantes." });
+      toast({ variant: "destructive", title: "Erro ao enviar", description: "Verifique se a tabela 'forum_posts' existe no Supabase." });
     }
   };
 
@@ -256,7 +266,7 @@ export default function ClassroomPage() {
                   <iframe 
                     width="100%" 
                     height="100%" 
-                    src={`https://www.youtube.com/embed/${contents.find(c => c.id === activeContentId)?.url.split('v=')[1] || 'rfscVS0vtbw'}`} 
+                    src={`https://www.youtube.com/embed/${contents.find(c => c.id === activeContentId)?.url.split('v=')[1]?.split('&')[0] || contents.find(c => c.id === activeContentId)?.url.split('/').pop() || 'rfscVS0vtbw'}`} 
                     frameBorder="0" 
                     allowFullScreen 
                   />
@@ -281,7 +291,7 @@ export default function ClassroomPage() {
                   <iframe 
                     width="100%" 
                     height="100%" 
-                    src={`https://www.youtube.com/embed/${activeLive?.youtube_id || 'rfscVS0vtbw'}?autoplay=1`} 
+                    src={`https://www.youtube.com/embed/${activeLive?.youtube_id || 'rfscVS0vtbw'}?autoplay=1&modestbranding=1`} 
                     frameBorder="0" 
                     allowFullScreen 
                   />
@@ -289,7 +299,7 @@ export default function ClassroomPage() {
                 <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col h-[500px] xl:h-auto">
                   <div className="p-4 bg-red-600 text-white flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
+                      <MessageCircle className="h-4 w-4" />
                       <span className="text-[10px] font-black uppercase tracking-widest">Chat em Tempo Real</span>
                     </div>
                     <Badge className="bg-white/20 text-white border-none text-[8px]">{liveMessages.length}</Badge>
@@ -297,20 +307,27 @@ export default function ClassroomPage() {
                   <ScrollArea className="flex-1 p-4" ref={liveScrollRef}>
                     <div className="flex flex-col gap-4">
                       {liveMessages.map((msg, i) => (
-                        <div key={i} className={`flex flex-col gap-1 ${msg.is_question ? 'bg-amber-50 p-2 rounded-xl border border-amber-200' : ''}`}>
+                        <div key={msg.id || i} className={`flex flex-col gap-1 ${msg.is_question ? 'bg-amber-50 p-3 rounded-2xl border-2 border-amber-200 shadow-sm' : ''}`}>
                           <div className="flex items-center justify-between px-1">
                             <span className="text-[8px] font-black text-primary/40 uppercase">{msg.author_name}</span>
-                            {msg.is_question && <Badge className="bg-amber-500 text-white border-none text-[6px] font-black px-1.5 h-3">PERGUNTA AO MENTOR</Badge>}
+                            {msg.is_question && (
+                              <Badge className={`${msg.is_answered ? 'bg-green-100 text-green-700' : 'bg-amber-500 text-white'} border-none text-[6px] font-black px-1.5 h-3`}>
+                                {msg.is_answered ? 'RESPONDIDA' : 'DÚVIDA PEDAGÓGICA'}
+                              </Badge>
+                            )}
                           </div>
                           <div className={`px-4 py-2 rounded-2xl text-xs font-medium ${
                             msg.author_id === user?.id 
-                              ? (msg.is_question ? 'bg-amber-500 text-white shadow-lg' : 'bg-primary text-white ml-4') 
-                              : 'bg-muted/30 text-primary mr-4'
+                              ? (msg.is_question ? 'bg-amber-500 text-white shadow-md' : 'bg-primary text-white ml-4') 
+                              : (msg.is_question ? 'bg-white text-amber-900 border border-amber-200' : 'bg-muted/30 text-primary mr-4')
                           }`}>
                             {msg.content}
                           </div>
                         </div>
                       ))}
+                      {liveMessages.length === 0 && (
+                        <div className="py-20 text-center opacity-30 italic text-xs">O chat está silencioso. Comece a interagir!</div>
+                      )}
                     </div>
                   </ScrollArea>
                   <div className="p-4 border-t bg-muted/5 space-y-2">
@@ -319,7 +336,8 @@ export default function ClassroomPage() {
                         placeholder="Comentar na aula..." 
                         className="rounded-xl h-10 text-xs italic bg-white" 
                         value={liveChatInput} 
-                        onChange={(e) => setLiveChatInput(e.target.value)} 
+                        onChange={(e) => setLiveChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendLiveMessage(false)}
                       />
                       <Button onClick={() => handleSendLiveMessage(false)} size="icon" className="h-10 w-10 bg-slate-900 rounded-xl shrink-0">
                         <Send className="h-4 w-4 text-white" />
