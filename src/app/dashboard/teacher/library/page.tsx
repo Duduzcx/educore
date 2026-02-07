@@ -36,9 +36,15 @@ export default function TeacherLibraryManagement() {
   const fetchResources = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from('library_items').select('*').order('created_at', { ascending: false });
-    if (!error) setResources(data || []);
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.from('library_items').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      setResources(data || []);
+    } catch (err: any) {
+      console.error("Erro ao buscar recursos:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -69,7 +75,13 @@ export default function TeacherLibraryManagement() {
       setIsAddOpen(false);
       setResourceForm({ title: "", type: "PDF", category: "Geral", url: "", description: "" });
     } catch (err: any) {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao Salvar", 
+        description: err.message.includes('library_items') 
+          ? "Tabela 'library_items' não configurada. Execute o SQL de emergência." 
+          : err.message 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -124,7 +136,11 @@ export default function TeacherLibraryManagement() {
       toast({ title: "Biblioteca Populada!", description: "3 novos itens oficiais adicionados." });
       fetchResources();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro ao semear", description: err.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Erro no Seed", 
+        description: "Verifique se a tabela 'library_items' existe no seu banco de dados." 
+      });
     } finally {
       setIsSeeding(false);
     }
@@ -155,7 +171,7 @@ export default function TeacherLibraryManagement() {
             disabled={isSeeding}
             className="rounded-xl h-14 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
           >
-            {isSeeding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
+            {isSeeding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-4 w-4 mr-2" />}
             Gerar Acervo de Teste
           </Button>
 

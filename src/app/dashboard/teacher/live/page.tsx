@@ -33,9 +33,15 @@ export default function TeacherLiveManagement() {
   const fetchLives = async () => {
     if (!user) return;
     setLivesLoading(true);
-    const { data, error } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
-    if (!error) setLives(data || []);
-    setLivesLoading(false);
+    try {
+      const { data, error } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
+      if (error) throw error;
+      setLives(data || []);
+    } catch (err: any) {
+      console.error("Erro ao buscar lives:", err);
+    } finally {
+      setLivesLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -44,26 +50,37 @@ export default function TeacherLiveManagement() {
 
   const handleCreateLive = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !liveForm.title || !liveForm.youtube_id) return;
 
     setLoading(true);
-    const { data, error } = await supabase.from('lives').insert({
-      title: liveForm.title,
-      description: liveForm.description,
-      teacher_name: user.user_metadata?.full_name || "Docente da Rede",
-      teacher_id: user.id,
-      youtube_id: liveForm.youtube_id,
-      youtube_url: `https://www.youtube.com/watch?v=${liveForm.youtube_id}`,
-      start_time: liveForm.start_time || new Date().toISOString()
-    }).select().single();
+    try {
+      const { data, error } = await supabase.from('lives').insert({
+        title: liveForm.title,
+        description: liveForm.description,
+        teacher_name: user.user_metadata?.full_name || "Docente da Rede",
+        teacher_id: user.id,
+        youtube_id: liveForm.youtube_id,
+        youtube_url: `https://www.youtube.com/watch?v=${liveForm.youtube_id}`,
+        start_time: liveForm.start_time || new Date().toISOString()
+      }).select().single();
 
-    if (!error) {
+      if (error) throw error;
+
       setLives([data, ...lives]);
       toast({ title: "Aula Agendada!" });
       setForm({ title: "", description: "", youtube_id: "", start_time: "" });
       setIsAddOpen(false);
+    } catch (err: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao Agendar", 
+        description: err.message.includes('teacher_id') 
+          ? "Coluna 'teacher_id' não encontrada. Execute o SQL de emergência no Supabase." 
+          : err.message 
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSeedLives = async () => {
@@ -106,7 +123,11 @@ export default function TeacherLiveManagement() {
       toast({ title: "Lives Geradas!", description: "3 novas transmissões foram adicionadas." });
       fetchLives();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro ao gerar", description: err.message });
+      toast({ 
+        variant: "destructive", 
+        title: "Erro no Seed", 
+        description: "Verifique se as colunas 'teacher_id' e 'teacher_name' existem na tabela 'lives'." 
+      });
     } finally {
       setIsSeeding(false);
     }
@@ -137,7 +158,7 @@ export default function TeacherLiveManagement() {
             disabled={isSeeding}
             className="rounded-xl h-14 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
           >
-            {isSeeding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
+            {isSeeding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-4 w-4 mr-2" />}
             Gerar Lives de Teste
           </Button>
           
@@ -156,7 +177,7 @@ export default function TeacherLiveManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase opacity-40">YouTube ID</Label>
-                  <Input value={liveForm.youtube_id} onChange={(e) => setForm({...liveForm, youtube_id: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" required />
+                  <Input value={liveForm.youtube_id} onChange={(e) => setForm({...liveForm, youtube_id: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" required placeholder="Ex: rfscVS0vtbw" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase opacity-40">Data e Hora</Label>
