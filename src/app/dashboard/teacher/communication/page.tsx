@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Send, Trash2, Loader2, Sparkles, AlertTriangle, Info, ShieldAlert, Eye, FlaskConical } from "lucide-react";
+import { Bell, Send, Trash2, Loader2, Sparkles, FlaskConical } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +18,7 @@ export default function TeacherCommunicationPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [notices, setNotices] = useState<any[]>([]);
   const [noticesLoading, setNoticesLoading] = useState(true);
 
@@ -27,14 +28,15 @@ export default function TeacherCommunicationPage() {
     priority: "normal" as "banner" | "popup" | "normal" | "fullscreen"
   });
 
+  const fetchNotices = async () => {
+    if (!user) return;
+    setNoticesLoading(true);
+    const { data, error } = await supabase.from('notices').select('*').order('created_at', { ascending: false });
+    if (!error) setNotices(data || []);
+    setNoticesLoading(false);
+  };
+
   useEffect(() => {
-    async function fetchNotices() {
-      if (!user) return;
-      setNoticesLoading(true);
-      const { data, error } = await supabase.from('notices').select('*').order('created_at', { ascending: false });
-      if (!error) setNotices(data || []);
-      setNoticesLoading(false);
-    }
     fetchNotices();
   }, [user]);
 
@@ -56,6 +58,49 @@ export default function TeacherCommunicationPage() {
       setForm({ title: "", content: "", priority: "normal" });
     }
     setLoading(false);
+  };
+
+  const handleSeedNotices = async () => {
+    if (!user) return;
+    setIsSeeding(true);
+    
+    const demoNotices = [
+      {
+        title: "Período de Inscrição ENEM 2024",
+        content: "Atenção estudantes! O prazo para isenção da taxa termina nesta sexta-feira. Não percam!",
+        priority: "banner",
+        author: "Coordenação Pedagógica",
+        read_by: [],
+        created_at: new Date().toISOString()
+      },
+      {
+        title: "Novo Simulado IA Disponível",
+        content: "A Aurora gerou novas questões de Matemática Baseada no histórico do ENEM.",
+        priority: "popup",
+        author: "Aurora IA",
+        read_by: [],
+        created_at: new Date().toISOString()
+      },
+      {
+        title: "Manutenção do Portal",
+        content: "O sistema passará por uma atualização rápida hoje às 23h. O acesso será restabelecido em 10 min.",
+        priority: "normal",
+        author: "Equipe de TI",
+        read_by: [],
+        created_at: new Date().toISOString()
+      }
+    ];
+
+    try {
+      const { error } = await supabase.from('notices').insert(demoNotices);
+      if (error) throw error;
+      toast({ title: "Mural Populado!", description: "3 comunicados de teste foram publicados." });
+      fetchNotices();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro ao semear", description: err.message });
+    } finally {
+      setIsSeeding(false);
+    }
   };
 
   const handleDeleteNotice = async (id: string) => {
@@ -103,9 +148,20 @@ export default function TeacherCommunicationPage() {
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary/50">Conteúdo</Label>
                 <Textarea value={form.content} onChange={(e) => setForm({...form, content: e.target.value})} className="min-h-[150px] rounded-xl bg-muted/30 border-none resize-none p-4" />
               </div>
-              <Button type="submit" disabled={loading} className="w-full bg-primary text-white font-black h-14 rounded-2xl shadow-xl">
+              <Button type="submit" disabled={loading} className="w-full bg-primary text-white font-black h-14 rounded-2xl shadow-xl mb-4">
                 {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5 mr-2" />}
                 Publicar Comunicado
+              </Button>
+              
+              <Button 
+                type="button"
+                variant="outline" 
+                onClick={handleSeedNotices} 
+                disabled={isSeeding}
+                className="w-full rounded-xl h-12 border-dashed border-accent text-accent font-black hover:bg-accent/5"
+              >
+                {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FlaskConical className="h-4 w-4 mr-2" />}
+                Gerar Avisos de Teste
               </Button>
             </form>
           </CardContent>
@@ -140,6 +196,13 @@ export default function TeacherCommunicationPage() {
               </CardContent>
             </Card>
           ))}
+          {notices.length === 0 && (
+            <div className="p-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
+              <Bell className="h-16 w-16 mx-auto mb-4" />
+              <p className="font-black italic text-xl">Mural Limpo</p>
+              <p className="text-sm font-medium mt-2">Clique em "Gerar Avisos de Teste" para popular seu mural.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

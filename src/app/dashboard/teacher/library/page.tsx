@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Plus, Trash2, Loader2, Search, FileText, Video } from "lucide-react";
+import { BookOpen, Plus, Trash2, Loader2, Search, FileText, Video, FlaskConical } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ export default function TeacherLibraryManagement() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,14 +33,15 @@ export default function TeacherLibraryManagement() {
     description: ""
   });
 
+  const fetchResources = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase.from('library_items').select('*').order('created_at', { ascending: false });
+    if (!error) setResources(data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    async function fetchResources() {
-      if (!user) return;
-      setLoading(true);
-      const { data, error } = await supabase.from('library_items').select('*').order('created_at', { ascending: false });
-      if (!error) setResources(data || []);
-      setLoading(false);
-    }
     fetchResources();
   }, [user]);
 
@@ -73,6 +75,61 @@ export default function TeacherLibraryManagement() {
     }
   };
 
+  const handleSeedLibrary = async () => {
+    if (!user) return;
+    setIsSeeding(true);
+    
+    const demoItems = [
+      {
+        title: "Guia Definitivo: Citologia",
+        type: "PDF",
+        category: "Biologia",
+        url: "https://example.com/citologia.pdf",
+        description: "Um resumo visual completo sobre as organelas celulares.",
+        status: "approved",
+        author: user.user_metadata?.full_name || "Mentor Demo",
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        image_url: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&q=80&w=400"
+      },
+      {
+        title: "Videoaula: Funções do 2º Grau",
+        type: "Video",
+        category: "Matemática",
+        url: "https://youtube.com/watch?v=rfscVS0vtbw",
+        description: "Domine as parábolas e raízes de forma definitiva.",
+        status: "approved",
+        author: user.user_metadata?.full_name || "Mentor Demo",
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        image_url: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?auto=format&fit=crop&q=80&w=400"
+      },
+      {
+        title: "E-book: Revolução Industrial",
+        type: "E-book",
+        category: "História",
+        url: "https://example.com/historia.pdf",
+        description: "Impactos sociais e tecnológicos do século XIX.",
+        status: "approved",
+        author: user.user_metadata?.full_name || "Mentor Demo",
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        image_url: "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&q=80&w=400"
+      }
+    ];
+
+    try {
+      const { error } = await supabase.from('library_items').insert(demoItems);
+      if (error) throw error;
+      toast({ title: "Biblioteca Populada!", description: "3 novos itens oficiais adicionados." });
+      fetchResources();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro ao semear", description: err.message });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('library_items').delete().eq('id', id);
     if (!error) {
@@ -90,48 +147,61 @@ export default function TeacherLibraryManagement() {
           <h1 className="text-3xl font-black text-primary italic leading-none">Gestão da Biblioteca</h1>
           <p className="text-muted-foreground font-medium">Curadoria do acervo digital no Supabase.</p>
         </div>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl">
-              <Plus className="h-6 w-6 mr-2" /> Novo Material
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white">
-            <DialogHeader><DialogTitle className="text-2xl font-black italic">Upload Oficial</DialogTitle></DialogHeader>
-            <div className="space-y-6 py-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase opacity-40">Tipo</Label>
-                  <Select value={resourceForm.type} onValueChange={(v) => setResourceForm({...resourceForm, type: v})}>
-                    <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold"><SelectValue /></SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      {["PDF", "Video", "E-book", "Artigo"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+        
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleSeedLibrary} 
+            disabled={isSeeding}
+            className="rounded-xl h-14 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
+          >
+            {isSeeding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
+            Gerar Acervo de Teste
+          </Button>
+
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl">
+                <Plus className="h-6 w-6 mr-2" /> Novo Material
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white">
+              <DialogHeader><DialogTitle className="text-2xl font-black italic">Upload Oficial</DialogTitle></DialogHeader>
+              <div className="space-y-6 py-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase opacity-40">Tipo</Label>
+                    <Select value={resourceForm.type} onValueChange={(v) => setResourceForm({...resourceForm, type: v})}>
+                      <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {["PDF", "Video", "E-book", "Artigo"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase opacity-40">Categoria</Label>
+                    <Input value={resourceForm.category} onChange={(e) => setResourceForm({...resourceForm, category: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase opacity-40">Categoria</Label>
-                  <Input value={resourceForm.category} onChange={(e) => setResourceForm({...resourceForm, category: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                  <Label className="text-[10px] font-black uppercase opacity-40">Título</Label>
+                  <Input value={resourceForm.title} onChange={(e) => setResourceForm({...resourceForm, title: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">URL</Label>
+                  <Input value={resourceForm.url} onChange={(e) => setResourceForm({...resourceForm, url: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">Resumo</Label>
+                  <Textarea value={resourceForm.description} onChange={(e) => setResourceForm({...resourceForm, description: e.target.value})} className="min-h-[100px] rounded-xl bg-muted/30 border-none resize-none p-4" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Título</Label>
-                <Input value={resourceForm.title} onChange={(e) => setResourceForm({...resourceForm, title: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">URL</Label>
-                <Input value={resourceForm.url} onChange={(e) => setResourceForm({...resourceForm, url: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Resumo</Label>
-                <Textarea value={resourceForm.description} onChange={(e) => setResourceForm({...resourceForm, description: e.target.value})} className="min-h-[100px] rounded-xl bg-muted/30 border-none resize-none p-4" />
-              </div>
-            </div>
-            <Button onClick={handleAddOfficial} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl">
-              {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Material"}
-            </Button>
-          </DialogContent>
-        </Dialog>
+              <Button onClick={handleAddOfficial} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl">
+                {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Material"}
+              </Button>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -162,6 +232,13 @@ export default function TeacherLibraryManagement() {
                   </div>
                 </Card>
               ))}
+              {resources.length === 0 && (
+                <div className="p-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
+                  <BookOpen className="h-16 w-16 mx-auto mb-4" />
+                  <p className="font-black italic text-xl">Acervo Vazio</p>
+                  <p className="text-sm font-medium mt-2">Clique em "Gerar Acervo de Teste" para popular sua biblioteca.</p>
+                </div>
+              )}
             </div>
           )}
         </div>

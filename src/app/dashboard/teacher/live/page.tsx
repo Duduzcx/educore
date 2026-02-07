@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MonitorPlay, Plus, Trash2, Youtube, Loader2, ExternalLink, Video, Radio } from "lucide-react";
+import { MonitorPlay, Plus, Trash2, Youtube, Loader2, ExternalLink, Video, Radio, FlaskConical } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,7 @@ export default function TeacherLiveManagement() {
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [lives, setLives] = useState<any[]>([]);
   const [livesLoading, setLivesLoading] = useState(true);
 
@@ -29,14 +30,15 @@ export default function TeacherLiveManagement() {
     start_time: ""
   });
 
+  const fetchLives = async () => {
+    if (!user) return;
+    setLivesLoading(true);
+    const { data, error } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
+    if (!error) setLives(data || []);
+    setLivesLoading(false);
+  };
+
   useEffect(() => {
-    async function fetchLives() {
-      if (!user) return;
-      setLivesLoading(true);
-      const { data, error } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
-      if (!error) setLives(data || []);
-      setLivesLoading(false);
-    }
     fetchLives();
   }, [user]);
 
@@ -64,6 +66,52 @@ export default function TeacherLiveManagement() {
     setLoading(false);
   };
 
+  const handleSeedLives = async () => {
+    if (!user) return;
+    setIsSeeding(true);
+    
+    const demoLives = [
+      {
+        title: "Revisão Final: Redação ENEM",
+        description: "Dicas de ouro para a estrutura da dissertação argumentativa.",
+        teacher_name: user.user_metadata?.full_name || "Mentor Demo",
+        teacher_id: user.id,
+        youtube_id: "rfscVS0vtbw",
+        youtube_url: "https://www.youtube.com/watch?v=rfscVS0vtbw",
+        start_time: new Date().toISOString()
+      },
+      {
+        title: "Biologia: Genética e Mendel",
+        description: "Tudo sobre as leis de Mendel e probabilidade genética.",
+        teacher_name: user.user_metadata?.full_name || "Mentor Demo",
+        teacher_id: user.id,
+        youtube_id: "rfscVS0vtbw",
+        youtube_url: "https://www.youtube.com/watch?v=rfscVS0vtbw",
+        start_time: new Date(Date.now() + 86400000).toISOString()
+      },
+      {
+        title: "Física: Leis de Newton",
+        description: "Aplicações práticas de dinâmica para o vestibular.",
+        teacher_name: user.user_metadata?.full_name || "Mentor Demo",
+        teacher_id: user.id,
+        youtube_id: "rfscVS0vtbw",
+        youtube_url: "https://www.youtube.com/watch?v=rfscVS0vtbw",
+        start_time: new Date(Date.now() + 172800000).toISOString()
+      }
+    ];
+
+    try {
+      const { error } = await supabase.from('lives').insert(demoLives);
+      if (error) throw error;
+      toast({ title: "Lives Geradas!", description: "3 novas transmissões foram adicionadas." });
+      fetchLives();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro ao gerar", description: err.message });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('lives').delete().eq('id', id);
     if (!error) {
@@ -82,37 +130,49 @@ export default function TeacherLiveManagement() {
           <p className="text-muted-foreground font-medium">Controle as aulas ao vivo no Supabase.</p>
         </div>
         
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-2xl h-14 bg-primary text-white font-black px-8 shadow-xl">
-              <Plus className="h-6 w-6 mr-2" /> Nova Transmissão
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white">
-            <DialogHeader><DialogTitle className="text-2xl font-black italic">Abrir Live</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreateLive} className="space-y-6 py-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Título do Aulão</Label>
-                <Input value={liveForm.title} onChange={(e) => setForm({...liveForm, title: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" required />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">YouTube ID</Label>
-                <Input value={liveForm.youtube_id} onChange={(e) => setForm({...liveForm, youtube_id: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" required />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Data e Hora</Label>
-                <Input type="datetime-local" value={liveForm.start_time} onChange={(e) => setForm({...liveForm, start_time: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Descrição</Label>
-                <Textarea value={liveForm.description} onChange={(e) => setForm({...liveForm, description: e.target.value})} className="min-h-[100px] rounded-xl bg-muted/30 border-none resize-none p-4" />
-              </div>
-              <Button type="submit" disabled={loading} className="w-full h-16 bg-accent text-accent-foreground font-black rounded-2xl shadow-xl">
-                {loading ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar na Rede"}
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleSeedLives} 
+            disabled={isSeeding}
+            className="rounded-xl h-14 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
+          >
+            {isSeeding ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
+            Gerar Lives de Teste
+          </Button>
+          
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="rounded-2xl h-14 bg-primary text-white font-black px-8 shadow-xl">
+                <Plus className="h-6 w-6 mr-2" /> Nova Transmissão
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white">
+              <DialogHeader><DialogTitle className="text-2xl font-black italic">Abrir Live</DialogTitle></DialogHeader>
+              <form onSubmit={handleCreateLive} className="space-y-6 py-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">Título do Aulão</Label>
+                  <Input value={liveForm.title} onChange={(e) => setForm({...liveForm, title: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" required />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">YouTube ID</Label>
+                  <Input value={liveForm.youtube_id} onChange={(e) => setForm({...liveForm, youtube_id: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" required />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">Data e Hora</Label>
+                  <Input type="datetime-local" value={liveForm.start_time} onChange={(e) => setForm({...liveForm, start_time: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">Descrição</Label>
+                  <Textarea value={liveForm.description} onChange={(e) => setForm({...liveForm, description: e.target.value})} className="min-h-[100px] rounded-xl bg-muted/30 border-none resize-none p-4" />
+                </div>
+                <Button type="submit" disabled={loading} className="w-full h-16 bg-accent text-accent-foreground font-black rounded-2xl shadow-xl">
+                  {loading ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar na Rede"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -141,6 +201,13 @@ export default function TeacherLiveManagement() {
                   </CardContent>
                 </Card>
               ))}
+              {lives.length === 0 && (
+                <div className="p-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
+                  <MonitorPlay className="h-16 w-16 mx-auto mb-4" />
+                  <p className="font-black italic text-xl">Nenhuma live ativa</p>
+                  <p className="text-sm font-medium mt-2">Clique em "Gerar Lives de Teste" para popular a rede.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
