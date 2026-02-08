@@ -243,38 +243,110 @@ export default function ClassroomPage() {
 
             <div className="flex-1 min-h-0 relative bg-white/30 rounded-[3rem] border-2 border-white/20">
               {/* CONTEÚDO */}
-              <TabsContent value="content" className="absolute inset-0 m-0 overflow-y-auto scrollbar-hide pb-10 space-y-6 p-1" ref={contentScrollRef}>
+              <TabsContent value="content" className="absolute inset-0 m-0 overflow-y-auto scrollbar-hide pb-10 space-y-6 p-4 md:p-8" ref={contentScrollRef}>
                 {activeContent ? (
-                  <div className="space-y-6">
-                    <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/10 ring-8 ring-primary/5 shrink-0">
-                      {activeContent.type === 'video' ? (
-                        <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1]?.split('&')[0] : activeContent.url?.split('/').pop()}`} frameBorder="0" allowFullScreen />
-                      ) : activeContent.type === 'text' ? (
-                        <div className="h-full bg-white p-8 md:p-12 overflow-y-auto">
-                          <div className="max-w-3xl mx-auto space-y-6">
-                            <h2 className="text-2xl md:text-3xl font-black italic text-primary">{activeContent.title}</h2>
-                            <div className="prose prose-slate max-w-none font-medium text-muted-foreground whitespace-pre-line leading-relaxed">{activeContent.description}</div>
+                  <div className="space-y-6 max-w-5xl mx-auto">
+                    {activeContent.type === 'video' ? (
+                      <div className="space-y-6">
+                        <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/10 ring-8 ring-primary/5 shrink-0">
+                          <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1]?.split('&')[0] : activeContent.url?.split('/').pop()}`} frameBorder="0" allowFullScreen />
+                        </Card>
+                        <Card className="p-8 bg-white rounded-[2.5rem] shadow-xl border-none">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                              <BookOpen className="h-5 w-5" />
+                            </div>
+                            <h3 className="text-2xl font-black text-primary italic">Guia de Estudo</h3>
+                          </div>
+                          <p className="text-muted-foreground font-medium italic leading-relaxed whitespace-pre-line">{activeContent.description || "O mentor ainda não disponibilizou o resumo."}</p>
+                        </Card>
+                      </div>
+                    ) : activeContent.type === 'text' ? (
+                      <Card className="bg-white p-8 md:p-16 rounded-[3rem] shadow-2xl border-none min-h-full">
+                        <div className="max-w-3xl mx-auto space-y-8">
+                          <div className="space-y-2 border-b-4 border-accent pb-6">
+                            <Badge className="bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em]">Material de Leitura</Badge>
+                            <h2 className="text-3xl md:text-5xl font-black italic text-primary leading-tight">{activeContent.title}</h2>
+                          </div>
+                          <div className="prose prose-slate max-w-none font-medium text-muted-foreground whitespace-pre-line leading-relaxed text-lg italic">
+                            {activeContent.description}
                           </div>
                         </div>
-                      ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center">
-                          <FileSearch className="h-20 w-20 mb-6 opacity-40" />
-                          <h3 className="text-3xl font-black italic">{activeContent.title}</h3>
-                          <Button className="mt-8 bg-accent text-accent-foreground font-black px-8 h-14 rounded-xl shadow-xl" asChild>
-                            <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Acessar Material</a>
-                          </Button>
-                        </div>
-                      )}
-                    </Card>
-                    <Card className="p-8 bg-white rounded-[2.5rem] shadow-xl border-none">
-                      <h3 className="text-2xl font-black text-primary italic mb-4">Guia de Estudo</h3>
-                      <p className="text-muted-foreground font-medium italic leading-relaxed whitespace-pre-line">{activeContent.type === 'text' ? 'Modo de leitura focado ativo.' : activeContent.description || "O mentor ainda não disponibilizou o resumo."}</p>
-                    </Card>
+                      </Card>
+                    ) : (
+                      <div className="h-full min-h-[400px] flex flex-col items-center justify-center text-white bg-primary rounded-[3rem] p-12 text-center shadow-2xl">
+                        <FileSearch className="h-24 w-24 mb-6 opacity-40 animate-pulse" />
+                        <h3 className="text-3xl font-black italic">{activeContent.title}</h3>
+                        <p className="max-w-md mt-4 opacity-70 font-medium">Este material é um documento oficial. Clique abaixo para abrir o anexo.</p>
+                        <Button className="mt-10 bg-accent text-accent-foreground font-black px-10 h-16 rounded-2xl shadow-xl hover:scale-105 transition-all" asChild>
+                          <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Acessar Material Externo</a>
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                ) : <div className="h-full flex flex-col items-center justify-center opacity-40"><PlayCircle className="h-16 w-16 mb-4" /><p className="font-black italic text-xl text-primary">Selecione uma aula</p></div>}
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center opacity-40 text-primary">
+                    <PlayCircle className="h-20 w-20 mb-4 animate-bounce" />
+                    <p className="font-black italic text-2xl uppercase tracking-widest">Selecione uma aula no roteiro</p>
+                  </div>
+                )}
               </TabsContent>
 
-              {/* OUTRAS TABS OMITIDAS PARA CONCISÃO... */}
+              {/* LIVE TAB */}
+              <TabsContent value="live" className="absolute inset-0 m-0 flex flex-col min-h-0 bg-slate-950">
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 min-h-0">
+                  <div className="lg:col-span-2 p-4 md:p-8 flex flex-col gap-6">
+                    <div className="aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border-2 border-white/10">
+                      <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${data.activeLive?.youtube_id}?autoplay=1`} frameBorder="0" allowFullScreen />
+                    </div>
+                    <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-white">
+                      <h2 className="text-xl font-black italic uppercase tracking-tighter">{data.activeLive?.title}</h2>
+                      <p className="text-xs opacity-60 mt-1 uppercase tracking-[0.3em] font-bold">Transmissão Oficial ao Vivo</p>
+                    </div>
+                  </div>
+                  <div className="border-l border-white/10 flex flex-col min-h-0 bg-slate-900">
+                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-accent" /><span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Chat da Aula</span></div>
+                      <Badge className="bg-red-600 text-white animate-pulse border-none text-[8px]">AO VIVO</Badge>
+                    </div>
+                    <ScrollArea className="flex-1 p-4" ref={liveScrollRef}>
+                      <div className="flex flex-col gap-4">
+                        {uiState.liveMessages.map((m, i) => (
+                          <div key={i} className={`p-3 rounded-xl border ${m.is_question ? 'bg-accent/10 border-accent text-accent' : 'bg-white/5 border-white/10 text-white/80'}`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[8px] font-black uppercase tracking-widest opacity-50">{m.author_name}</span>
+                              {m.is_question && <Badge className="bg-accent text-accent-foreground text-[6px] h-3">DÚVIDA</Badge>}
+                            </div>
+                            <p className="text-xs font-medium leading-relaxed">{m.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    <div className="p-4 bg-slate-950 border-t border-white/5">
+                      <form onSubmit={handleSendLiveMessage} className="flex flex-col gap-2">
+                        <Input 
+                          placeholder="Fazer uma pergunta..." 
+                          value={uiState.liveInput} 
+                          onChange={e => setUiState(p => ({ ...p, liveInput: e.target.value }))}
+                          className="bg-white/10 border-none text-white text-xs placeholder:text-white/20 h-10 rounded-xl"
+                        />
+                        <div className="flex items-center justify-between">
+                          <button 
+                            type="button" 
+                            onClick={() => setUiState(p => ({ ...p, isQuestion: !p.isQuestion }))}
+                            className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full transition-all ${uiState.isQuestion ? 'bg-accent text-accent-foreground' : 'bg-white/10 text-white/40'}`}
+                          >
+                            É UMA DÚVIDA?
+                          </button>
+                          <Button type="submit" disabled={uiState.isSendingLive} size="sm" className="bg-white text-black hover:bg-accent hover:text-white rounded-lg h-8 px-4 font-black text-[9px] uppercase"><Send className="h-3.5 w-3.5 mr-2" /> Enviar</Button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* QUIZ TAB OMITIDA PARA CONCISÃO... */}
             </div>
           </Tabs>
         </div>

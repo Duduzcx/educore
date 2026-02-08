@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
@@ -82,6 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
+  // Inteligência de Scroll: Trava o scroll do container principal apenas em páginas de "App"
   const isAppPage = useMemo(() => {
     return pathname.includes('/chat/') || 
            pathname.includes('/forum/') || 
@@ -155,6 +157,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
+        {/* O container principal agora controla a rolagem de forma inteligente */}
         <main className={`flex-1 min-h-0 flex flex-col ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in duration-500`}>
           {children}
         </main>

@@ -58,10 +58,10 @@
   }
 }
 
-/* BARRA DE ROLAGEM MODERNA E DISCRETA */
+/* BARRA DE ROLAGEM MODERNA E DISCRETA - VISÍVEL APENAS QUANDO NECESSÁRIO */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -69,12 +69,16 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary) / 0.1);
+  background: hsl(var(--primary) / 0.15);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--accent) / 0.4);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 .content-auto {
