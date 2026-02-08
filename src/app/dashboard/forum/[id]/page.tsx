@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -9,26 +8,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
   ChevronLeft, 
-  MessageSquare, 
   Send, 
   Loader2, 
-  Sparkles, 
-  Hash, 
-  ShieldCheck, 
-  ThumbsUp, 
-  Clock,
-  Trash2,
-  ShieldAlert,
-  UserX,
-  Gavel,
-  Settings
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 
 export default function ForumDetailPage() {
   const params = useParams();
@@ -42,22 +30,15 @@ export default function ForumDetailPage() {
   const [forum, setForum] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isTeacher, setIsTeacher] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       if (!user || !forumId) return;
       setLoading(true);
 
-      // 1. Verificar se é professor
-      const { data: teacher } = await supabase.from('teachers').select('*').eq('id', user.id).single();
-      setIsTeacher(!!teacher);
-
-      // 2. Carregar fórum
       const { data: forumData } = await supabase.from('forums').select('*').eq('id', forumId).single();
       setForum(forumData);
 
-      // 3. Carregar posts
       const { data: postsData } = await supabase.from('forum_posts').select('*').eq('forum_id', forumId).order('created_at', { ascending: true });
       setPosts(postsData || []);
       
@@ -65,7 +46,6 @@ export default function ForumDetailPage() {
     }
     loadData();
 
-    // Inscrição em tempo real
     const channel = supabase
       .channel(`forum_${forumId}`)
       .on('postgres_changes', { 
@@ -86,11 +66,6 @@ export default function ForumDetailPage() {
   const handleSendPost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.trim() || !user) return;
-
-    if (forum?.blocked_users?.includes(user.id)) {
-      toast({ title: "Ação bloqueada", description: "Você foi removido deste debate pela moderação.", variant: "destructive" });
-      return;
-    }
 
     const { error } = await supabase.from('forum_posts').insert({
       forum_id: forumId,
@@ -114,7 +89,7 @@ export default function ForumDetailPage() {
 
   if (loading) {
     return (
-      <div className="h-[calc(100vh-120px)] flex flex-col items-center justify-center gap-4">
+      <div className="h-96 flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 animate-spin text-accent" />
         <p className="text-muted-foreground font-black uppercase text-[10px] tracking-widest animate-pulse">Sincronizando...</p>
       </div>
@@ -122,7 +97,7 @@ export default function ForumDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-80px)] md:h-[calc(100vh-100px)] max-w-full mx-auto w-full animate-in fade-in overflow-hidden space-y-2 px-1">
+    <div className="flex flex-col h-full max-w-full mx-auto w-full animate-in fade-in overflow-hidden space-y-2 px-1">
       <div className="flex items-center justify-between px-2 py-2 md:py-3 shrink-0 bg-white/50 backdrop-blur-md rounded-2xl shadow-sm border border-white/20">
         <div className="flex items-center gap-2 overflow-hidden min-w-0">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-9 w-9 shrink-0 hover:bg-primary/5">
@@ -140,7 +115,7 @@ export default function ForumDetailPage() {
         <Badge className="bg-green-100 text-green-700 border-none font-black text-[7px] md:text-[9px] px-2 py-1 uppercase tracking-tighter animate-pulse">Debate Ativo</Badge>
       </div>
 
-      <Card className="flex-1 border-none shadow-2xl shadow-accent/10 rounded-2xl md:rounded-[3rem] bg-white overflow-hidden flex flex-col min-w-0 relative animate-in zoom-in-95 duration-700">
+      <Card className="flex-1 min-h-0 border-none shadow-2xl shadow-accent/10 rounded-2xl md:rounded-[3rem] bg-white overflow-hidden flex flex-col relative animate-in zoom-in-95 duration-700">
         <ScrollArea className="flex-1" ref={scrollRef}>
           <div className="flex flex-col gap-4 py-6 md:py-10 px-4 md:px-12">
             <div className="mb-4 p-5 md:p-8 bg-primary text-white rounded-[1.5rem] md:rounded-[2.5rem] shadow-xl relative overflow-hidden group">
@@ -166,8 +141,8 @@ export default function ForumDetailPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-4 md:gap-6">
-              {posts.map((post, i) => {
+            <div className="flex flex-col gap-4 md:gap-6 pb-10">
+              {posts.map((post) => {
                 const isMe = post.author_id === user?.id;
                 const isTopicAuthor = post.author_id === forum?.author_id;
 

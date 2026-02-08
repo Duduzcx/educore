@@ -38,7 +38,6 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
-    /* TURBO: Força aceleração por hardware para suavizar animações */
     backface-visibility: hidden;
     transform-style: preserve-3d;
   }
@@ -48,7 +47,7 @@
     width: 100%;
     position: relative;
     scroll-behavior: smooth;
-    overscroll-behavior-y: none; /* Evita pull-to-refresh acidental que causa lag */
+    overscroll-behavior-y: none;
   }
 
   body {
@@ -62,16 +61,24 @@
   }
 }
 
-/* TURBO: Otimização de renderização de conteúdo off-screen */
+/* ESCONDER SCROLLBARS TOTAIS PARA UX DE APP */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Global Scrollbar Hide */
+*::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .content-auto {
   content-visibility: auto;
   contain-intrinsic-size: 1px 1000px;
 }
 
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* TURBO: GPU Acceleration para imagens e transições */
 img { 
   content-visibility: auto;
   transform: translateZ(0); 

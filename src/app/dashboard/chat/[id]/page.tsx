@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, ChevronLeft, Loader2, MessageSquare, Shield, Paperclip, FileText, Download, Sparkles, Bot, Info, BookOpen } from "lucide-react";
+import { Send, ChevronLeft, Loader2, MessageSquare, Shield, Paperclip, FileText, Download, Sparkles, Bot, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -40,7 +39,6 @@ export default function DirectChatPage() {
         return;
       }
       
-      // Tenta buscar no perfil de professor primeiro
       const { data: teacher } = await supabase.from('teachers').select('*').eq('id', contactId).single();
       if (teacher) {
         setContact({ ...teacher, type: 'teacher' });
@@ -69,7 +67,6 @@ export default function DirectChatPage() {
 
     loadMessages();
 
-    // Inscrição em tempo real
     const channel = supabase
       .channel(`chat_${user.id}_${contactId}`)
       .on('postgres_changes', { 
@@ -156,7 +153,7 @@ export default function DirectChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] animate-in fade-in duration-500 overflow-hidden space-y-4 max-w-full mx-auto w-full px-1">
+    <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden space-y-4 max-w-full mx-auto w-full px-1">
       <div className="flex items-center justify-between px-2 py-2 shrink-0 bg-white/50 backdrop-blur-md rounded-2xl shadow-sm border border-white/20">
         <div className="flex items-center gap-2 overflow-hidden">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10 shrink-0 hover:bg-primary/5 active:scale-90 transition-all">
@@ -193,7 +190,7 @@ export default function DirectChatPage() {
         </div>
       </div>
 
-      <Card className="flex-1 flex flex-col shadow-[0_10px_40px_-15px_hsl(var(--accent)/0.15)] border-none overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white relative animate-in zoom-in-95 duration-700 max-w-full min-w-0">
+      <Card className="flex-1 min-h-0 flex flex-col shadow-[0_10px_40px_-15px_hsl(var(--accent)/0.15)] border-none overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white relative animate-in zoom-in-95 duration-700 max-w-full">
         <ScrollArea className="flex-1" ref={scrollRef}>
           <div className="flex flex-col gap-6 py-8 px-4 md:px-12">
             {isLoading ? (
@@ -288,12 +285,6 @@ export default function DirectChatPage() {
               {isAiThinking ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Send className="h-5 w-5 text-white" />}
             </Button>
           </form>
-          <div className="flex justify-center mt-3">
-             <div className="flex items-center gap-2 text-[7px] md:text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-30">
-               <Shield className="h-3 w-3" />
-               Mentoria Oficial • Rede EduCore
-             </div>
-          </div>
         </div>
       </Card>
     </div>

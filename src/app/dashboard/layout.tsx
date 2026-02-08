@@ -34,7 +34,6 @@ const teacherItems = [
   { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
 ];
 
-// TURBO: Componente de Menu memoizado para evitar lag na navegação
 const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname: string, unreadCount: number }) => {
   return (
     <SidebarMenu className="gap-1">
@@ -44,7 +43,7 @@ const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname
             <Link href={item.href} className="flex items-center gap-3">
               <item.icon className="h-5 w-5" />
               <span className="font-bold text-sm">{item.label}</span>
-              {item.badge && unreadCount > 0 && (
+              {unreadCount > 0 && item.badge && (
                 <Badge className="ml-auto bg-white/20 text-white text-[8px] h-5 min-w-5 rounded-full animate-in zoom-in">{unreadCount}</Badge>
               )}
             </Link>
@@ -83,14 +82,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase.channel('global_notifs')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user.id}` }, 
-      () => setUnreadCount(prev => prev + 1))
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+  const isAppPage = useMemo(() => {
+    return pathname.includes('/chat/') || pathname.includes('/forum/') || pathname.includes('/classroom/');
+  }, [pathname]);
 
   const navItems = useMemo(() => isTeacher ? teacherItems : studentItems, [isTeacher]);
 
@@ -142,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-background flex flex-col min-h-0">
+      <SidebarInset className="bg-background flex flex-col min-h-0 h-screen overflow-hidden">
         <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-6 shrink-0 transition-all duration-300">
           <SidebarTrigger className="h-9 w-9 rounded-full hover:bg-muted transition-colors" />
           <div className="flex-1" />
@@ -157,7 +151,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Avatar>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto scrollbar-hide p-4 md:p-8 animate-in fade-in duration-500">
+        {/* TURBO: O main só rola se NÃO for uma página de App (Chat/Forum/Classroom) */}
+        <main className={`flex-1 min-h-0 flex flex-col ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto scrollbar-hide'} p-4 md:p-8 animate-in fade-in duration-500`}>
           {children}
         </main>
       </SidebarInset>
