@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -23,7 +22,8 @@ import {
   AlertCircle,
   FileVideo,
   FileType,
-  Settings2
+  Settings2,
+  ListPlus
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -62,7 +62,6 @@ export default function TrailManagementPage() {
     }
 
     try {
-      // OTIMIZAÇÃO: Busca paralela de trilha e módulos
       const [trailRes, modulesRes] = await Promise.all([
         supabase.from('learning_trails').select('id, title, category, status').eq('id', trailId).single(),
         supabase.from('learning_modules').select('id, title, order_index').eq('trail_id', trailId).order('order_index', { ascending: true })
@@ -159,6 +158,14 @@ export default function TrailManagementPage() {
     }
   };
 
+  const handleDeleteContent = async (id: string) => {
+    const { error } = await supabase.from('learning_contents').delete().eq('id', id);
+    if (!error) {
+      toast({ title: "Conteúdo removido" });
+      loadData();
+    }
+  };
+
   if (loading) return (
     <div className="flex flex-col h-96 items-center justify-center gap-4">
       <Loader2 className="animate-spin h-12 w-12 text-accent" />
@@ -182,7 +189,7 @@ export default function TrailManagementPage() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-12 w-12 bg-white shadow-sm border border-muted/20"><ChevronLeft className="h-6 w-6" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-12 w-12 bg-white shadow-sm border border-muted/20 hover:scale-110 transition-transform"><ChevronLeft className="h-6 w-6" /></Button>
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-primary italic leading-none">{trail?.title || "Gerenciador de Trilha"}</h1>
             <div className="flex items-center gap-2">
@@ -221,32 +228,35 @@ export default function TrailManagementPage() {
                     <Button variant="ghost" size="icon" onClick={() => handleDeleteModule(mod.id)} className="text-muted-foreground hover:text-red-500 rounded-full transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <Button onClick={() => { setActiveModuleId(mod.id); setIsContentDialogOpen(true); }} className="bg-primary text-white hover:bg-primary/90 font-black text-[10px] uppercase rounded-xl h-10 px-4 transition-all shadow-md">
-                      <Plus className="h-4 w-4 mr-2" /> Aula
+                    <Button onClick={() => { setActiveModuleId(mod.id); setIsContentDialogOpen(true); }} className="bg-primary text-white hover:bg-primary/90 font-black text-[10px] uppercase rounded-xl h-10 px-4 transition-all shadow-md gap-2">
+                      <ListPlus className="h-4 w-4" /> Add Conteúdo
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="p-8 space-y-4">
                   {contents[mod.id]?.length > 0 ? (
-                    contents[mod.id].map((content) => (
-                      <div key={content.id} className="flex items-center justify-between p-5 rounded-2xl bg-muted/30 hover:bg-white hover:shadow-xl transition-all group border-2 border-transparent hover:border-accent/20">
-                        <div className="flex items-center gap-5 overflow-hidden">
-                          <div className={`h-12 w-12 rounded-2xl bg-white flex items-center justify-center shadow-md shrink-0`}>
-                            {content.type === 'video' ? <Youtube className="h-6 w-6 text-red-600" /> : content.type === 'pdf' ? <FileText className="h-6 w-6 text-blue-600" /> : <FileType className="h-6 w-6 text-orange-600" />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-black text-sm text-primary truncate">{content.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-[7px] font-black uppercase bg-white border-none px-2">{content.type}</Badge>
-                              <p className="text-[10px] text-muted-foreground font-medium truncate italic">{content.description || "Sem descrição informada."}</p>
+                    <div className="space-y-3">
+                      {contents[mod.id].map((content) => (
+                        <div key={content.id} className="flex items-center justify-between p-5 rounded-2xl bg-muted/30 hover:bg-white hover:shadow-xl transition-all group border-2 border-transparent hover:border-accent/20">
+                          <div className="flex items-center gap-5 overflow-hidden">
+                            <div className={`h-12 w-12 rounded-2xl bg-white flex items-center justify-center shadow-md shrink-0`}>
+                              {content.type === 'video' ? <Youtube className="h-6 w-6 text-red-600" /> : content.type === 'pdf' ? <FileText className="h-6 w-6 text-blue-600" /> : <FileType className="h-6 w-6 text-orange-600" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-black text-sm text-primary truncate">{content.title}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-[7px] font-black uppercase bg-white border-none px-2">{content.type}</Badge>
+                                <p className="text-[10px] text-muted-foreground font-medium truncate italic line-clamp-1">{content.description || "Sem resumo informado."}</p>
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary hover:text-white shadow-sm" onClick={() => window.open(content.url, '_blank')}><ExternalLink className="h-5 w-5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-red-500 hover:text-white shadow-sm" onClick={() => handleDeleteContent(content.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary hover:text-white shadow-sm" onClick={() => window.open(content.url, '_blank')}><ExternalLink className="h-5 w-5" /></Button>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
                     <p className="text-center py-10 text-[10px] font-black uppercase text-muted-foreground/40 italic border-2 border-dashed border-muted/20 rounded-2xl">Nenhum material vinculado a esta unidade.</p>
                   )}
@@ -272,7 +282,7 @@ export default function TrailManagementPage() {
                   <Sparkles className="h-4 w-4 animate-pulse" />
                   <span className="text-[9px] font-black uppercase tracking-widest">Dica Docente</span>
                 </div>
-                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">"Adicione descrições detalhadas às aulas para ajudar a Aurora IA no suporte aos alunos."</p>
+                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">"Adicione resumos detalhados às aulas para que a Aurora IA possa orientar melhor o estudo dos alunos."</p>
               </div>
               {!isDemoTrail && (
                 <Button 
@@ -288,23 +298,21 @@ export default function TrailManagementPage() {
         </div>
       </div>
 
-      {/* DIALOG: NOVO CAPÍTULO (MODULO) */}
       <Dialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen}>
         <DialogContent className="rounded-[2.5rem] p-10 bg-white border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Novo Capítulo</DialogTitle></DialogHeader>
           <div className="py-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase opacity-40 mb-2 block">Título da Unidade</Label>
-              <Input placeholder="Ex: Álgebra Linear Avançada" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg focus:ring-accent" />
+              <Input placeholder="Ex: Introdução ao Cálculo" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg focus:ring-accent" />
             </div>
           </div>
           <Button onClick={handleAddModule} disabled={isSubmitting || !moduleForm.title} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">
-            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Capítulo"}
+            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Unidade"}
           </Button>
         </DialogContent>
       </Dialog>
 
-      {/* DIALOG: ANEXAR AULA (CONTEÚDO) - RESTAURADO COMPLETO */}
       <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
         <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white border-none shadow-2xl">
           <DialogHeader>
@@ -328,13 +336,13 @@ export default function TrailManagementPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Título Curto</Label>
-                <Input placeholder="Ex: Derivadas I" value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold" />
+                <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
+                <Input placeholder="Ex: Derivadas Parte 1" value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Link do Material (YouTube/Drive)</Label>
+              <Label className="text-[10px] font-black uppercase opacity-40">Link do Recurso (YouTube/Drive)</Label>
               <div className="relative">
                 <Input placeholder="https://..." value={contentForm.url} onChange={(e) => setContentForm({...contentForm, url: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-medium pl-12" />
                 <ExternalLink className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30" />
@@ -342,17 +350,17 @@ export default function TrailManagementPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Objetivo Pedagógico / Descrição</Label>
+              <Label className="text-[10px] font-black uppercase opacity-40">Resumo / Objetivo Pedagógico</Label>
               <Textarea 
-                placeholder="Descreva o que o aluno deve focar nesta aula..." 
+                placeholder="Descreva o que o aluno aprenderá ou o que deve ser focado neste material..." 
                 value={contentForm.description} 
                 onChange={(e) => setContentForm({...contentForm, description: e.target.value})} 
-                className="min-h-[120px] rounded-2xl bg-muted/30 border-none resize-none p-5 font-medium" 
+                className="min-h-[150px] rounded-2xl bg-muted/30 border-none resize-none p-5 font-medium leading-relaxed" 
               />
             </div>
           </div>
           <Button onClick={handleAddContent} disabled={isSubmitting || !contentForm.title} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">
-            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Aula Digital"}
+            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Material Digital"}
           </Button>
         </DialogContent>
       </Dialog>

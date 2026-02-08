@@ -20,6 +20,11 @@ import {
   Radio, 
   Lightbulb, 
   Youtube, 
+  PlayCircle,
+  FileVideo,
+  ChevronRight,
+  Sparkles,
+  Info
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -46,7 +51,6 @@ export default function ClassroomPage() {
     activeContentId: null as string | null,
     currentTab: "content",
     liveMessages: [] as any[],
-    chatInput: "",
     liveInput: "",
     isAiLoading: false,
     isSendingLive: false
@@ -54,7 +58,6 @@ export default function ClassroomPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // TURBO: Memoização de dados para evitar re-renders pesados
   const activeContent = useMemo(() => 
     data.contents.find((c: any) => c.id === uiState.activeContentId)
   , [data.contents, uiState.activeContentId]);
@@ -62,7 +65,6 @@ export default function ClassroomPage() {
   const loadPageData = useCallback(async () => {
     if (!user || !trailId) return;
     
-    // OTIMIZAÇÃO: Busca paralela de todos os dados críticos
     try {
       const [trailRes, modulesRes, progressRes, liveRes] = await Promise.all([
         supabase.from('learning_trails').select('id, title, category').eq('id', trailId).single(),
@@ -108,7 +110,7 @@ export default function ClassroomPage() {
 
   useEffect(() => {
     if (!data.activeLive) return;
-    const channel = supabase.channel(`live_${data.activeLive.id}`)
+    const channel = supabase.channel(`live_room_${data.activeLive.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'forum_posts', filter: `forum_id=eq.${data.activeLive.id}` }, 
       (payload) => setUiState(prev => ({ ...prev, liveMessages: [...prev.liveMessages, payload.new] })))
       .subscribe();
@@ -118,10 +120,15 @@ export default function ClassroomPage() {
   const switchModule = async (moduleId: string) => {
     if (uiState.activeModuleId === moduleId) return;
     
-    setUiState(prev => ({ ...prev, activeModuleId: moduleId }));
     const { data: cData } = await supabase.from('learning_contents').select('id, title, type, url, description').eq('module_id', moduleId).order('created_at', { ascending: true });
+    
+    setUiState(prev => ({ 
+      ...prev, 
+      activeModuleId: moduleId,
+      activeContentId: cData?.[0]?.id || null 
+    }));
+    
     setData((prev: any) => ({ ...prev, contents: cData || [] }));
-    if (cData?.length) setUiState(prev => ({ ...prev, activeContentId: cData[0].id }));
   };
 
   const handleSendLive = async (isQuestion: boolean) => {
@@ -143,7 +150,7 @@ export default function ClassroomPage() {
       setUiState(p => ({ ...p, liveInput: "", isSendingLive: false }));
     } else {
       setUiState(p => ({ ...p, isSendingLive: false }));
-      toast({ title: "Erro ao enviar", description: "Tente novamente em instantes.", variant: "destructive" });
+      toast({ title: "Erro ao enviar", description: "Tente novamente.", variant: "destructive" });
     }
   };
 
@@ -181,7 +188,7 @@ export default function ClassroomPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 space-y-6">
           <Tabs value={uiState.currentTab} onValueChange={(v) => setUiState(p => ({ ...p, currentTab: v }))} className="w-full">
-            <TabsList className="grid grid-cols-4 h-14 bg-muted/50 p-1 rounded-2xl mb-6">
+            <TabsList className="grid grid-cols-4 h-14 bg-muted/50 p-1 rounded-2xl mb-6 shadow-inner">
               <TabsTrigger value="content" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><Layout className="h-3 w-3" /> AULA</TabsTrigger>
               <TabsTrigger value="live" disabled={!data.activeLive} className="rounded-xl gap-2 font-black text-[9px] uppercase data-[state=active]:bg-red-600 data-[state=active]:text-white transition-all"><Radio className="h-3 w-3" /> LIVE</TabsTrigger>
               <TabsTrigger value="assessment" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><CheckSquare className="h-3 w-3" /> QUIZ IA</TabsTrigger>
@@ -189,20 +196,71 @@ export default function ClassroomPage() {
             </TabsList>
 
             <TabsContent value="content" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl transform-gpu">
-                {activeContent?.type === 'video' ? (
-                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${activeContent?.url.split('v=')[1] || 'rfscVS0vtbw'}`} frameBorder="0" allowFullScreen />
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center">
-                    <FileText className="h-16 w-16 mb-4 opacity-40" />
-                    <h3 className="text-2xl font-black italic">{activeContent?.title || "Material Pedagógico"}</h3>
+              {activeContent ? (
+                <>
+                  <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl transform-gpu border-4 border-white/10 ring-8 ring-primary/5">
+                    {activeContent.type === 'video' ? (
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src={`https://www.youtube.com/embed/${activeContent.url.includes('v=') ? activeContent.url.split('v=')[1]?.split('&')[0] : activeContent.url.split('/').pop()}`} 
+                        frameBorder="0" 
+                        allowFullScreen 
+                      />
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-accent/20 to-transparent opacity-50" />
+                        <FileText className="h-20 w-20 mb-6 opacity-40 animate-pulse" />
+                        <h3 className="text-3xl font-black italic relative z-10">{activeContent.title}</h3>
+                        <p className="mt-4 text-white/60 font-medium relative z-10 max-w-md italic">Acesse o material completo através do link oficial abaixo.</p>
+                        <Button className="mt-8 bg-accent text-accent-foreground font-black px-8 h-12 rounded-xl relative z-10 shadow-xl" asChild>
+                          <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Abrir Documento Original</a>
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card className="md:col-span-2 p-8 bg-white rounded-[2.5rem] shadow-xl border-none relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                        <Sparkles className="h-24 w-24 text-accent" />
+                      </div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                          <Info className="h-5 w-5" />
+                        </div>
+                        <h3 className="text-2xl font-black text-primary italic leading-none">Resumo da Aula</h3>
+                      </div>
+                      <p className="text-muted-foreground font-medium italic leading-relaxed whitespace-pre-line text-sm md:text-base">
+                        {activeContent.description || "O mentor ainda não disponibilizou o resumo desta aula."}
+                      </p>
+                    </Card>
+
+                    <Card className="p-8 bg-primary text-white rounded-[2.5rem] shadow-xl border-none">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">Material de Apoio</h4>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
+                            {activeContent.type === 'video' ? <Youtube className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                          </div>
+                          <div>
+                            <p className="text-xs font-black italic">{activeContent.title}</p>
+                            <p className="text-[8px] font-bold opacity-40 uppercase">{activeContent.type}</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white text-[9px] font-black uppercase h-10 rounded-xl" asChild>
+                          <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Download / Acesso</a>
+                        </Button>
+                      </div>
+                    </Card>
                   </div>
-                )}
-              </Card>
-              <Card className="p-8 bg-white rounded-[2.5rem] shadow-xl border-none">
-                <h3 className="text-2xl font-black text-primary italic mb-2">{activeContent?.title}</h3>
-                <p className="text-muted-foreground font-medium italic leading-relaxed line-clamp-4">{activeContent?.description || "Este material foi revisado pela curadoria docente EduCore."}</p>
-              </Card>
+                </>
+              ) : (
+                <div className="py-32 text-center border-4 border-dashed rounded-[3rem] bg-muted/5 opacity-40">
+                  <PlayCircle className="h-16 w-16 mx-auto mb-4" />
+                  <p className="font-black italic text-xl">Selecione uma aula para começar</p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="live" className="grid grid-cols-1 xl:grid-cols-3 gap-6 animate-in fade-in duration-300">
@@ -231,7 +289,7 @@ export default function ClassroomPage() {
                       value={uiState.liveInput} 
                       onChange={e => setUiState(p => ({...p, liveInput: e.target.value}))} 
                       disabled={uiState.isSendingLive}
-                      className="rounded-xl h-10 text-xs italic" 
+                      className="rounded-xl h-10 text-xs italic bg-muted/30 border-none" 
                     />
                     <Button 
                       size="icon" 
@@ -248,7 +306,7 @@ export default function ClassroomPage() {
                     disabled={uiState.isSendingLive || !uiState.liveInput.trim()}
                     className="w-full h-10 border-2 border-amber-500/50 text-amber-600 font-black text-[9px] uppercase gap-2 rounded-xl hover:bg-amber-50 transition-colors"
                   >
-                    <Lightbulb className="h-3.5 w-3.5" /> Fazer Pergunta
+                    <Lightbulb className="h-3.5 w-3.5" /> Fazer Pergunta Especial
                   </Button>
                 </div>
               </Card>
@@ -257,31 +315,46 @@ export default function ClassroomPage() {
         </div>
 
         <aside className="space-y-6">
-          <Card className="shadow-xl border-none bg-white rounded-[2rem] overflow-hidden">
+          <Card className="shadow-xl border-none bg-white rounded-[2rem] overflow-hidden sticky top-24">
             <div className="p-5 bg-primary text-white flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest">Conteúdo</span>
-              <Badge className="bg-white/20 border-none text-[8px]">{data.modules.length} Blocos</Badge>
+              <span className="text-[10px] font-black uppercase tracking-widest">Plano de Estudos</span>
+              <Badge className="bg-white/20 border-none text-[8px]">{data.modules.length} Capítulos</Badge>
             </div>
-            <div className="flex flex-col">
+            
+            <div className="flex flex-col max-h-[calc(100vh-250px)] overflow-y-auto scrollbar-hide">
               {data.modules.map((mod: any, i: number) => (
-                <button key={mod.id} onClick={() => switchModule(mod.id)} className={`p-5 text-left border-b last:border-0 transition-all duration-200 ${uiState.activeModuleId === mod.id ? 'bg-accent/5 border-l-4 border-l-accent' : 'hover:bg-muted/20'}`}>
-                  <p className="text-[8px] font-black uppercase opacity-40 mb-1">Módulo {i + 1}</p>
-                  <p className={`text-xs font-black truncate ${uiState.activeModuleId === mod.id ? 'text-accent italic' : 'text-primary'}`}>{mod.title}</p>
-                </button>
+                <div key={mod.id} className="flex flex-col border-b last:border-0">
+                  <button 
+                    onClick={() => switchModule(mod.id)} 
+                    className={`p-5 text-left transition-all duration-200 ${uiState.activeModuleId === mod.id ? 'bg-accent/5 border-l-4 border-l-accent' : 'hover:bg-muted/20'}`}
+                  >
+                    <p className="text-[8px] font-black uppercase opacity-40 mb-1">Módulo {i + 1}</p>
+                    <p className={`text-xs font-black truncate ${uiState.activeModuleId === mod.id ? 'text-accent italic' : 'text-primary'}`}>{mod.title}</p>
+                  </button>
+                  
+                  {uiState.activeModuleId === mod.id && (
+                    <div className="bg-muted/10 p-3 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                      {data.contents.map((c: any) => (
+                        <button 
+                          key={c.id} 
+                          onClick={() => setUiState(p => ({ ...p, activeContentId: c.id, currentTab: "content" }))} 
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${uiState.activeContentId === c.id ? 'bg-white shadow-md scale-[1.02] border-l-4 border-accent' : 'hover:bg-white/50 opacity-60'}`}
+                        >
+                          <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${uiState.activeContentId === c.id ? 'bg-accent text-accent-foreground' : 'bg-muted'}`}>
+                            {c.type === 'video' ? <Youtube className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                          </div>
+                          <span className="text-[9px] font-bold uppercase text-left leading-tight truncate">{c.title}</span>
+                        </button>
+                      ))}
+                      {data.contents.length === 0 && (
+                        <p className="text-[8px] font-black uppercase text-center opacity-30 py-2">Sem aulas ainda</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </Card>
-
-          <div className="space-y-3">
-            {data.contents.map((c: any) => (
-              <button key={c.id} onClick={() => setUiState(p => ({ ...p, activeContentId: c.id }))} className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 border-2 ${uiState.activeContentId === c.id ? 'bg-white border-accent shadow-lg scale-[1.02]' : 'bg-white/50 border-transparent hover:border-muted/30'}`}>
-                <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${uiState.activeContentId === c.id ? 'bg-accent text-accent-foreground' : 'bg-muted'}`}>
-                  {c.type === 'video' ? <Youtube className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                </div>
-                <span className="text-[10px] font-black uppercase text-left leading-tight truncate">{c.title}</span>
-              </button>
-            ))}
-          </div>
         </aside>
       </div>
     </div>
