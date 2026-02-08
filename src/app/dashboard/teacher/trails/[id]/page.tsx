@@ -20,7 +20,10 @@ import {
   Sparkles,
   ExternalLink,
   BookOpen,
-  AlertCircle
+  AlertCircle,
+  FileVideo,
+  FileType,
+  Settings2
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -51,7 +54,6 @@ export default function TrailManagementPage() {
   const loadData = useCallback(async () => {
     if (!user || !trailId) return;
     
-    // Se for um ID de exemplo (não UUID), não tenta buscar no banco real
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trailId);
     
     if (!isUuid) {
@@ -60,22 +62,21 @@ export default function TrailManagementPage() {
     }
 
     try {
-      const { data: trailData } = await supabase.from('learning_trails').select('*').eq('id', trailId).single();
-      if (trailData) setTrail(trailData);
+      // OTIMIZAÇÃO: Busca paralela de trilha e módulos
+      const [trailRes, modulesRes] = await Promise.all([
+        supabase.from('learning_trails').select('id, title, category, status').eq('id', trailId).single(),
+        supabase.from('learning_modules').select('id, title, order_index').eq('trail_id', trailId).order('order_index', { ascending: true })
+      ]);
 
-      const { data: modulesData } = await supabase
-        .from('learning_modules')
-        .select('*')
-        .eq('trail_id', trailId)
-        .order('order_index', { ascending: true });
-      
-      setModules(modulesData || []);
+      if (trailRes.data) setTrail(trailRes.data);
+      const modulesData = modulesRes.data || [];
+      setModules(modulesData);
 
-      if (modulesData && modulesData.length > 0) {
+      if (modulesData.length > 0) {
         const moduleIds = modulesData.map(m => m.id);
         const { data: contentsData } = await supabase
           .from('learning_contents')
-          .select('*')
+          .select('id, module_id, title, type, url, description')
           .in('module_id', moduleIds)
           .order('created_at', { ascending: true });
         
@@ -102,25 +103,21 @@ export default function TrailManagementPage() {
     
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.from('learning_modules').insert({
+      const { error } = await supabase.from('learning_modules').insert({
         trail_id: trailId,
         title: moduleForm.title,
         order_index: modules.length,
         created_at: new Date().toISOString()
-      }).select().single();
+      });
 
       if (error) throw error;
 
       toast({ title: "Módulo Adicionado!" });
       setModuleForm({ title: "" });
       setIsModuleDialogOpen(false);
-      loadData(); // Recarrega para garantir consistência
+      loadData(); 
     } catch (err: any) {
-      toast({ 
-        title: "Erro ao Adicionar", 
-        description: "Verifique se a tabela 'learning_modules' existe no Supabase.", 
-        variant: "destructive" 
-      });
+      toast({ title: "Erro ao Adicionar", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -148,11 +145,7 @@ export default function TrailManagementPage() {
       setActiveModuleId(null);
       loadData(); 
     } catch (err: any) {
-      toast({ 
-        title: "Erro ao Anexar", 
-        description: "Verifique se a tabela 'learning_contents' existe no Supabase.", 
-        variant: "destructive" 
-      });
+      toast({ title: "Erro ao Anexar", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -194,13 +187,13 @@ export default function TrailManagementPage() {
             <h1 className="text-3xl font-black text-primary italic leading-none">{trail?.title || "Gerenciador de Trilha"}</h1>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-accent text-accent">{trail?.category || "Categoria"}</Badge>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">• {modules.length} Blocos Configurados</span>
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">• {modules.length} Capítulos Planejados</span>
             </div>
           </div>
         </div>
         {!isDemoTrail && (
           <Button onClick={() => setIsModuleDialogOpen(true)} className="bg-accent text-accent-foreground font-black rounded-xl shadow-xl h-12 px-8 hover:scale-105 active:scale-95 transition-all">
-            <Plus className="h-5 w-5 mr-2" /> Novo Módulo
+            <Plus className="h-5 w-5 mr-2" /> Novo Capítulo
           </Button>
         )}
       </div>
@@ -215,20 +208,20 @@ export default function TrailManagementPage() {
             </div>
           ) : (
             modules.map((mod, idx) => (
-              <Card key={mod.id} className="border-none shadow-lg bg-white overflow-hidden rounded-[2.5rem] border-l-8 border-l-primary/10">
+              <Card key={mod.id} className="border-none shadow-lg bg-white overflow-hidden rounded-[2.5rem] border-l-8 border-l-primary/10 group/card">
                 <CardHeader className="bg-muted/5 p-8 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-6">
                     <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black italic shadow-lg">{idx + 1}</div>
                     <div>
                       <CardTitle className="text-xl font-black text-primary italic">{mod.title}</CardTitle>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Capítulo Pedagógico</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Unidade Pedagógica</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => handleDeleteModule(mod.id)} className="text-muted-foreground hover:text-red-500 rounded-full transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <Button onClick={() => { setActiveModuleId(mod.id); setIsContentDialogOpen(true); }} className="bg-primary/5 text-primary hover:bg-primary hover:text-white font-black text-[10px] uppercase rounded-xl h-10 px-4 transition-all">
+                    <Button onClick={() => { setActiveModuleId(mod.id); setIsContentDialogOpen(true); }} className="bg-primary text-white hover:bg-primary/90 font-black text-[10px] uppercase rounded-xl h-10 px-4 transition-all shadow-md">
                       <Plus className="h-4 w-4 mr-2" /> Aula
                     </Button>
                   </div>
@@ -236,23 +229,26 @@ export default function TrailManagementPage() {
                 <CardContent className="p-8 space-y-4">
                   {contents[mod.id]?.length > 0 ? (
                     contents[mod.id].map((content) => (
-                      <div key={content.id} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 hover:bg-white hover:shadow-md transition-all group border border-transparent hover:border-accent/20">
-                        <div className="flex items-center gap-4">
-                          <div className={`h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm`}>
-                            {content.type === 'video' ? <Youtube className="h-5 w-5 text-red-600" /> : <FileText className="h-5 w-5 text-blue-600" />}
+                      <div key={content.id} className="flex items-center justify-between p-5 rounded-2xl bg-muted/30 hover:bg-white hover:shadow-xl transition-all group border-2 border-transparent hover:border-accent/20">
+                        <div className="flex items-center gap-5 overflow-hidden">
+                          <div className={`h-12 w-12 rounded-2xl bg-white flex items-center justify-center shadow-md shrink-0`}>
+                            {content.type === 'video' ? <Youtube className="h-6 w-6 text-red-600" /> : content.type === 'pdf' ? <FileText className="h-6 w-6 text-blue-600" /> : <FileType className="h-6 w-6 text-orange-600" />}
                           </div>
-                          <div>
-                            <p className="font-bold text-sm text-primary">{content.title}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{content.type}</p>
+                          <div className="min-w-0">
+                            <p className="font-black text-sm text-primary truncate">{content.title}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className="text-[7px] font-black uppercase bg-white border-none px-2">{content.type}</Badge>
+                              <p className="text-[10px] text-muted-foreground font-medium truncate italic">{content.description || "Sem descrição informada."}</p>
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary hover:text-white" onClick={() => window.open(content.url, '_blank')}><ExternalLink className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary hover:text-white shadow-sm" onClick={() => window.open(content.url, '_blank')}><ExternalLink className="h-5 w-5" /></Button>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-center py-6 text-[10px] font-black uppercase text-muted-foreground/40 italic">Sem materiais vinculados</p>
+                    <p className="text-center py-10 text-[10px] font-black uppercase text-muted-foreground/40 italic border-2 border-dashed border-muted/20 rounded-2xl">Nenhum material vinculado a esta unidade.</p>
                   )}
                 </CardContent>
               </Card>
@@ -265,9 +261,9 @@ export default function TrailManagementPage() {
             <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-3xl bg-white/10 flex items-center justify-center shadow-lg"><Layout className="h-8 w-8 text-accent" /></div>
+                <div className="h-14 w-14 rounded-3xl bg-white/10 flex items-center justify-center shadow-lg"><Settings2 className="h-8 w-8 text-accent" /></div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status da Trilha</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Configuração de Trilha</p>
                   <p className="text-2xl font-black italic">{trail?.status === 'active' ? 'Publicada' : 'Rascunho'}</p>
                 </div>
               </div>
@@ -276,7 +272,7 @@ export default function TrailManagementPage() {
                   <Sparkles className="h-4 w-4 animate-pulse" />
                   <span className="text-[9px] font-black uppercase tracking-widest">Dica Docente</span>
                 </div>
-                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">"Trilhas bem estruturadas aumentam a taxa de aprovação em até 40%."</p>
+                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">"Adicione descrições detalhadas às aulas para ajudar a Aurora IA no suporte aos alunos."</p>
               </div>
               {!isDemoTrail && (
                 <Button 
@@ -284,7 +280,7 @@ export default function TrailManagementPage() {
                   disabled={trail?.status === 'active'} 
                   className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-black h-14 rounded-2xl shadow-xl transition-all border-none"
                 >
-                  Publicar para a Rede
+                  {trail?.status === 'active' ? 'Trilha Publicada' : 'Publicar para a Rede'}
                 </Button>
               )}
             </div>
@@ -292,13 +288,14 @@ export default function TrailManagementPage() {
         </div>
       </div>
 
+      {/* DIALOG: NOVO CAPÍTULO (MODULO) */}
       <Dialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen}>
         <DialogContent className="rounded-[2.5rem] p-10 bg-white border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Novo Capítulo</DialogTitle></DialogHeader>
           <div className="py-6 space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40 mb-2 block">Título do Bloco</Label>
-              <Input placeholder="Ex: Introdução à Algebra" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg" />
+              <Label className="text-[10px] font-black uppercase opacity-40 mb-2 block">Título da Unidade</Label>
+              <Input placeholder="Ex: Álgebra Linear Avançada" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg focus:ring-accent" />
             </div>
           </div>
           <Button onClick={handleAddModule} disabled={isSubmitting || !moduleForm.title} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">
@@ -307,32 +304,55 @@ export default function TrailManagementPage() {
         </DialogContent>
       </Dialog>
 
+      {/* DIALOG: ANEXAR AULA (CONTEÚDO) - RESTAURADO COMPLETO */}
       <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
-        <DialogContent className="rounded-[2.5rem] p-10 max-w-md bg-white border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Anexar Aula</DialogTitle></DialogHeader>
-          <div className="space-y-6 py-6">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Tipo de Recurso</Label>
-              <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})}>
-                <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-none font-bold"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="video" className="font-bold">🎞️ Videoaula</SelectItem>
-                  <SelectItem value="pdf" className="font-bold">📄 Documento PDF</SelectItem>
-                  <SelectItem value="text" className="font-bold">📝 Resumo / Texto</SelectItem>
-                </SelectContent>
-              </Select>
+        <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black italic text-primary flex items-center gap-3">
+              <Plus className="h-6 w-6 text-accent" /> Configurar Aula
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-6 overflow-y-auto max-h-[70vh] scrollbar-hide pr-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase opacity-40">Tipo de Recurso</Label>
+                <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})}>
+                  <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-none font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="video" className="font-bold">🎞️ Videoaula</SelectItem>
+                    <SelectItem value="pdf" className="font-bold">📄 Documento PDF</SelectItem>
+                    <SelectItem value="text" className="font-bold">📝 Resumo / Texto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase opacity-40">Título Curto</Label>
+                <Input placeholder="Ex: Derivadas I" value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold" />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
-              <Input placeholder="Ex: Regra de Três Composta" value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold" />
+              <Label className="text-[10px] font-black uppercase opacity-40">Link do Material (YouTube/Drive)</Label>
+              <div className="relative">
+                <Input placeholder="https://..." value={contentForm.url} onChange={(e) => setContentForm({...contentForm, url: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-medium pl-12" />
+                <ExternalLink className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30" />
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Link do Material</Label>
-              <Input placeholder="Ex: https://youtube.com/..." value={contentForm.url} onChange={(e) => setContentForm({...contentForm, url: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-medium" />
+              <Label className="text-[10px] font-black uppercase opacity-40">Objetivo Pedagógico / Descrição</Label>
+              <Textarea 
+                placeholder="Descreva o que o aluno deve focar nesta aula..." 
+                value={contentForm.description} 
+                onChange={(e) => setContentForm({...contentForm, description: e.target.value})} 
+                className="min-h-[120px] rounded-2xl bg-muted/30 border-none resize-none p-5 font-medium" 
+              />
             </div>
           </div>
-          <Button onClick={handleAddContent} disabled={isSubmitting || !contentForm.title} className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl active:scale-95 transition-all">
-            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Aula"}
+          <Button onClick={handleAddContent} disabled={isSubmitting || !contentForm.title} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">
+            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Aula Digital"}
           </Button>
         </DialogContent>
       </Dialog>
