@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, AlertCircle, ShieldAlert, FlaskConical, Database, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, AlertCircle, ShieldAlert, FlaskConical, Database, Eye, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -32,7 +32,6 @@ export default function TeacherTrailsPage() {
     setLoading(true);
     setErrorState("none");
     
-    // OTIMIZAÇÃO: Busca apenas colunas necessárias para performance Turbo
     const { data, error } = await supabase
       .from('learning_trails')
       .select('id, title, category, description, status, image_url, teacher_id, teacher_name')
@@ -93,37 +92,77 @@ export default function TeacherTrailsPage() {
     if (!user) return;
     setIsSubmitting(true);
     
-    const testTrails = [
-      {
-        title: "Introdução à Inteligência Artificial",
-        category: "Tecnologia",
-        description: "Explore o mundo do Machine Learning e das IAs generativas como o Gemini.",
-        teacher_id: user.id,
-        teacher_name: user.user_metadata?.full_name || "Professor Demo",
-        status: "active",
-        image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
-        created_at: new Date().toISOString()
-      },
-      {
-        title: "Matemática para o ENEM",
-        category: "Matemática",
-        description: "Revisão completa de funções, álgebra e geometria para o exame nacional.",
-        teacher_id: user.id,
-        teacher_name: user.user_metadata?.full_name || "Professor Demo",
-        status: "active",
-        image_url: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?auto=format&fit=crop&q=80&w=800",
-        created_at: new Date().toISOString()
-      }
-    ];
-
     try {
-      const { error } = await supabase.from('learning_trails').insert(testTrails);
-      if (error) throw error;
+      // 1. Criar as Trilhas de Exemplo
+      const { data: trailsData, error: trailsError } = await supabase.from('learning_trails').insert([
+        {
+          title: "IA Generativa: Do Zero ao Avançado",
+          category: "Tecnologia",
+          description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho e a educação.",
+          teacher_id: user.id,
+          teacher_name: user.user_metadata?.full_name || "Professor Demo",
+          status: "active",
+          image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
+          created_at: new Date().toISOString()
+        },
+        {
+          title: "Matemática ENEM: Foco em Aprovação",
+          category: "Matemática",
+          description: "Revisão intensiva dos temas com maior recorrência no exame nacional, com foco em resolução de problemas.",
+          teacher_id: user.id,
+          teacher_name: user.user_metadata?.full_name || "Professor Demo",
+          status: "active",
+          image_url: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?auto=format&fit=crop&q=80&w=800",
+          created_at: new Date().toISOString()
+        }
+      ]).select();
+
+      if (trailsError) throw trailsError;
+
+      // 2. Popular Módulos e Conteúdos para cada trilha criada
+      for (const trail of trailsData || []) {
+        // Criar Módulo Principal
+        const { data: moduleData, error: moduleError } = await supabase.from('learning_modules').insert({
+          trail_id: trail.id,
+          title: "Unidade 1: Fundamentos e Visão Geral",
+          order_index: 0,
+          created_at: new Date().toISOString()
+        }).select().single();
+
+        if (moduleError || !moduleData) continue;
+
+        // Criar Aulas dentro do módulo (Video e Texto)
+        await supabase.from('learning_contents').insert([
+          {
+            module_id: moduleData.id,
+            title: "Aula 01 - Introdução e Boas-vindas",
+            type: "video",
+            url: "y6U-XRymBlU",
+            description: "Nesta aula inaugural, o mentor apresenta o roteiro da trilha e os principais conceitos que serão abordados durante a jornada de aprendizado.",
+            created_at: new Date().toISOString()
+          },
+          {
+            module_id: moduleData.id,
+            title: "Material de Apoio: Guia do Estudante",
+            type: "text",
+            description: "Este guia contém os pontos chaves discutidos na aula em vídeo. \n\n1. Conceitos Fundamentais\n2. Metodologia de Estudo\n3. Links de Referência\n\nRecomendamos a leitura atenta antes de prosseguir para os exercícios práticos.",
+            created_at: new Date().toISOString()
+          }
+        ]);
+      }
       
-      toast({ title: "Trilhas de Teste Criadas!" });
+      toast({ 
+        title: "Estrutura Digital Gerada!", 
+        description: "Trilhas, módulos e aulas completas foram adicionados ao seu perfil." 
+      });
       fetchTrails();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro no Seed" });
+      console.error(err);
+      toast({ 
+        variant: "destructive", 
+        title: "Erro no Processamento", 
+        description: "Certifique-se de que as tabelas de módulos e conteúdos existem no seu banco." 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -155,7 +194,7 @@ export default function TeacherTrailsPage() {
             className="rounded-xl h-14 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
           >
             {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
-            Gerar Trilhas de Teste
+            Gerar Trilhas Completas (Demos)
           </Button>
           
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -196,7 +235,10 @@ export default function TeacherTrailsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-32"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-accent" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Sincronizando Banco de Dados...</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {trails.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map((trail) => (
@@ -216,8 +258,8 @@ export default function TeacherTrailsPage() {
               <CardFooter className="p-8 pt-4 border-t border-muted/10 mt-auto flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-muted-foreground uppercase">Ver Aluno</span>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-accent hover:bg-accent/10" asChild>
-                    <Link href={`/dashboard/classroom/${trail.id}`} title="Visão Real do Aluno">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-accent hover:bg-accent/10" asChild title="Simular Visão do Aluno">
+                    <Link href={`/dashboard/classroom/${trail.id}`}>
                       <Eye className="h-4 w-4" />
                     </Link>
                   </Button>
