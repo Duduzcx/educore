@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, AlertCircle, ShieldAlert, FlaskConical, Database } from "lucide-react";
+import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, AlertCircle, ShieldAlert, FlaskConical, Database, Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -34,7 +34,7 @@ export default function TeacherTrailsPage() {
     
     const { data, error } = await supabase
       .from('learning_trails')
-      .select('*')
+      .select('id, title, category, description, status, image_url, teacher_id, teacher_name')
       .eq('teacher_id', user.id)
       .order('created_at', { ascending: false });
     
@@ -112,27 +112,17 @@ export default function TeacherTrailsPage() {
         status: "active",
         image_url: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?auto=format&fit=crop&q=80&w=800",
         created_at: new Date().toISOString()
-      },
-      {
-        title: "História do Brasil: Independência",
-        category: "História",
-        description: "Uma análise crítica sobre os processos que levaram ao 7 de Setembro.",
-        teacher_id: user.id,
-        teacher_name: user.user_metadata?.full_name || "Professor Demo",
-        status: "active",
-        image_url: "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?auto=format&fit=crop&q=80&w=800",
-        created_at: new Date().toISOString()
       }
     ];
 
     try {
-      const { data, error } = await supabase.from('learning_trails').insert(testTrails).select();
+      const { error } = await supabase.from('learning_trails').insert(testTrails);
       if (error) throw error;
       
-      toast({ title: "Trilhas de Teste Criadas!", description: "3 novas jornadas foram adicionadas ao seu perfil." });
+      toast({ title: "Trilhas de Teste Criadas!" });
       fetchTrails();
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro no Seed", description: "Verifique a conexão ou permissões RLS no Supabase." });
+      toast({ variant: "destructive", title: "Erro no Seed" });
     } finally {
       setIsSubmitting(false);
     }
@@ -143,24 +133,8 @@ export default function TeacherTrailsPage() {
       <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-white rounded-[2rem] shadow-xl border-2 border-dashed border-accent/20">
         <AlertCircle className="h-12 w-12 text-accent mb-4 animate-pulse" />
         <h2 className="text-2xl font-black text-primary italic">Configuração Pendente</h2>
-        <p className="text-muted-foreground mt-2 max-w-md font-medium">
-          A tabela <code className="bg-muted px-2 py-1 rounded">learning_trails</code> não foi encontrada no seu projeto Supabase. 
-        </p>
+        <p className="text-muted-foreground mt-2 max-w-md font-medium">A tabela learning_trails não foi encontrada.</p>
         <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>Tentar Novamente</Button>
-      </div>
-    );
-  }
-
-  if (errorState === "rls_error") {
-    return (
-      <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-white rounded-[2rem] shadow-xl border-2 border-dashed border-red-200">
-        <ShieldAlert className="h-12 w-12 text-red-500 mb-4 animate-bounce" />
-        <h2 className="text-2xl font-black text-primary italic">Bloqueio de Segurança (RLS)</h2>
-        <p className="text-muted-foreground mt-2 max-w-md font-medium">
-          O Supabase está bloqueando o acesso devido a políticas de segurança (RLS). 
-          Desative-o no console para a demo.
-        </p>
-        <Button variant="outline" className="mt-6 border-red-200 text-red-600" onClick={() => window.location.reload()}>Verificar Novamente</Button>
       </div>
     );
   }
@@ -239,7 +213,14 @@ export default function TeacherTrailsPage() {
                 <CardTitle className="text-xl font-black italic truncate mt-2 group-hover:text-accent transition-colors">{trail.title}</CardTitle>
               </CardHeader>
               <CardFooter className="p-8 pt-4 border-t border-muted/10 mt-auto flex justify-between items-center">
-                <span className="text-xs font-bold text-muted-foreground uppercase">Gerenciar</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-muted-foreground uppercase">Gerenciar</span>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-accent hover:bg-accent/10" asChild>
+                    <Link href={`/dashboard/classroom/${trail.id}`} title="Visão do Aluno">
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
                 <Button variant="ghost" className="text-accent font-black text-[10px] uppercase group/btn" asChild>
                   <Link href={`/dashboard/teacher/trails/${trail.id}`}>Painel <LayoutDashboard className="h-4 w-4 ml-2 group-hover/btn:rotate-12 transition-transform" /></Link>
                 </Button>
@@ -250,7 +231,6 @@ export default function TeacherTrailsPage() {
             <div className="col-span-full py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5 animate-in fade-in duration-1000">
               <Database className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
               <p className="font-black text-primary italic text-xl">Nenhuma trilha encontrada</p>
-              <p className="text-muted-foreground font-medium mt-2">Clique em "Gerar Trilhas de Teste" para popular seu sistema.</p>
             </div>
           )}
         </div>
@@ -258,5 +238,3 @@ export default function TeacherTrailsPage() {
     </div>
   );
 }
-
-    
