@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
@@ -24,7 +25,10 @@ import {
   FileVideo,
   ChevronRight,
   Sparkles,
-  Info
+  Info,
+  ExternalLink,
+  BookOpen,
+  ArrowRight
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -207,6 +211,20 @@ export default function ClassroomPage() {
                         frameBorder="0" 
                         allowFullScreen 
                       />
+                    ) : activeContent.type === 'text' ? (
+                      <div className="h-full bg-white p-12 overflow-y-auto">
+                        <div className="max-w-3xl mx-auto space-y-6">
+                          <div className="flex items-center gap-3 text-accent mb-8">
+                            <BookOpen className="h-8 w-8" />
+                            <h2 className="text-3xl font-black italic text-primary">{activeContent.title}</h2>
+                          </div>
+                          <div className="prose prose-slate max-w-none">
+                            <p className="text-lg leading-relaxed text-muted-foreground whitespace-pre-line font-medium italic">
+                              {activeContent.description}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-accent/20 to-transparent opacity-50" />
@@ -220,40 +238,42 @@ export default function ClassroomPage() {
                     )}
                   </Card>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card className="md:col-span-2 p-8 bg-white rounded-[2.5rem] shadow-xl border-none relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
-                        <Sparkles className="h-24 w-24 text-accent" />
-                      </div>
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                          <Info className="h-5 w-5" />
+                  {activeContent.type !== 'text' && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <Card className="md:col-span-2 p-8 bg-white rounded-[2.5rem] shadow-xl border-none relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:scale-110 transition-transform">
+                          <Sparkles className="h-24 w-24 text-accent" />
                         </div>
-                        <h3 className="text-2xl font-black text-primary italic leading-none">Resumo da Aula</h3>
-                      </div>
-                      <p className="text-muted-foreground font-medium italic leading-relaxed whitespace-pre-line text-sm md:text-base">
-                        {activeContent.description || "O mentor ainda não disponibilizou o resumo desta aula."}
-                      </p>
-                    </Card>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                            <Info className="h-5 w-5" />
+                          </div>
+                          <h3 className="text-2xl font-black text-primary italic leading-none">Guia de Estudo</h3>
+                        </div>
+                        <p className="text-muted-foreground font-medium italic leading-relaxed whitespace-pre-line text-sm md:text-base">
+                          {activeContent.description || "O mentor ainda não disponibilizou o resumo desta aula."}
+                        </p>
+                      </Card>
 
-                    <Card className="p-8 bg-primary text-white rounded-[2.5rem] shadow-xl border-none">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">Material de Apoio</h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
-                            {activeContent.type === 'video' ? <Youtube className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                      <Card className="p-8 bg-primary text-white rounded-[2.5rem] shadow-xl border-none">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">Material de Apoio</h4>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-xl bg-white/10 flex items-center justify-center">
+                              {activeContent.type === 'video' ? <Youtube className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                            </div>
+                            <div>
+                              <p className="text-xs font-black italic truncate max-w-[150px]">{activeContent.title}</p>
+                              <p className="text-[8px] font-bold opacity-40 uppercase">{activeContent.type}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs font-black italic">{activeContent.title}</p>
-                            <p className="text-[8px] font-bold opacity-40 uppercase">{activeContent.type}</p>
-                          </div>
+                          <Button variant="outline" className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white text-[9px] font-black uppercase h-10 rounded-xl" asChild>
+                            <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Acessar Material</a>
+                          </Button>
                         </div>
-                        <Button variant="outline" className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white text-[9px] font-black uppercase h-10 rounded-xl" asChild>
-                          <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Download / Acesso</a>
-                        </Button>
-                      </div>
-                    </Card>
-                  </div>
+                      </Card>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="py-32 text-center border-4 border-dashed rounded-[3rem] bg-muted/5 opacity-40">
@@ -329,7 +349,10 @@ export default function ClassroomPage() {
                     className={`p-5 text-left transition-all duration-200 ${uiState.activeModuleId === mod.id ? 'bg-accent/5 border-l-4 border-l-accent' : 'hover:bg-muted/20'}`}
                   >
                     <p className="text-[8px] font-black uppercase opacity-40 mb-1">Módulo {i + 1}</p>
-                    <p className={`text-xs font-black truncate ${uiState.activeModuleId === mod.id ? 'text-accent italic' : 'text-primary'}`}>{mod.title}</p>
+                    <div className="flex items-center justify-between">
+                      <p className={`text-xs font-black truncate ${uiState.activeModuleId === mod.id ? 'text-accent italic' : 'text-primary'}`}>{mod.title}</p>
+                      <ChevronRight className={`h-3 w-3 transition-transform ${uiState.activeModuleId === mod.id ? 'rotate-90 text-accent' : 'text-primary/20'}`} />
+                    </div>
                   </button>
                   
                   {uiState.activeModuleId === mod.id && (
@@ -341,7 +364,7 @@ export default function ClassroomPage() {
                           className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${uiState.activeContentId === c.id ? 'bg-white shadow-md scale-[1.02] border-l-4 border-accent' : 'hover:bg-white/50 opacity-60'}`}
                         >
                           <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${uiState.activeContentId === c.id ? 'bg-accent text-accent-foreground' : 'bg-muted'}`}>
-                            {c.type === 'video' ? <Youtube className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                            {c.type === 'video' ? <Youtube className="h-3 w-3" /> : c.type === 'pdf' ? <FileText className="h-3 w-3" /> : <AlignLeft className="h-3 w-3" />}
                           </div>
                           <span className="text-[9px] font-bold uppercase text-left leading-tight truncate">{c.title}</span>
                         </button>

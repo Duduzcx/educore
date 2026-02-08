@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -23,7 +24,11 @@ import {
   FileVideo,
   FileType,
   Settings2,
-  ListPlus
+  ListPlus,
+  Info,
+  Link as LinkIcon,
+  AlignLeft,
+  GraduationCap
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -49,7 +54,12 @@ export default function TrailManagementPage() {
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   
   const [moduleForm, setModuleForm] = useState({ title: "" });
-  const [contentForm, setContentForm] = useState({ title: "", type: "video", url: "", description: "" });
+  const [contentForm, setContentForm] = useState({ 
+    title: "", 
+    type: "video", 
+    url: "", 
+    description: "" 
+  });
 
   const loadData = useCallback(async () => {
     if (!user || !trailId) return;
@@ -321,42 +331,60 @@ export default function TrailManagementPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-6 overflow-y-auto max-h-[70vh] scrollbar-hide pr-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Tipo de Recurso</Label>
-                <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})}>
-                  <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-none font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="video" className="font-bold">🎞️ Videoaula</SelectItem>
-                    <SelectItem value="pdf" className="font-bold">📄 Documento PDF</SelectItem>
-                    <SelectItem value="text" className="font-bold">📝 Resumo / Texto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
-                <Input placeholder="Ex: Derivadas Parte 1" value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold" />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase opacity-40">Tipo de Material</Label>
+              <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})}>
+                <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-none font-bold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="video" className="font-bold">🎞️ Videoaula (YouTube)</SelectItem>
+                  <SelectItem value="pdf" className="font-bold">📄 Documento PDF / Arquivo</SelectItem>
+                  <SelectItem value="text" className="font-bold">📝 Texto / Artigo Completo</SelectItem>
+                  <SelectItem value="quiz" className="font-bold">❓ Quiz de Avaliação</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Link do Recurso (YouTube/Drive)</Label>
+              <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
               <div className="relative">
-                <Input placeholder="https://..." value={contentForm.url} onChange={(e) => setContentForm({...contentForm, url: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-medium pl-12" />
-                <ExternalLink className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30" />
+                <Input placeholder="Ex: Derivadas Parte 1" value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold pl-12" />
+                <AlignLeft className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30" />
               </div>
             </div>
 
+            {/* CAMPOS DINÂMICOS BASEADOS NO TIPO */}
+            {(contentForm.type === 'video' || contentForm.type === 'pdf' || contentForm.type === 'quiz') && (
+              <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                <Label className="text-[10px] font-black uppercase opacity-40">
+                  {contentForm.type === 'video' ? 'ID ou Link do YouTube' : 'Link do Documento (Drive/Site)'}
+                </Label>
+                <div className="relative">
+                  <Input 
+                    placeholder={contentForm.type === 'video' ? 'Ex: rfscVS0vtbw' : 'https://...'} 
+                    value={contentForm.url} 
+                    onChange={(e) => setContentForm({...contentForm, url: e.target.value})} 
+                    className="h-14 rounded-2xl bg-muted/30 border-none font-medium pl-12" 
+                  />
+                  {contentForm.type === 'video' ? <Youtube className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-600" /> : <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-600" />}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Resumo / Objetivo Pedagógico</Label>
-              <Textarea 
-                placeholder="Descreva o que o aluno aprenderá ou o que deve ser focado neste material..." 
-                value={contentForm.description} 
-                onChange={(e) => setContentForm({...contentForm, description: e.target.value})} 
-                className="min-h-[150px] rounded-2xl bg-muted/30 border-none resize-none p-5 font-medium leading-relaxed" 
-              />
+              <Label className="text-[10px] font-black uppercase opacity-40">
+                {contentForm.type === 'text' ? 'Conteúdo da Aula (Texto Completo)' : 'Resumo Pedagógico (Guia de Estudo)'}
+              </Label>
+              <div className="relative">
+                <Textarea 
+                  placeholder={contentForm.type === 'text' ? 'Escreva aqui todo o conteúdo que o aluno deve ler...' : 'Descreva o que o aluno aprenderá ou o que deve ser focado neste material...'} 
+                  value={contentForm.description} 
+                  onChange={(e) => setContentForm({...contentForm, description: e.target.value})} 
+                  className="min-h-[180px] rounded-2xl bg-muted/30 border-none resize-none p-5 font-medium leading-relaxed" 
+                />
+                <div className="absolute right-4 bottom-4 opacity-20"><Info className="h-5 w-5" /></div>
+              </div>
             </div>
           </div>
           <Button onClick={handleAddContent} disabled={isSubmitting || !contentForm.title} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">
