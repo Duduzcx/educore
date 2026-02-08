@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 /**
  * Componente Client-Side para inicialização segura do VLibras.
- * Evita erros de serialização de eventos no layout.tsx.
+ * OTIMIZAÇÃO: Usando lazyOnload para não travar o carregamento inicial da página.
  */
 export function Vlibras() {
   useEffect(() => {
@@ -16,12 +16,12 @@ export function Vlibras() {
           new (window as any).VLibras.Widget("https://vlibras.gov.br/app");
         }
       } catch (e) {
-        // Falha silenciosa se o widget não carregar
+        // Falha silenciosa
       }
     };
 
-    // Tenta inicializar após um pequeno delay para garantir o carregamento do script
-    const timer = setTimeout(initVlibras, 1000);
+    // Delay maior para garantir que o portal carregue primeiro
+    const timer = setTimeout(initVlibras, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -29,7 +29,7 @@ export function Vlibras() {
     <>
       <Script 
         src="https://vlibras.gov.br/app/vlibras-plugin.js" 
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
       <div vw="true" className="enabled">
         <div vw-access-button="true" className="active"></div>

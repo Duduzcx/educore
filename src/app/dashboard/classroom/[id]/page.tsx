@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -60,86 +60,92 @@ export default function ClassroomPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const auroraScrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    async function loadData() {
-      if (!user) return;
-      setLoading(true);
-      try {
-        const { data: trailData } = await supabase.from('learning_trails').select('*').eq('id', trailId).single();
-        setTrail(trailData);
+  // OTIMIZAÇÃO: Busca paralela de dados para evitar "waterfall"
+  const loadInitialData = useCallback(async () => {
+    if (!user || !trailId) return;
+    setLoading(true);
+    
+    try {
+      const [trailRes, modulesRes, progressRes, liveRes] = await Promise.all([
+        supabase.from('learning_trails').select('*').eq('id', trailId).single(),
+        supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true }),
+        supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).maybeSingle(),
+        supabase.from('lives').select('*').eq('trail_id', trailId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      ]);
 
-        const { data: modulesData } = await supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true });
-        setModules(modulesData || []);
+      setTrail(trailRes.data);
+      setModules(modulesRes.data || []);
+      setProgress(progressRes.data);
+      setActiveLive(liveRes.data);
 
-        const { data: progData } = await supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).single();
-        setProgress(progData);
-
-        const { data: liveData } = await supabase
-          .from('lives')
-          .select('*')
-          .eq('trail_id', trailId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        setActiveLive(liveData);
-
-        if (liveData) {
-          const { data: msgs } = await supabase
-            .from('forum_posts')
-            .select('*')
-            .eq('forum_id', liveData.id)
-            .order('created_at', { ascending: true });
-          setLiveMessages(msgs || []);
-
-          const channel = supabase.channel(`live_chat_${liveData.id}`)
-            .on('postgres_changes', { 
-              event: 'INSERT', 
-              schema: 'public', 
-              table: 'forum_posts',
-              filter: `forum_id=eq.${liveData.id}`
-            }, (payload) => {
-              setLiveMessages(prev => [...prev, payload.new]);
-            })
-            .on('postgres_changes', {
-              event: 'UPDATE',
-              schema: 'public', 
-              table: 'forum_posts',
-              filter: `forum_id=eq.${liveData.id}`
-            }, (payload) => {
-              setLiveMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
-            })
-            .subscribe();
-
-          return () => {
-            supabase.removeChannel(channel);
-          };
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (modulesRes.data?.length) {
+        setActiveModuleId(modulesRes.data[0].id);
       }
+
+      if (liveRes.data) {
+        const { data: msgs } = await supabase
+          .from('forum_posts')
+          .select('*')
+          .eq('forum_id', liveRes.data.id)
+          .order('created_at', { ascending: true });
+        setLiveMessages(msgs || []);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar sala de aula:", err);
+    } finally {
+      setLoading(false);
     }
-    loadData();
   }, [user, trailId]);
 
   useEffect(() => {
+    loadInitialData();
+  }, [loadInitialData]);
+
+  // Busca conteúdos separada para não travar o carregamento inicial
+  useEffect(() => {
     async function loadContents() {
       if (!activeModuleId) return;
-      const { data } = await supabase.from('learning_contents').select('*').eq('module_id', activeModuleId).order('created_at', { ascending: true });
+      const { data } = await supabase
+        .from('learning_contents')
+        .select('id, title, type, url, description')
+        .eq('module_id', activeModuleId)
+        .order('created_at', { ascending: true });
+      
       setContents(data || []);
+      if (data?.length && !activeContentId) {
+        setActiveContentId(data[0].id);
+      }
     }
     loadContents();
   }, [activeModuleId]);
 
+  // Gerenciamento de Realtime isolado
   useEffect(() => {
-    if (modules.length > 0 && !activeModuleId) setActiveModuleId(modules[0].id);
-  }, [modules, activeModuleId]);
+    if (!activeLive) return;
 
-  useEffect(() => {
-    if (contents.length > 0 && !activeContentId) setActiveContentId(contents[0].id);
-  }, [contents, activeContentId]);
+    const channel = supabase.channel(`live_chat_${activeLive.id}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'forum_posts',
+        filter: `forum_id=eq.${activeLive.id}`
+      }, (payload) => {
+        setLiveMessages(prev => [...prev, payload.new]);
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public', 
+        table: 'forum_posts',
+        filter: `forum_id=eq.${activeLive.id}`
+      }, (payload) => {
+        setLiveMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeLive]);
 
   const handleSendLiveMessage = async (isQuestion: boolean = false) => {
     if (!liveChatInput.trim() || !user || !activeLive) return;
@@ -158,9 +164,7 @@ export default function ClassroomPage() {
     });
 
     if (error) {
-      toast({ variant: "destructive", title: "Erro ao enviar", description: "Verifique se habilitou o Realtime no console do Supabase." });
-    } else if (isQuestion) {
-      toast({ title: "Pergunta Enviada!", description: "Sua dúvida foi destacada para o professor." });
+      toast({ variant: "destructive", title: "Erro ao enviar", description: "Falha na conexão em tempo real." });
     }
   };
 
@@ -201,7 +205,12 @@ export default function ClassroomPage() {
     }
   }, [liveMessages]);
 
-  if (loading) return <div className="h-96 flex items-center justify-center"><Loader2 className="animate-spin text-accent" /></div>;
+  if (loading) return (
+    <div className="h-96 flex flex-col items-center justify-center gap-4">
+      <Loader2 className="animate-spin h-10 w-10 text-accent" />
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Carregando Material...</p>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-700 pb-20">

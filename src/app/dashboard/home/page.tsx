@@ -34,18 +34,17 @@ export default function DashboardHome() {
     const fetchLibraryItems = async () => {
       setLoadingLibrary(true);
       try {
+        // OTIMIZAÇÃO: Selecionando apenas os campos necessários e limitando a 4 itens
         const { data, error } = await supabase
           .from('library_items')
-          .select('*')
+          .select('id, title, description, category')
           .limit(4);
 
-        if (error) {
-          console.error("Erro ao buscar itens da biblioteca:", error);
-        } else {
+        if (!error) {
           setLibraryItems(data as LibraryItem[]);
         }
       } catch (err) {
-        console.error("Erro inesperado:", err);
+        console.error("Erro ao buscar itens da biblioteca:", err);
       } finally {
         setLoadingLibrary(false);
       }

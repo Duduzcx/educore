@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
 import { supabase } from "@/lib/supabase"; 
 
@@ -18,10 +18,6 @@ interface Profile {
   id: string;
   name: string;
   email: string;
-}
-
-interface TeacherProfile extends Profile {
-  subjects?: string;
 }
 
 const studentItems = [
@@ -54,34 +50,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, loading: isUserLoading } = useAuth();
   const { toast } = useToast();
   
-  // Determina se é professor baseado no metadado do usuário (mais rápido e confiável para UI)
-  const isTeacher = user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin';
+  const isTeacher = useMemo(() => 
+    user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin'
+  , [user]);
   
-  const [profile, setProfile] = useState<Profile | TeacherProfile | null>(null);
-  const [isProfileLoading, setProfileLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const lastToastRef = useRef<string | null>(null);
 
+  // OTIMIZAÇÃO: Busca de perfil simplificada e persistente
   useEffect(() => {
-    if (user) {
+    if (user && !profile) {
       const fetchProfile = async () => {
-        setProfileLoading(true);
         const table = isTeacher ? 'teachers' : 'profiles';
-        
-        let { data, error } = await supabase
+        const { data } = await supabase
           .from(table)
-          .select('*')
+          .select('id, name, email')
           .eq('id', user.id)
           .single();
-        
-        if (data) {
-          setProfile(data);
-        }
-        setProfileLoading(false);
+        if (data) setProfile(data);
       };
       fetchProfile();
     }
-  }, [user, isTeacher]);
+  }, [user, isTeacher, profile]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -89,53 +80,55 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, isUserLoading, router]);
 
+  // OTIMIZAÇÃO: Gerenciamento único de canal para evitar múltiplos listeners
   useEffect(() => {
-    if (user) {
-      const channel = supabase
-        .channel('chat_messages')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user.id}` },
-          (payload) => {
-            setUnreadCount(current => current + 1);
-            const newMessage = payload.new as { id: string, sender_id: string };
-            if (newMessage.id !== lastToastRef.current) {
-              lastToastRef.current = newMessage.id;
-              toast({
-                title: "Nova Mensagem!",
-                description: `Você recebeu uma mensagem. Clique para responder.`,
-                action: (
-                  <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/chat/${newMessage.sender_id}`)}>
-                    Ver Chat
-                  </Button>
-                ),
-              });
-            }
-          }
-        )
-        .subscribe();
+    if (!user) return;
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
+    const channel = supabase
+      .channel('global_notifications')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user.id}` },
+        (payload) => {
+          setUnreadCount(current => current + 1);
+          const newMessage = payload.new as { id: string, sender_id: string };
+          if (newMessage.id !== lastToastRef.current) {
+            lastToastRef.current = newMessage.id;
+            toast({
+              title: "Nova Mensagem!",
+              description: `Acesse o chat para responder.`,
+              action: (
+                <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/chat/${newMessage.sender_id}`)}>
+                  Ver Chat
+                </Button>
+              ),
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, toast, router]);
 
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      toast({ title: "Sessão encerrada" });
-      router.push("/login");
+      window.location.href = '/login';
     } catch (error: any) {
       toast({ title: "Erro ao sair", variant: "destructive" });
     }
   };
 
+  const navItems = useMemo(() => isTeacher ? teacherItems : studentItems, [isTeacher]);
+
   if (isUserLoading) {
     return (
-      <div className="flex h-[100dvh] w-full items-center justify-center bg-background p-6">
+      <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
           <p className="font-bold text-primary animate-pulse italic">Iniciando Portal...</p>
         </div>
       </div>
@@ -143,8 +136,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!user) return null;
-
-  const navItems = isTeacher ? teacherItems : studentItems;
 
   return (
     <SidebarProvider>
