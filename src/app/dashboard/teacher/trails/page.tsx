@@ -1,14 +1,13 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, LayoutDashboard, Search, Loader2, AlertCircle, ShieldAlert, FlaskConical, Database, Eye, Sparkles } from "lucide-react";
+import { Plus, LayoutDashboard, Search, Loader2, AlertCircle, FlaskConical, Database, Eye, Globe, Lock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -74,7 +73,7 @@ export default function TeacherTrailsPage() {
       if (error) throw error;
 
       setTrails([data, ...trails]);
-      toast({ title: "Trilha Criada!" });
+      toast({ title: "Trilha Criada em Rascunho!" });
       setIsCreateDialogOpen(false);
       setNewTrail({ title: "", category: "", description: "" });
     } catch (err: any) {
@@ -93,12 +92,11 @@ export default function TeacherTrailsPage() {
     setIsSubmitting(true);
     
     try {
-      // 1. Criar as Trilhas de Exemplo
       const { data: trailsData, error: trailsError } = await supabase.from('learning_trails').insert([
         {
           title: "IA Generativa: Do Zero ao Avançado",
           category: "Tecnologia",
-          description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho e a educação.",
+          description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho.",
           teacher_id: user.id,
           teacher_name: user.user_metadata?.full_name || "Professor Demo",
           status: "active",
@@ -108,7 +106,7 @@ export default function TeacherTrailsPage() {
         {
           title: "Matemática ENEM: Foco em Aprovação",
           category: "Matemática",
-          description: "Revisão intensiva dos temas com maior recorrência no exame nacional, com foco em resolução de problemas.",
+          description: "Revisão intensiva dos temas com maior recorrência no exame nacional.",
           teacher_id: user.id,
           teacher_name: user.user_metadata?.full_name || "Professor Demo",
           status: "active",
@@ -119,9 +117,7 @@ export default function TeacherTrailsPage() {
 
       if (trailsError) throw trailsError;
 
-      // 2. Popular Módulos e Conteúdos para cada trilha criada
       for (const trail of trailsData || []) {
-        // Criar Módulo Principal
         const { data: moduleData, error: moduleError } = await supabase.from('learning_modules').insert({
           trail_id: trail.id,
           title: "Unidade 1: Fundamentos e Visão Geral",
@@ -131,21 +127,20 @@ export default function TeacherTrailsPage() {
 
         if (moduleError || !moduleData) continue;
 
-        // Criar Aulas dentro do módulo (Video e Texto)
         await supabase.from('learning_contents').insert([
           {
             module_id: moduleData.id,
             title: "Aula 01 - Introdução e Boas-vindas",
             type: "video",
             url: "y6U-XRymBlU",
-            description: "Nesta aula inaugural, o mentor apresenta o roteiro da trilha e os principais conceitos que serão abordados durante a jornada de aprendizado.",
+            description: "Nesta aula inaugural, o mentor apresenta o roteiro da trilha e os principais conceitos abordados.",
             created_at: new Date().toISOString()
           },
           {
             module_id: moduleData.id,
             title: "Material de Apoio: Guia do Estudante",
             type: "text",
-            description: "Este guia contém os pontos chaves discutidos na aula em vídeo. \n\n1. Conceitos Fundamentais\n2. Metodologia de Estudo\n3. Links de Referência\n\nRecomendamos a leitura atenta antes de prosseguir para os exercícios práticos.",
+            description: "Este guia contém os pontos chaves discutidos na aula em vídeo. Recomendamos a leitura atenta.",
             created_at: new Date().toISOString()
           }
         ]);
@@ -153,7 +148,7 @@ export default function TeacherTrailsPage() {
       
       toast({ 
         title: "Estrutura Digital Gerada!", 
-        description: "Trilhas, módulos e aulas completas foram adicionados ao seu perfil." 
+        description: "Trilhas ativas, módulos e aulas completas foram adicionados ao seu perfil." 
       });
       fetchTrails();
     } catch (err: any) {
@@ -161,7 +156,7 @@ export default function TeacherTrailsPage() {
       toast({ 
         variant: "destructive", 
         title: "Erro no Processamento", 
-        description: "Certifique-se de que as tabelas de módulos e conteúdos existem no seu banco." 
+        description: "Verifique seu banco de dados." 
       });
     } finally {
       setIsSubmitting(false);
@@ -173,7 +168,7 @@ export default function TeacherTrailsPage() {
       <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-white rounded-[2rem] shadow-xl border-2 border-dashed border-accent/20">
         <AlertCircle className="h-12 w-12 text-accent mb-4 animate-pulse" />
         <h2 className="text-2xl font-black text-primary italic">Configuração Pendente</h2>
-        <p className="text-muted-foreground mt-2 max-w-md font-medium">A tabela learning_trails não foi encontrada no banco de dados. Clique para inicializar a demo.</p>
+        <p className="text-muted-foreground mt-2 max-w-md font-medium">A tabela learning_trails não foi encontrada no banco de dados.</p>
         <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>Tentar Novamente</Button>
       </div>
     );
@@ -184,7 +179,7 @@ export default function TeacherTrailsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-primary italic leading-none">Gestão de Trilhas</h1>
-          <p className="text-muted-foreground font-medium">Administre caminhos pedagógicos estruturados via Supabase.</p>
+          <p className="text-muted-foreground font-medium">Administre caminhos pedagógicos e publique para a rede.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -193,8 +188,8 @@ export default function TeacherTrailsPage() {
             disabled={isSubmitting}
             className="rounded-xl h-14 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
           >
-            {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
-            Gerar Trilhas Completas (Demos)
+            {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
+            Gerar Trilhas Ativas (Demos)
           </Button>
           
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -241,35 +236,39 @@ export default function TeacherTrailsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {trails.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map((trail) => (
-            <Card key={trail.id} className="border-none shadow-xl overflow-hidden group bg-white rounded-[2.5rem] flex flex-col hover:shadow-2xl transition-all duration-500">
-              <div className="relative aspect-video bg-muted overflow-hidden">
-                <Image src={trail.image_url || `https://picsum.photos/seed/trail-${trail.id}/600/400`} alt={trail.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" />
-                <div className="absolute top-4 left-4">
-                  <Badge className={`${trail.status === 'active' ? 'bg-green-600' : 'bg-orange-500'} text-white border-none px-4 py-1 font-black text-[10px] uppercase shadow-lg`}>
-                    {trail.status === 'active' ? 'PÚBLICA' : 'RASCUNHO'}
-                  </Badge>
+          {trails.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map((trail) => {
+            const isActive = trail.status === 'active';
+            
+            return (
+              <Card key={trail.id} className="border-none shadow-xl overflow-hidden group bg-white rounded-[2.5rem] flex flex-col hover:shadow-2xl transition-all duration-500">
+                <div className="relative aspect-video bg-muted overflow-hidden">
+                  <Image src={trail.image_url || `https://picsum.photos/seed/trail-${trail.id}/600/400`} alt={trail.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" />
+                  <div className="absolute top-4 left-4">
+                    <Badge className={`${isActive ? 'bg-green-600' : 'bg-orange-500'} text-white border-none px-4 py-1 font-black text-[10px] uppercase shadow-lg flex items-center gap-2`}>
+                      {isActive ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                      {isActive ? 'PÚBLICA' : 'RASCUNHO'}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-              <CardHeader className="p-8 pb-4">
-                <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{trail.category}</span>
-                <CardTitle className="text-xl font-black italic truncate mt-2 group-hover:text-accent transition-colors">{trail.title}</CardTitle>
-              </CardHeader>
-              <CardFooter className="p-8 pt-4 border-t border-muted/10 mt-auto flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-muted-foreground uppercase">Ver Aluno</span>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-accent hover:bg-accent/10" asChild title="Simular Visão do Aluno">
-                    <Link href={`/dashboard/classroom/${trail.id}`}>
-                      <Eye className="h-4 w-4" />
-                    </Link>
+                <CardHeader className="p-8 pb-4">
+                  <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{trail.category}</span>
+                  <CardTitle className="text-xl font-black italic truncate mt-2 group-hover:text-accent transition-colors">{trail.title}</CardTitle>
+                </CardHeader>
+                <CardFooter className="p-8 pt-4 border-t border-muted/10 mt-auto flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-accent hover:bg-accent/10" asChild title="Simular Visão do Aluno">
+                      <Link href={`/dashboard/classroom/${trail.id}`}>
+                        <Eye className="h-5 w-5" />
+                      </Link>
+                    </Button>
+                  </div>
+                  <Button variant="ghost" className="text-accent font-black text-[10px] uppercase group/btn" asChild>
+                    <Link href={`/dashboard/teacher/trails/${trail.id}`}>Gerenciar <LayoutDashboard className="h-4 w-4 ml-2 group-hover/btn:rotate-12 transition-transform" /></Link>
                   </Button>
-                </div>
-                <Button variant="ghost" className="text-accent font-black text-[10px] uppercase group/btn" asChild>
-                  <Link href={`/dashboard/teacher/trails/${trail.id}`}>Gerenciar <LayoutDashboard className="h-4 w-4 ml-2 group-hover/btn:rotate-12 transition-transform" /></Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                </CardFooter>
+              </Card>
+            );
+          })}
           {trails.length === 0 && !loading && (
             <div className="col-span-full py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5 animate-in fade-in duration-1000">
               <Database className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />

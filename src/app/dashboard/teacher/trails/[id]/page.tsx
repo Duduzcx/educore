@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -21,16 +20,15 @@ import {
   ExternalLink,
   BookOpen,
   AlertCircle,
-  FileVideo,
   FileType,
   Settings2,
   ListPlus,
   Info,
   Link as LinkIcon,
   AlignLeft,
-  GraduationCap,
   Eye,
-  CheckCircle2
+  CheckCircle2,
+  Globe
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -51,6 +49,7 @@ export default function TrailManagementPage() {
   const [contents, setContents] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
   const [isContentDialogOpen, setIsContentDialogOpen] = useState(false);
@@ -67,7 +66,6 @@ export default function TrailManagementPage() {
   const loadData = useCallback(async () => {
     if (!user || !trailId) return;
     
-    // Proteção: Verifica se o ID é um UUID válido para evitar erros de banco em trilhas demo
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trailId);
     
     if (!isUuid) {
@@ -110,6 +108,27 @@ export default function TrailManagementPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handlePublish = async () => {
+    if (!trailId || !user) return;
+    setIsPublishing(true);
+    
+    const { error } = await supabase
+      .from('learning_trails')
+      .update({ status: 'active' })
+      .eq('id', trailId);
+
+    if (!error) {
+      toast({ 
+        title: "Trilha Ativa!", 
+        description: "O conteúdo agora está visível para todos os alunos da rede.",
+      });
+      loadData();
+    } else {
+      toast({ title: "Erro ao publicar", variant: "destructive" });
+    }
+    setIsPublishing(false);
+  };
 
   const handleAddModule = async () => {
     if (!moduleForm.title.trim() || !user) return;
@@ -207,7 +226,9 @@ export default function TrailManagementPage() {
           <div className="space-y-1">
             <h1 className="text-3xl font-black text-primary italic leading-none">{trail?.title || "Gerenciador de Trilha"}</h1>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-accent text-accent">{trail?.category || "Categoria"}</Badge>
+              <Badge variant={trail?.status === 'active' ? 'default' : 'outline'} className={`text-[10px] font-black uppercase tracking-widest ${trail?.status === 'active' ? 'bg-green-600 border-none' : 'border-orange-500 text-orange-500'}`}>
+                {trail?.status === 'active' ? 'PÚBLICA NA REDE' : 'RASCUNHO PRIVADO'}
+              </Badge>
               <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">• {modules.length} Capítulos Planejados</span>
             </div>
           </div>
@@ -296,10 +317,12 @@ export default function TrailManagementPage() {
             <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-3xl bg-white/10 flex items-center justify-center shadow-lg"><Settings2 className="h-8 w-8 text-accent" /></div>
+                <div className="h-14 w-14 rounded-3xl bg-white/10 flex items-center justify-center shadow-lg">
+                  {trail?.status === 'active' ? <Globe className="h-8 w-8 text-green-400 animate-pulse" /> : <Settings2 className="h-8 w-8 text-accent" />}
+                </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status da Jornada</p>
-                  <p className="text-2xl font-black italic">{trail?.status === 'active' ? 'Publicada' : 'Rascunho'}</p>
+                  <p className="text-2xl font-black italic uppercase">{trail?.status === 'active' ? 'Publicada' : 'Rascunho'}</p>
                 </div>
               </div>
               <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
@@ -307,15 +330,20 @@ export default function TrailManagementPage() {
                   <Sparkles className="h-4 w-4 animate-pulse" />
                   <span className="text-[9px] font-black uppercase tracking-widest">Dica da Aurora</span>
                 </div>
-                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">Use a "Visão do Aluno" para validar se os vídeos e guias de estudo estão aparecendo como você planejou.</p>
+                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">
+                  {trail?.status === 'active' 
+                    ? "Esta trilha está AO VIVO. Qualquer alteração agora será vista pelos alunos instantaneamente."
+                    : "Finalize o roteiro e clique em 'Publicar' para que os alunos possam iniciar o aprendizado."}
+                </p>
               </div>
               {!isDemoTrail && (
                 <Button 
-                  onClick={() => supabase.from('learning_trails').update({ status: 'active' }).eq('id', trailId).then(() => loadData())} 
-                  disabled={trail?.status === 'active'} 
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-black h-14 rounded-2xl shadow-xl transition-all border-none"
+                  onClick={handlePublish} 
+                  disabled={isPublishing || trail?.status === 'active'} 
+                  className={`w-full font-black h-14 rounded-2xl shadow-xl transition-all border-none ${trail?.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground hover:bg-accent/90'}`}
                 >
-                  {trail?.status === 'active' ? 'Trilha Publicada' : 'Publicar para a Rede'}
+                  {isPublishing ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : trail?.status === 'active' ? <CheckCircle2 className="h-5 w-5 mr-2" /> : <Globe className="h-5 w-5 mr-2" />}
+                  {trail?.status === 'active' ? 'Conteúdo Publicado' : 'Publicar para a Rede'}
                 </Button>
               )}
             </div>
@@ -369,7 +397,6 @@ export default function TrailManagementPage() {
               </div>
             </div>
 
-            {/* URL DINÂMICO CONFORME O TIPO */}
             {(contentForm.type === 'video' || contentForm.type === 'pdf' || contentForm.type === 'quiz') && (
               <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                 <Label className="text-[10px] font-black uppercase opacity-40">
@@ -387,7 +414,6 @@ export default function TrailManagementPage() {
               </div>
             )}
 
-            {/* DESCRIÇÃO / CONTEÚDO EM TEXTO */}
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase opacity-40">
                 {contentForm.type === 'text' ? 'Conteúdo da Aula (Texto Completo)' : 'Guia de Estudo (Resumo Pedagógico)'}
