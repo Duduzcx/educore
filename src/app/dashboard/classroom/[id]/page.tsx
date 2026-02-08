@@ -107,7 +107,6 @@ export default function ClassroomPage() {
         const { data: msgs } = await supabase.from('forum_posts').select('*').eq('forum_id', liveRes.data.id).order('created_at', { ascending: true });
         setUiState(prev => ({ ...prev, liveMessages: msgs || [] }));
 
-        // REALTIME CHAT DA LIVE
         const channel = supabase.channel(`live_chat_${liveRes.data.id}`)
           .on('postgres_changes', { 
             event: 'INSERT', 
@@ -161,14 +160,15 @@ export default function ClassroomPage() {
   }, [uiState.liveMessages, uiState.currentTab]);
 
   if (data.loading) return (
-    <div className="h-96 flex flex-col items-center justify-center gap-4 animate-in fade-in">
+    <div className="h-full flex flex-col items-center justify-center gap-4 animate-in fade-in">
       <Loader2 className="animate-spin h-12 w-12 text-accent" />
       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse italic">Sincronizando Sala de Aula...</p>
     </div>
   );
 
   return (
-    <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500 pb-20 max-w-[1600px] mx-auto overflow-hidden">
+    <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500 max-w-[1600px] mx-auto overflow-hidden">
+      {/* HEADER FIXO NO TOPO */}
       <header className="bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white/20 flex flex-col lg:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="rounded-full hover:scale-110 transition-transform"><ChevronLeft className="h-5 w-5" /></Button>
@@ -191,8 +191,9 @@ export default function ClassroomPage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 flex-1 min-h-0">
-        <div className="lg:col-span-3 flex flex-col space-y-6 min-h-0">
+      {/* ÁREA DE CONTEÚDO COM GRID FLEXÍVEL */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 flex-1 min-h-0 overflow-hidden">
+        <div className="lg:col-span-3 flex flex-col min-h-0 overflow-hidden">
           <Tabs value={uiState.currentTab} onValueChange={(v) => setUiState(p => ({ ...p, currentTab: v }))} className="w-full flex-1 flex flex-col min-h-0">
             <TabsList className="grid grid-cols-4 h-14 bg-muted/50 p-1 rounded-2xl mb-6 shadow-inner shrink-0">
               <TabsTrigger value="content" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><Layout className="h-3 w-3" /> AULA</TabsTrigger>
@@ -201,10 +202,10 @@ export default function ClassroomPage() {
               <TabsTrigger value="aurora" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><Bot className="h-3 w-3" /> AURORA</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="content" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 flex-1 overflow-y-auto scrollbar-hide pb-10">
+            <TabsContent value="content" className="flex-1 overflow-y-auto scrollbar-hide pb-10 space-y-6">
               {activeContent ? (
-                <>
-                  <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl transform-gpu border-4 border-white/10 ring-8 ring-primary/5 shrink-0">
+                <div className="space-y-6">
+                  <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/10 ring-8 ring-primary/5 shrink-0">
                     {activeContent.type === 'video' ? (
                       <iframe 
                         width="100%" 
@@ -264,19 +265,19 @@ export default function ClassroomPage() {
                       </Card>
                     </div>
                   )}
-                </>
+                </div>
               ) : (
-                <div className="py-32 text-center border-4 border-dashed rounded-[3rem] bg-muted/5 opacity-40">
-                  <PlayCircle className="h-16 w-16 mx-auto mb-4" />
+                <div className="h-full flex flex-col items-center justify-center border-4 border-dashed rounded-[3rem] bg-muted/5 opacity-40">
+                  <PlayCircle className="h-16 w-16 mb-4" />
                   <p className="font-black italic text-xl text-primary">Selecione uma aula no menu lateral</p>
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="live" className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-500">
+            <TabsContent value="live" className="flex-1 flex flex-col min-h-0">
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
-                <div className="xl:col-span-2 flex flex-col gap-6">
-                  <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-red-600/20 relative">
+                <div className="xl:col-span-2 flex flex-col gap-6 overflow-y-auto pr-2 scrollbar-hide">
+                  <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-red-600/20 relative shrink-0">
                     <iframe 
                       width="100%" 
                       height="100%" 
@@ -298,13 +299,13 @@ export default function ClassroomPage() {
                       <MessageCircle className="h-4 w-4 text-primary" />
                       <span className="text-[10px] font-black uppercase tracking-widest">Chat da Rede</span>
                     </div>
-                    <Badge variant="outline" className="text-[8px] font-black">{uiState.liveMessages.length} mensagens</Badge>
+                    <Badge variant="outline" className="text-[8px] font-black">{uiState.liveMessages.length} msgs</Badge>
                   </div>
                   
                   <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                     <div className="flex flex-col gap-4">
                       {uiState.liveMessages.map((msg, i) => (
-                        <div key={i} className={`p-4 rounded-2xl text-xs shadow-sm border-l-4 animate-in slide-in-from-right-2 ${msg.is_question ? 'bg-amber-50 border-amber-500' : 'bg-muted/30 border-primary/10'}`}>
+                        <div key={i} className={`p-4 rounded-2xl text-xs shadow-sm border-l-4 ${msg.is_question ? 'bg-amber-50 border-amber-500' : 'bg-muted/30 border-primary/10'}`}>
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-black text-primary uppercase text-[9px]">{msg.author_name}</span>
                             {msg.is_question && <Badge className="bg-amber-500 text-white border-none text-[7px] h-4">DÚVIDA</Badge>}
@@ -325,7 +326,7 @@ export default function ClassroomPage() {
                           className="border-amber-500 data-[state=checked]:bg-amber-500"
                         />
                         <Label htmlFor="isQuestion" className="text-[10px] font-black uppercase text-amber-600 cursor-pointer flex items-center gap-1">
-                          <HelpCircle className="h-3 w-3" /> É uma dúvida para o mentor?
+                          <HelpCircle className="h-3 w-3" /> É dúvida?
                         </Label>
                       </div>
                       <div className="flex items-center gap-2 bg-white p-1.5 pl-4 rounded-full shadow-lg border">
@@ -347,18 +348,19 @@ export default function ClassroomPage() {
           </Tabs>
         </div>
 
-        <aside className="space-y-6 shrink-0">
-          <Card className="shadow-2xl border-none bg-white rounded-[2rem] overflow-hidden sticky top-24">
-            <div className="p-5 bg-primary text-white flex items-center justify-between">
+        {/* SIDEBAR DE MÓDULOS COM SCROLL INDEPENDENTE */}
+        <aside className="hidden lg:block min-h-0 overflow-hidden h-full">
+          <Card className="h-full flex flex-col shadow-2xl border-none bg-white rounded-[2rem] overflow-hidden">
+            <div className="p-5 bg-primary text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <BookOpen className="h-4 w-4 text-accent" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Roteiro da Trilha</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Roteiro</span>
               </div>
-              <Badge className="bg-white/20 border-none text-[8px]">{data.modules.length} Capítulos</Badge>
+              <Badge className="bg-white/20 border-none text-[8px]">{data.modules.length} Unidades</Badge>
             </div>
-            <div className="flex flex-col max-h-[calc(100vh-250px)] overflow-y-auto scrollbar-hide">
+            <div className="flex-1 overflow-y-auto scrollbar-hide p-2 space-y-1">
               {data.modules.map((mod: any, i: number) => (
-                <div key={mod.id} className="flex flex-col border-b last:border-0">
+                <div key={mod.id} className="flex flex-col rounded-2xl overflow-hidden mb-2">
                   <button 
                     onClick={() => {
                       if (uiState.activeModuleId !== mod.id) {
@@ -369,21 +371,21 @@ export default function ClassroomPage() {
                           });
                       }
                     }} 
-                    className={`p-5 text-left transition-all duration-300 ${uiState.activeModuleId === mod.id ? 'bg-accent/5 border-l-4 border-l-accent' : 'hover:bg-muted/20'}`}
+                    className={`p-4 text-left transition-all duration-300 w-full ${uiState.activeModuleId === mod.id ? 'bg-accent/5 border-l-4 border-l-accent' : 'hover:bg-muted/20'}`}
                   >
                     <p className="text-[8px] font-black uppercase opacity-40 mb-1">Unidade {i + 1}</p>
-                    <div className="flex items-center justify-between">
-                      <p className={`text-xs font-black truncate max-w-[180px] ${uiState.activeModuleId === mod.id ? 'text-accent italic' : 'text-primary'}`}>{mod.title}</p>
-                      <ChevronRight className={`h-3 w-3 transition-transform ${uiState.activeModuleId === mod.id ? 'rotate-90 text-accent' : 'text-primary/20'}`} />
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`text-xs font-black truncate ${uiState.activeModuleId === mod.id ? 'text-accent italic' : 'text-primary'}`}>{mod.title}</p>
+                      <ChevronRight className={`h-3 w-3 shrink-0 transition-transform ${uiState.activeModuleId === mod.id ? 'rotate-90 text-accent' : 'text-primary/20'}`} />
                     </div>
                   </button>
                   {uiState.activeModuleId === mod.id && (
-                    <div className="bg-muted/10 p-3 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                    <div className="bg-muted/10 p-2 space-y-1">
                       {data.contents.map((c: any) => (
                         <button 
                           key={c.id} 
                           onClick={() => setUiState(p => ({ ...p, activeContentId: c.id, currentTab: "content" }))} 
-                          className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${uiState.activeContentId === c.id ? 'bg-white shadow-md scale-[1.02] border-l-4 border-accent' : 'hover:bg-white/50 opacity-60'}`}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${uiState.activeContentId === c.id ? 'bg-white shadow-md border-l-4 border-accent' : 'hover:bg-white/50 opacity-60'}`}
                         >
                           <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${uiState.activeContentId === c.id ? 'bg-accent text-accent-foreground' : 'bg-muted'}`}>
                             {c.type === 'video' ? <Youtube className="h-3 w-3" /> : c.type === 'text' ? <AlignLeft className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
