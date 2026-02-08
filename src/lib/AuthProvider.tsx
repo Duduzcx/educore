@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Verifica sessão inicial de forma segura
+    // OTIMIZAÇÃO: Verifica sessão inicial de forma assíncrona sem bloquear o mount
     const getInitialSession = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getInitialSession();
 
-    // 2. Escuta mudanças (Login/Logout) em tempo real
+    // OTIMIZAÇÃO: Listener único para estado de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, currentSession: Session | null) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
