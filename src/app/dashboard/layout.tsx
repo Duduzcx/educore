@@ -13,12 +13,6 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
 import { supabase } from "@/lib/supabase"; 
 
-interface Profile {
-  id: string;
-  name: string;
-  email: string;
-}
-
 const studentItems = [
   { icon: Home, label: "Página Inicial", href: "/dashboard/home" },
   { icon: Compass, label: "Trilhas de Estudo", href: "/dashboard/trails" },
@@ -53,129 +47,73 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin'
   , [user]);
   
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const lastToastRef = useRef<string | null>(null);
 
-  // OTIMIZAÇÃO: Busca de perfil simplificada e persistente
-  useEffect(() => {
-    if (user && !profile) {
-      const fetchProfile = async () => {
-        const table = isTeacher ? 'teachers' : 'profiles';
-        const { data } = await supabase
-          .from(table)
-          .select('id, name, email')
-          .eq('id', user.id)
-          .single();
-        if (data) setProfile(data);
-      };
-      fetchProfile();
-    }
-  }, [user, isTeacher, profile]);
-
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push("/login");
-    }
-  }, [user, isUserLoading, router]);
-
-  // OTIMIZAÇÃO: Gerenciamento único de canal para evitar múltiplos listeners
+  // TURBO: Busca de perfil ultra-eficiente e isolada
   useEffect(() => {
     if (!user) return;
-
-    const channel = supabase
-      .channel('global_notifications')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user.id}` },
-        (payload) => {
-          setUnreadCount(current => current + 1);
-          const newMessage = payload.new as { id: string, sender_id: string };
-          if (newMessage.id !== lastToastRef.current) {
-            lastToastRef.current = newMessage.id;
-            toast({
-              title: "Nova Mensagem!",
-              description: `Acesse o chat para responder.`,
-              action: (
-                <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/chat/${newMessage.sender_id}`)}>
-                  Ver Chat
-                </Button>
-              ),
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const fetchProfile = async () => {
+      const table = isTeacher ? 'teachers' : 'profiles';
+      const { data } = await supabase.from(table).select('name').eq('id', user.id).maybeSingle();
+      if (data) setProfile(data);
     };
-  }, [user, toast, router]);
+    fetchProfile();
+  }, [user?.id, isTeacher]);
 
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      window.location.href = '/login';
-    } catch (error: any) {
-      toast({ title: "Erro ao sair", variant: "destructive" });
-    }
-  };
+  // Redirecionamento instantâneo
+  useEffect(() => {
+    if (!isUserLoading && !user) router.replace("/login");
+  }, [user, isUserLoading, router]);
+
+  // Listener Realtime Otimizado (Single Instance)
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel('notifs')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user.id}` }, 
+      () => setUnreadCount(prev => prev + 1))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
 
   const navItems = useMemo(() => isTeacher ? teacherItems : studentItems, [isTeacher]);
 
-  if (isUserLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-          <p className="font-bold text-primary animate-pulse italic">Iniciando Portal...</p>
-        </div>
-      </div>
-    );
-  }
+  if (isUserLoading) return (
+    <div className="h-screen w-full flex items-center justify-center bg-background">
+      <Loader2 className="h-10 w-10 animate-spin text-accent opacity-20" />
+    </div>
+  );
 
   if (!user) return null;
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="border-r-0 shadow-2xl bg-sidebar">
-        <SidebarHeader className="p-6 pt-safe">
+      <Sidebar collapsible="icon" className="bg-sidebar border-none">
+        <SidebarHeader className="p-6">
            <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/20">
               <BookOpen className="h-5 w-5" />
             </div>
-            <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
-              <span className="font-headline text-lg font-black leading-tight text-white truncate italic">EduCore</span>
-              <span className="text-[9px] text-sidebar-foreground/60 font-black tracking-widest uppercase">Smart Education</span>
+            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+              <span className="font-headline text-lg font-black text-white italic">EduCore</span>
+              <span className="text-[8px] text-white/40 uppercase tracking-widest font-black">Smart Education</span>
             </div>
           </div>
         </SidebarHeader>
         <SidebarContent className="px-3">
           <SidebarGroup>
-            <SidebarGroupLabel className="px-4 py-4 uppercase tracking-[0.25em] text-[9px] opacity-40 font-black text-white">
-              {isTeacher ? "ÁREA ADMINISTRATIVA" : "MENU DO ESTUDANTE"}
+            <SidebarGroupLabel className="px-4 py-4 text-[9px] font-black text-white/30 uppercase tracking-widest">
+              {isTeacher ? "Gestão Docente" : "Estudante"}
             </SidebarGroupLabel>
-            <SidebarMenu className="gap-1.5">
+            <SidebarMenu className="gap-1">
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname === item.href}
-                    tooltip={item.label}
-                    className="h-12 px-4 rounded-xl data-[active=true]:bg-accent data-[active=true]:text-accent-foreground transition-all duration-300"
-                  >
+                  <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label} className="h-11 rounded-xl data-[active=true]:bg-accent data-[active=true]:text-accent-foreground">
                     <Link href={item.href} className="flex items-center gap-3">
-                      <div className="relative">
-                        <item.icon className={`h-5 w-5 ${pathname === item.href ? 'scale-110' : 'opacity-70'}`} />
-                        {item.badge && unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full border-2 border-sidebar animate-pulse" />
-                        )}
-                      </div>
-                      <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                      <item.icon className="h-5 w-5" />
+                      <span className="font-bold text-sm">{item.label}</span>
                       {item.badge && unreadCount > 0 && (
-                        <Badge className="ml-auto bg-white/20 text-white text-[8px] font-black h-5 min-w-5 flex items-center justify-center rounded-full">
-                          {unreadCount}
-                        </Badge>
+                        <Badge className="ml-auto bg-white/20 text-white text-[8px] h-5 min-w-5 rounded-full">{unreadCount}</Badge>
                       )}
                     </Link>
                   </SidebarMenuButton>
@@ -184,66 +122,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter className="p-4 border-t border-sidebar-border/20 gap-2 pb-safe">
+        <SidebarFooter className="p-4 border-t border-white/5">
            <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="h-11 rounded-xl hover:bg-white/5 transition-colors">
-                <Link href="/dashboard/settings" className="flex items-center gap-3">
-                  <Settings className="h-4 w-4 opacity-70" />
-                  <span className="font-bold text-xs text-white">Configurações</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleSignOut} className="h-11 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all cursor-pointer">
-                <div className="flex items-center gap-3 w-full">
-                  <LogOut className="h-4 w-4" />
-                  <span className="font-bold text-xs">Desconectar</span>
-                </div>
+              <SidebarMenuButton onClick={() => supabase.auth.signOut().then(() => router.replace('/login'))} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl">
+                <LogOut className="h-4 w-4" />
+                <span className="font-bold text-xs">Sair</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-background min-w-0 max-w-full overflow-hidden flex-1 flex flex-col">
-        <header className="sticky top-0 z-40 flex h-16 md:h-20 items-center gap-4 border-b bg-background/95 px-4 md:px-6 backdrop-blur-md pt-safe shrink-0">
-          <SidebarTrigger className="hover:bg-muted transition-colors rounded-full h-10 w-10 shrink-0" />
-           <div className="flex-1 min-w-0">
-            <div className="relative max-w-md hidden lg:block group">
-              <Search className="absolute left-4 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-accent transition-colors" />
-              <Input 
-                placeholder={isTeacher ? "Buscar dados..." : "Encontrar materiais..."} 
-                className="pl-11 h-11 bg-muted/50 border-none rounded-2xl focus-visible:ring-accent/50 transition-all w-full text-sm font-medium" 
-              />
+      <SidebarInset className="bg-background overflow-hidden flex flex-col">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-6 shrink-0">
+          <SidebarTrigger className="h-9 w-9 rounded-full" />
+          <div className="flex-1" />
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Usuário"}</span>
+              <span className="text-[8px] font-black text-accent uppercase tracking-widest">{isTeacher ? "Docente" : "Aluno"}</span>
             </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <Button variant="ghost" size="icon" className="relative hover:bg-muted rounded-full h-10 w-10">
-              <Bell className="h-5 w-5 text-muted-foreground" />
-               {unreadCount > 0 && (
-                <span className="absolute top-2 right-2 flex h-2.5 w-2.5 rounded-full bg-accent ring-4 ring-background animate-pulse"></span>
-              )}
-            </Button>
-            <div className="h-8 w-px bg-border/40 hidden sm:block"></div>
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col items-end hidden sm:flex text-right leading-none gap-1">
-                <span className="text-sm font-black text-primary italic truncate max-w-[120px]">
-                  {profile?.name || (isTeacher ? "Docente" : "Estudante")}
-                </span>
-                <span className="text-[8px] font-black text-accent uppercase tracking-widest">
-                  {isTeacher ? "Docente/Gestor" : "Portal do Aluno"}
-                </span>
-              </div>
-              <Avatar className="h-9 w-9 md:h-11 md:w-11 border-2 border-primary/10 shadow-xl ring-2 ring-background">
-                <AvatarImage src={`https://picsum.photos/seed/${user?.id}/100/100`} />
-                <AvatarFallback className="bg-primary text-white font-black text-xs uppercase">
-                  {user?.email?.charAt(0) || "U"}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+            <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-xl">
+              <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} />
+              <AvatarFallback className="bg-primary text-white text-xs">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
           </div>
         </header>
-        <main className="p-3 md:p-8 lg:p-10 max-w-full mx-auto w-full flex-1 flex flex-col min-h-0 min-w-0 overflow-y-auto overflow-x-hidden scrollbar-hide pb-safe">
+        <main className="p-4 md:p-8 flex-1 overflow-y-auto scrollbar-hide">
           {children}
         </main>
       </SidebarInset>
