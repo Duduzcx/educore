@@ -31,7 +31,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const FORUM_CATEGORIES = [
   "Todos", 
@@ -53,6 +52,7 @@ export default function ForumPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newForum, setNewForum] = useState({ name: "", description: "", category: "Dúvidas" });
   const [forums, setForums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +71,7 @@ export default function ForumPage() {
   const handleCreateForum = async () => {
     if (!newForum.name.trim() || !user) return;
 
+    setIsSubmitting(true);
     const { data, error } = await supabase.from('forums').insert({
       name: newForum.name,
       description: newForum.description,
@@ -85,7 +86,10 @@ export default function ForumPage() {
       toast({ title: "Discussão Iniciada!", description: "Sua pergunta já está na rede." });
       setIsCreateOpen(false);
       setNewForum({ name: "", description: "", category: "Dúvidas" });
+    } else {
+      toast({ title: "Erro ao publicar", variant: "destructive" });
     }
+    setIsSubmitting(false);
   };
 
   const filteredForums = forums?.filter(f => {
@@ -164,7 +168,9 @@ export default function ForumPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreateForum} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl active:scale-95 transition-all border-none">Publicar no Mural</Button>
+              <Button onClick={handleCreateForum} disabled={isSubmitting} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl active:scale-95 transition-all border-none">
+                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Publicar no Mural"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -201,8 +207,8 @@ export default function ForumPage() {
       <div className="flex-1 min-w-0 w-full">
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-accent" />
-            <p className="font-black text-muted-foreground uppercase text-[9px] tracking-widest animate-pulse">Sincronizando Rede...</p>
+            <Loader2 className="h-12 w-12 animate-spin text-accent" />
+            <p className="font-black text-muted-foreground uppercase text-[10px] tracking-[0.3em] animate-pulse">Sincronizando Rede Social...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 pt-2 px-1 max-w-full min-w-0">

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -36,7 +35,7 @@ export default function TeacherLiveManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [lives, setLives] = useState<any[]>([]);
   const [trails, setTrails] = useState<any[]>([]);
@@ -74,7 +73,7 @@ export default function TeacherLiveManagement() {
     e.preventDefault();
     if (!user || !liveForm.title || !liveForm.youtube_id) return;
 
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       const cleanYid = liveForm.youtube_id.includes('v=') 
         ? liveForm.youtube_id.split('v=')[1]?.split('&')[0] 
@@ -101,7 +100,7 @@ export default function TeacherLiveManagement() {
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erro no Estúdio", description: "Verifique os dados ou se as tabelas existem." });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -221,8 +220,8 @@ export default function TeacherLiveManagement() {
                       />
                     </div>
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full h-16 bg-red-600 text-white font-black text-lg rounded-2xl shadow-xl">
-                    {loading ? <Loader2 className="animate-spin h-6 w-6" /> : "Iniciar Agendamento"}
+                  <Button type="submit" disabled={isSubmitting} className="w-full h-16 bg-red-600 text-white font-black text-lg rounded-2xl shadow-xl">
+                    {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Iniciar Agendamento"}
                   </Button>
                 </form>
               </DialogContent>

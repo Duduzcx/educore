@@ -33,7 +33,6 @@ export default function DashboardHome() {
     const fetchLibraryItems = async () => {
       setLoadingLibrary(true);
       try {
-        // OTIMIZAÇÃO: Selecionando apenas os campos necessários e limitando a 4 itens
         const { data, error } = await supabase
           .from('library_items')
           .select('id, title, description, category')
@@ -54,8 +53,9 @@ export default function DashboardHome() {
 
   if (isUserLoading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
+      <div className="flex flex-col h-96 items-center justify-center gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-accent" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Sintonizando Portal...</p>
       </div>
     );
   }
@@ -86,7 +86,10 @@ export default function DashboardHome() {
             </h2>
             
             {loadingLibrary ? (
-              <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-accent" /></div>
+              <div className="py-20 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
+                <Loader2 className="animate-spin text-accent h-10 w-10" />
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Consultando Acervo Digital...</p>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {libraryItems && libraryItems.length > 0 ? (
@@ -112,7 +115,7 @@ export default function DashboardHome() {
                     </Link>
                   ))
                 ) : (
-                  <div className="col-span-full py-10 text-center opacity-40 italic text-sm">
+                  <div className="col-span-full py-10 text-center opacity-40 italic text-sm border-2 border-dashed rounded-[2.5rem]">
                     Nenhum item em destaque no momento.
                   </div>
                 )}

@@ -16,14 +16,14 @@ import {
   ChevronLeft, 
   Loader2, 
   Sparkles, 
-  Send,
-  Bot,
-  TrendingUp,
-  Radio,
-  Lightbulb,
-  Youtube,
-  MessageCircle,
-  ShieldCheck
+  Send, 
+  Bot, 
+  TrendingUp, 
+  Radio, 
+  Lightbulb, 
+  Youtube, 
+  MessageCircle, 
+  ShieldCheck 
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -53,12 +53,12 @@ export default function ClassroomPage() {
     liveMessages: [] as any[],
     chatInput: "",
     liveInput: "",
-    isAiLoading: false
+    isAiLoading: false,
+    isSendingLive: false
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // TURBO FETCH: Tudo em uma única rajada de rede
   const loadPageData = useCallback(async () => {
     if (!user || !trailId) return;
     
@@ -100,7 +100,6 @@ export default function ClassroomPage() {
 
   useEffect(() => { loadPageData(); }, [loadPageData]);
 
-  // Realtime Otimizado
   useEffect(() => {
     if (!data.activeLive) return;
     const channel = supabase.channel(`live_${data.activeLive.id}`)
@@ -120,8 +119,10 @@ export default function ClassroomPage() {
   const handleSendLive = async (isQuestion: boolean) => {
     if (!uiState.liveInput.trim() || !user || !data.activeLive) return;
     const msg = uiState.liveInput;
-    setUiState(p => ({ ...prev, liveInput: "" }));
-    await supabase.from('forum_posts').insert({
+    
+    setUiState(p => ({ ...p, isSendingLive: true }));
+    
+    const { error } = await supabase.from('forum_posts').insert({
       forum_id: data.activeLive.id,
       content: msg,
       author_id: user.id,
@@ -129,12 +130,19 @@ export default function ClassroomPage() {
       is_question: isQuestion,
       created_at: new Date().toISOString()
     });
+
+    if (!error) {
+      setUiState(p => ({ ...p, liveInput: "", isSendingLive: false }));
+    } else {
+      setUiState(p => ({ ...p, isSendingLive: false }));
+      toast({ title: "Erro ao enviar", description: "Tente novamente em instantes.", variant: "destructive" });
+    }
   };
 
   if (data.loading) return (
     <div className="h-96 flex flex-col items-center justify-center gap-4">
-      <Loader2 className="animate-spin h-10 w-10 text-accent opacity-20" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Sincronizando Aula...</p>
+      <Loader2 className="animate-spin h-12 w-12 text-accent" />
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse italic">Sincronizando Aula Digital...</p>
     </div>
   );
 
@@ -201,7 +209,7 @@ export default function ClassroomPage() {
                 <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                   <div className="flex flex-col gap-3">
                     {uiState.liveMessages.map((m, i) => (
-                      <div key={i} className={`p-3 rounded-2xl text-xs ${m.is_question ? 'bg-amber-50 border border-amber-200' : 'bg-muted/30'}`}>
+                      <div key={i} className={`p-3 rounded-2xl text-xs animate-in slide-in-from-bottom-2 ${m.is_question ? 'bg-amber-50 border border-amber-200' : 'bg-muted/30'}`}>
                         <p className="text-[8px] font-black text-primary/40 uppercase mb-1">{m.author_name}</p>
                         <p className="font-medium">{m.content}</p>
                       </div>
@@ -210,10 +218,28 @@ export default function ClassroomPage() {
                 </ScrollArea>
                 <div className="p-4 border-t space-y-2">
                   <div className="flex gap-2">
-                    <Input placeholder="Comentar..." value={uiState.liveInput} onChange={e => setUiState(p => ({...p, liveInput: e.target.value}))} className="rounded-xl h-10 text-xs italic" />
-                    <Button size="icon" onClick={() => handleSendLive(false)} className="h-10 w-10 bg-primary rounded-xl shrink-0"><Send className="h-4 w-4 text-white" /></Button>
+                    <Input 
+                      placeholder="Comentar..." 
+                      value={uiState.liveInput} 
+                      onChange={e => setUiState(p => ({...p, liveInput: e.target.value}))} 
+                      disabled={uiState.isSendingLive}
+                      className="rounded-xl h-10 text-xs italic" 
+                    />
+                    <Button 
+                      size="icon" 
+                      onClick={() => handleSendLive(false)} 
+                      disabled={uiState.isSendingLive || !uiState.liveInput.trim()}
+                      className="h-10 w-10 bg-primary rounded-xl shrink-0"
+                    >
+                      {uiState.isSendingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 text-white" />}
+                    </Button>
                   </div>
-                  <Button onClick={() => handleSendLive(true)} variant="outline" className="w-full h-10 border-2 border-amber-500/50 text-amber-600 font-black text-[9px] uppercase gap-2 rounded-xl">
+                  <Button 
+                    onClick={() => handleSendLive(true)} 
+                    variant="outline" 
+                    disabled={uiState.isSendingLive || !uiState.liveInput.trim()}
+                    className="w-full h-10 border-2 border-amber-500/50 text-amber-600 font-black text-[9px] uppercase gap-2 rounded-xl"
+                  >
                     <Lightbulb className="h-3.5 w-3.5" /> Fazer Pergunta
                   </Button>
                 </div>

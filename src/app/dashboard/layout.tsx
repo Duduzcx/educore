@@ -49,6 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const [profile, setProfile] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isSignOutLoading, setIsSignOutLoading] = useState(false);
 
   // TURBO: Busca de perfil ultra-eficiente e isolada
   useEffect(() => {
@@ -78,9 +79,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = useMemo(() => isTeacher ? teacherItems : studentItems, [isTeacher]);
 
+  const handleSignOut = async () => {
+    setIsSignOutLoading(true);
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
+
   if (isUserLoading) return (
-    <div className="h-screen w-full flex items-center justify-center bg-background">
-      <Loader2 className="h-10 w-10 animate-spin text-accent opacity-20" />
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4">
+      <Loader2 className="h-12 w-12 animate-spin text-accent" />
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Sincronizando Identidade...</p>
     </div>
   );
 
@@ -125,8 +133,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarFooter className="p-4 border-t border-white/5">
            <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => supabase.auth.signOut().then(() => router.replace('/login'))} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl">
-                <LogOut className="h-4 w-4" />
+              <SidebarMenuButton onClick={handleSignOut} disabled={isSignOutLoading} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl">
+                {isSignOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 <span className="font-bold text-xs">Sair</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
