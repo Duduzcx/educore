@@ -38,17 +38,14 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
   }
   
   html, body {
-    @apply overflow-hidden max-w-full;
+    @apply max-w-full;
     width: 100%;
     height: 100%;
     position: relative;
     scroll-behavior: smooth;
-    overscroll-behavior-y: none;
   }
 
   body {
@@ -62,13 +59,23 @@
   }
 }
 
-/* ESCONDER SCROLLBARS TOTAIS EM TODO O APP */
-*::-webkit-scrollbar {
-  display: none !important;
+/* BARRA DE ROLAGEM MODERNA E DISCRETA */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-* {
-  -ms-overflow-style: none !important;
-  scrollbar-width: none !important;
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--accent) / 0.5);
 }
 
 .content-auto {

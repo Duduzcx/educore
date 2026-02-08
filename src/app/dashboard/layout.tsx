@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
@@ -156,7 +155,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
-        <main className={`flex-1 min-h-0 flex flex-col ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto scrollbar-hide'} p-4 md:p-8 animate-in fade-in duration-500`}>
+        <main className={`flex-1 min-h-0 flex flex-col ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in duration-500`}>
           {children}
         </main>
       </SidebarInset>
