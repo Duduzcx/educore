@@ -63,7 +63,8 @@ export default function ClassroomPage() {
     isSendingLive: false
   });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+  const liveScrollRef = useRef<HTMLDivElement>(null);
 
   const activeContent = useMemo(() => 
     data.contents.find((c: any) => c.id === uiState.activeContentId)
@@ -128,6 +129,13 @@ export default function ClassroomPage() {
 
   useEffect(() => { loadPageData(); }, [loadPageData]);
 
+  // Reset scroll when changing content
+  useEffect(() => {
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
+  }, [uiState.activeContentId]);
+
   const handleSendLiveMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!uiState.liveInput.trim() || !data.activeLive || !user) return;
@@ -151,8 +159,8 @@ export default function ClassroomPage() {
   };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+    if (liveScrollRef.current) {
+      const viewport = liveScrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
         viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
       }
@@ -191,9 +199,9 @@ export default function ClassroomPage() {
         </div>
       </header>
 
-      {/* ÁREA DE CONTEÚDO COM GRID FLEXÍVEL */}
+      {/* ÁREA DE CONTEÚDO COM GRID FLEXÍVEL - ALTURA CONTROLADA */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 flex-1 min-h-0 overflow-hidden">
-        <div className="lg:col-span-3 flex flex-col min-h-0 overflow-hidden">
+        <div className="lg:col-span-3 flex flex-col min-h-0 h-full overflow-hidden">
           <Tabs value={uiState.currentTab} onValueChange={(v) => setUiState(p => ({ ...p, currentTab: v }))} className="w-full flex-1 flex flex-col min-h-0">
             <TabsList className="grid grid-cols-4 h-14 bg-muted/50 p-1 rounded-2xl mb-6 shadow-inner shrink-0">
               <TabsTrigger value="content" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><Layout className="h-3 w-3" /> AULA</TabsTrigger>
@@ -202,149 +210,151 @@ export default function ClassroomPage() {
               <TabsTrigger value="aurora" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><Bot className="h-3 w-3" /> AURORA</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="content" className="flex-1 overflow-y-auto scrollbar-hide pb-10 space-y-6">
-              {activeContent ? (
-                <div className="space-y-6">
-                  <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/10 ring-8 ring-primary/5 shrink-0">
-                    {activeContent.type === 'video' ? (
+            <div className="flex-1 min-h-0 relative">
+              <TabsContent value="content" className="absolute inset-0 m-0 overflow-y-auto scrollbar-hide pb-10 space-y-6" ref={contentScrollRef}>
+                {activeContent ? (
+                  <div className="space-y-6">
+                    <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/10 ring-8 ring-primary/5 shrink-0">
+                      {activeContent.type === 'video' ? (
+                        <iframe 
+                          width="100%" 
+                          height="100%" 
+                          src={`https://www.youtube.com/embed/${activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1]?.split('&')[0] : activeContent.url?.split('/').pop()}`} 
+                          frameBorder="0" 
+                          allowFullScreen 
+                        />
+                      ) : activeContent.type === 'text' ? (
+                        <div className="h-full bg-white p-12 overflow-y-auto">
+                          <div className="max-w-3xl mx-auto space-y-6">
+                            <div className="flex items-center gap-3 text-accent mb-8">
+                              <AlignLeft className="h-8 w-8" />
+                              <h2 className="text-3xl font-black italic text-primary">{activeContent.title}</h2>
+                            </div>
+                            <div className="prose prose-slate max-w-none font-medium italic text-muted-foreground whitespace-pre-line leading-relaxed">
+                              {activeContent.description}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center">
+                          <FileSearch className="h-20 w-20 mb-6 opacity-40 animate-pulse" />
+                          <h3 className="text-3xl font-black italic">{activeContent.title}</h3>
+                          <Button className="mt-8 bg-accent text-accent-foreground font-black px-8 h-14 rounded-xl shadow-xl" asChild>
+                            <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Acessar Material</a>
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
+                    
+                    {activeContent.type !== 'text' && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="md:col-span-2 p-8 bg-white rounded-[2.5rem] shadow-xl border-none relative overflow-hidden group">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent"><Info className="h-5 w-5" /></div>
+                            <h3 className="text-2xl font-black text-primary italic leading-none">Guia de Estudo</h3>
+                          </div>
+                          <p className="text-muted-foreground font-medium italic leading-relaxed whitespace-pre-line text-sm md:text-base">
+                            {activeContent.description || "O mentor ainda não disponibilizou o resumo desta aula."}
+                          </p>
+                        </Card>
+                        <Card className="p-8 bg-primary text-white rounded-[2.5rem] shadow-xl border-none flex flex-col justify-center">
+                          <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">Recurso Ativo</h4>
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
+                              {activeContent.type === 'video' ? <Youtube className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-black italic truncate">{activeContent.title}</p>
+                              <p className="text-[8px] font-bold opacity-40 uppercase tracking-tighter">{activeContent.type}</p>
+                            </div>
+                          </div>
+                          <Button variant="outline" className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white text-[9px] font-black uppercase h-12 rounded-xl" asChild>
+                            <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Link Direto</a>
+                          </Button>
+                        </Card>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center border-4 border-dashed rounded-[3rem] bg-muted/5 opacity-40">
+                    <PlayCircle className="h-16 w-16 mb-4" />
+                    <p className="font-black italic text-xl text-primary">Selecione uma aula no menu lateral</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="live" className="absolute inset-0 m-0 flex flex-col min-h-0">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
+                  <div className="xl:col-span-2 flex flex-col gap-6 overflow-y-auto pr-2 scrollbar-hide">
+                    <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-red-600/20 relative shrink-0">
                       <iframe 
                         width="100%" 
                         height="100%" 
-                        src={`https://www.youtube.com/embed/${activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1]?.split('&')[0] : activeContent.url?.split('/').pop()}`} 
+                        src={`https://www.youtube.com/embed/${data.activeLive?.youtube_id}?autoplay=1&modestbranding=1`} 
                         frameBorder="0" 
                         allowFullScreen 
                       />
-                    ) : activeContent.type === 'text' ? (
-                      <div className="h-full bg-white p-12 overflow-y-auto">
-                        <div className="max-w-3xl mx-auto space-y-6">
-                          <div className="flex items-center gap-3 text-accent mb-8">
-                            <AlignLeft className="h-8 w-8" />
-                            <h2 className="text-3xl font-black italic text-primary">{activeContent.title}</h2>
-                          </div>
-                          <div className="prose prose-slate max-w-none font-medium italic text-muted-foreground whitespace-pre-line leading-relaxed">
-                            {activeContent.description}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center">
-                        <FileSearch className="h-20 w-20 mb-6 opacity-40 animate-pulse" />
-                        <h3 className="text-3xl font-black italic">{activeContent.title}</h3>
-                        <Button className="mt-8 bg-accent text-accent-foreground font-black px-8 h-14 rounded-xl shadow-xl" asChild>
-                          <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Acessar Material</a>
-                        </Button>
-                      </div>
-                    )}
-                  </Card>
-                  
-                  {activeContent.type !== 'text' && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card className="md:col-span-2 p-8 bg-white rounded-[2.5rem] shadow-xl border-none relative overflow-hidden group">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent"><Info className="h-5 w-5" /></div>
-                          <h3 className="text-2xl font-black text-primary italic leading-none">Guia de Estudo</h3>
-                        </div>
-                        <p className="text-muted-foreground font-medium italic leading-relaxed whitespace-pre-line text-sm md:text-base">
-                          {activeContent.description || "O mentor ainda não disponibilizou o resumo desta aula."}
-                        </p>
-                      </Card>
-                      <Card className="p-8 bg-primary text-white rounded-[2.5rem] shadow-xl border-none flex flex-col justify-center">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-4">Recurso Ativo</h4>
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
-                            {activeContent.type === 'video' ? <Youtube className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-black italic truncate">{activeContent.title}</p>
-                            <p className="text-[8px] font-bold opacity-40 uppercase tracking-tighter">{activeContent.type}</p>
-                          </div>
-                        </div>
-                        <Button variant="outline" className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white text-[9px] font-black uppercase h-12 rounded-xl" asChild>
-                          <a href={activeContent.url} target="_blank" rel="noopener noreferrer">Link Direto</a>
-                        </Button>
-                      </Card>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center border-4 border-dashed rounded-[3rem] bg-muted/5 opacity-40">
-                  <PlayCircle className="h-16 w-16 mb-4" />
-                  <p className="font-black italic text-xl text-primary">Selecione uma aula no menu lateral</p>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="live" className="flex-1 flex flex-col min-h-0">
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 flex-1 min-h-0">
-                <div className="xl:col-span-2 flex flex-col gap-6 overflow-y-auto pr-2 scrollbar-hide">
-                  <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-red-600/20 relative shrink-0">
-                    <iframe 
-                      width="100%" 
-                      height="100%" 
-                      src={`https://www.youtube.com/embed/${data.activeLive?.youtube_id}?autoplay=1&modestbranding=1`} 
-                      frameBorder="0" 
-                      allowFullScreen 
-                    />
-                    <div className="absolute top-4 left-4"><Badge className="bg-red-600 text-white font-black animate-pulse border-none px-4 py-1.5 rounded-xl">AO VIVO</Badge></div>
-                  </Card>
-                  <Card className="p-8 bg-white rounded-[2.5rem] shadow-xl border-none">
-                    <h2 className="text-2xl font-black text-primary italic mb-2">{data.activeLive?.title}</h2>
-                    <p className="text-muted-foreground font-medium italic">Interaja com o mentor em tempo real enviando suas dúvidas no chat ao lado.</p>
-                  </Card>
-                </div>
-
-                <Card className="flex flex-col bg-white rounded-[2.5rem] shadow-2xl overflow-hidden min-h-0 border-none">
-                  <div className="p-6 bg-muted/30 border-b flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MessageCircle className="h-4 w-4 text-primary" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Chat da Rede</span>
-                    </div>
-                    <Badge variant="outline" className="text-[8px] font-black">{uiState.liveMessages.length} msgs</Badge>
+                      <div className="absolute top-4 left-4"><Badge className="bg-red-600 text-white font-black animate-pulse border-none px-4 py-1.5 rounded-xl">AO VIVO</Badge></div>
+                    </Card>
+                    <Card className="p-8 bg-white rounded-[2.5rem] shadow-xl border-none">
+                      <h2 className="text-2xl font-black text-primary italic mb-2">{data.activeLive?.title}</h2>
+                      <p className="text-muted-foreground font-medium italic">Interaja com o mentor em tempo real enviando suas dúvidas no chat ao lado.</p>
+                    </Card>
                   </div>
-                  
-                  <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-                    <div className="flex flex-col gap-4">
-                      {uiState.liveMessages.map((msg, i) => (
-                        <div key={i} className={`p-4 rounded-2xl text-xs shadow-sm border-l-4 ${msg.is_question ? 'bg-amber-50 border-amber-500' : 'bg-muted/30 border-primary/10'}`}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-black text-primary uppercase text-[9px]">{msg.author_name}</span>
-                            {msg.is_question && <Badge className="bg-amber-500 text-white border-none text-[7px] h-4">DÚVIDA</Badge>}
-                          </div>
-                          <p className="font-medium text-slate-700 leading-relaxed italic">"{msg.content}"</p>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
 
-                  <div className="p-6 bg-muted/5 border-t">
-                    <form onSubmit={handleSendLiveMessage} className="space-y-4">
-                      <div className="flex items-center space-x-2 px-2">
-                        <Checkbox 
-                          id="isQuestion" 
-                          checked={uiState.isQuestion} 
-                          onCheckedChange={(v) => setUiState(p => ({ ...p, isQuestion: !!v }))} 
-                          className="border-amber-500 data-[state=checked]:bg-amber-500"
-                        />
-                        <Label htmlFor="isQuestion" className="text-[10px] font-black uppercase text-amber-600 cursor-pointer flex items-center gap-1">
-                          <HelpCircle className="h-3 w-3" /> É dúvida?
-                        </Label>
+                  <Card className="flex flex-col bg-white rounded-[2.5rem] shadow-2xl overflow-hidden min-h-0 border-none">
+                    <div className="p-6 bg-muted/30 border-b flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-4 w-4 text-primary" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Chat da Rede</span>
                       </div>
-                      <div className="flex items-center gap-2 bg-white p-1.5 pl-4 rounded-full shadow-lg border">
-                        <Input 
-                          value={uiState.liveInput}
-                          onChange={(e) => setUiState(p => ({ ...p, liveInput: e.target.value }))}
-                          placeholder="Falar com a rede..."
-                          className="border-none shadow-none focus-visible:ring-0 text-xs font-bold italic h-10"
-                        />
-                        <Button type="submit" size="icon" disabled={uiState.isSendingLive} className="rounded-full bg-primary hover:bg-primary/95 shadow-xl h-10 w-10 shrink-0">
-                          {uiState.isSendingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </Button>
+                      <Badge variant="outline" className="text-[8px] font-black">{uiState.liveMessages.length} msgs</Badge>
+                    </div>
+                    
+                    <ScrollArea className="flex-1 p-6" ref={liveScrollRef}>
+                      <div className="flex flex-col gap-4">
+                        {uiState.liveMessages.map((msg, i) => (
+                          <div key={i} className={`p-4 rounded-2xl text-xs shadow-sm border-l-4 ${msg.is_question ? 'bg-amber-50 border-amber-500' : 'bg-muted/30 border-primary/10'}`}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-black text-primary uppercase text-[9px]">{msg.author_name}</span>
+                              {msg.is_question && <Badge className="bg-amber-500 text-white border-none text-[7px] h-4">DÚVIDA</Badge>}
+                            </div>
+                            <p className="font-medium text-slate-700 leading-relaxed italic">"{msg.content}"</p>
+                          </div>
+                        ))}
                       </div>
-                    </form>
-                  </div>
-                </Card>
-              </div>
-            </TabsContent>
+                    </ScrollArea>
+
+                    <div className="p-6 bg-muted/5 border-t">
+                      <form onSubmit={handleSendLiveMessage} className="space-y-4">
+                        <div className="flex items-center space-x-2 px-2">
+                          <Checkbox 
+                            id="isQuestion" 
+                            checked={uiState.isQuestion} 
+                            onCheckedChange={(v) => setUiState(p => ({ ...p, isQuestion: !!v }))} 
+                            className="border-amber-500 data-[state=checked]:bg-amber-500"
+                          />
+                          <Label htmlFor="isQuestion" className="text-[10px] font-black uppercase text-amber-600 cursor-pointer flex items-center gap-1">
+                            <HelpCircle className="h-3 w-3" /> É dúvida?
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white p-1.5 pl-4 rounded-full shadow-lg border">
+                          <Input 
+                            value={uiState.liveInput}
+                            onChange={(e) => setUiState(p => ({ ...p, liveInput: e.target.value }))}
+                            placeholder="Falar com a rede..."
+                            className="border-none shadow-none focus-visible:ring-0 text-xs font-bold italic h-10"
+                          />
+                          <Button type="submit" size="icon" disabled={uiState.isSendingLive} className="rounded-full bg-primary hover:bg-primary/95 shadow-xl h-10 w-10 shrink-0">
+                            {uiState.isSendingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  </Card>
+                </div>
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
 
