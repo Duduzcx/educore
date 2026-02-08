@@ -38,9 +38,9 @@
   * {
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
-    /* TURBO: GPU Acceleration para transições suaves */
+    /* TURBO: Força aceleração por hardware para suavizar animações */
     backface-visibility: hidden;
-    perspective: 1000px;
+    transform-style: preserve-3d;
   }
   
   html, body {
@@ -48,6 +48,7 @@
     width: 100%;
     position: relative;
     scroll-behavior: smooth;
+    overscroll-behavior-y: none; /* Evita pull-to-refresh acidental que causa lag */
   }
 
   body {
@@ -57,13 +58,23 @@
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     min-height: 100dvh;
+    text-rendering: optimizeLegibility;
   }
+}
+
+/* TURBO: Otimização de renderização de conteúdo off-screen */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 1000px;
 }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* TURBO: Otimização de renderização de imagem */
-img { content-visibility: auto; }
+/* TURBO: GPU Acceleration para imagens e transições */
+img { 
+  content-visibility: auto;
+  transform: translateZ(0); 
+}
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

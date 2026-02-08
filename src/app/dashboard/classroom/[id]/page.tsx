@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,43 +54,53 @@ export default function ClassroomPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // TURBO: Memoização de dados para evitar re-renders pesados
+  const activeContent = useMemo(() => 
+    data.contents.find((c: any) => c.id === uiState.activeContentId)
+  , [data.contents, uiState.activeContentId]);
+
   const loadPageData = useCallback(async () => {
     if (!user || !trailId) return;
     
     // OTIMIZAÇÃO: Busca paralela de todos os dados críticos
-    const [trailRes, modulesRes, progressRes, liveRes] = await Promise.all([
-      supabase.from('learning_trails').select('*').eq('id', trailId).single(),
-      supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true }),
-      supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).maybeSingle(),
-      supabase.from('lives').select('*').eq('trail_id', trailId).order('created_at', { ascending: false }).limit(1).maybeSingle()
-    ]);
+    try {
+      const [trailRes, modulesRes, progressRes, liveRes] = await Promise.all([
+        supabase.from('learning_trails').select('*').eq('id', trailId).single(),
+        supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true }),
+        supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).maybeSingle(),
+        supabase.from('lives').select('*').eq('trail_id', trailId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      ]);
 
-    let initialContents: any[] = [];
-    let firstModuleId = modulesRes.data?.[0]?.id;
+      let initialContents: any[] = [];
+      let firstModuleId = modulesRes.data?.[0]?.id;
 
-    if (firstModuleId) {
-      const { data: cData } = await supabase.from('learning_contents').select('*').eq('module_id', firstModuleId).order('created_at', { ascending: true });
-      initialContents = cData || [];
-    }
+      if (firstModuleId) {
+        const { data: cData } = await supabase.from('learning_contents').select('*').eq('module_id', firstModuleId).order('created_at', { ascending: true });
+        initialContents = cData || [];
+      }
 
-    setData({
-      trail: trailRes.data,
-      modules: modulesRes.data || [],
-      progress: progressRes.data,
-      activeLive: liveRes.data,
-      contents: initialContents,
-      loading: false
-    });
+      setData({
+        trail: trailRes.data,
+        modules: modulesRes.data || [],
+        progress: progressRes.data,
+        activeLive: liveRes.data,
+        contents: initialContents,
+        loading: false
+      });
 
-    setUiState(prev => ({
-      ...prev,
-      activeModuleId: firstModuleId,
-      activeContentId: initialContents[0]?.id || null
-    }));
+      setUiState(prev => ({
+        ...prev,
+        activeModuleId: firstModuleId,
+        activeContentId: initialContents[0]?.id || null
+      }));
 
-    if (liveRes.data) {
-      const { data: msgs } = await supabase.from('forum_posts').select('*').eq('forum_id', liveRes.data.id).order('created_at', { ascending: true });
-      setUiState(prev => ({ ...prev, liveMessages: msgs || [] }));
+      if (liveRes.data) {
+        const { data: msgs } = await supabase.from('forum_posts').select('*').eq('forum_id', liveRes.data.id).order('created_at', { ascending: true });
+        setUiState(prev => ({ ...prev, liveMessages: msgs || [] }));
+      }
+    } catch (e) {
+      console.error(e);
+      setData(prev => ({ ...prev, loading: false }));
     }
   }, [user?.id, trailId]);
 
@@ -106,9 +116,11 @@ export default function ClassroomPage() {
   }, [data.activeLive?.id]);
 
   const switchModule = async (moduleId: string) => {
+    if (uiState.activeModuleId === moduleId) return;
+    
     setUiState(prev => ({ ...prev, activeModuleId: moduleId }));
     const { data: cData } = await supabase.from('learning_contents').select('*').eq('module_id', moduleId).order('created_at', { ascending: true });
-    setData(prev => ({ ...prev, contents: cData || [] }));
+    setData((prev: any) => ({ ...prev, contents: cData || [] }));
     if (cData?.length) setUiState(prev => ({ ...prev, activeContentId: cData[0].id }));
   };
 
@@ -136,7 +148,7 @@ export default function ClassroomPage() {
   };
 
   if (data.loading) return (
-    <div className="h-96 flex flex-col items-center justify-center gap-4">
+    <div className="h-96 flex flex-col items-center justify-center gap-4 animate-in fade-in">
       <Loader2 className="animate-spin h-12 w-12 text-accent" />
       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse italic">Sincronizando Aula Digital...</p>
     </div>
@@ -146,7 +158,7 @@ export default function ClassroomPage() {
     <div className="flex flex-col h-full space-y-6 animate-in fade-in duration-500 pb-20">
       <header className="bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-sm border border-white/20 flex flex-col lg:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild className="rounded-full"><Link href="/dashboard/trails"><ChevronLeft className="h-5 w-5" /></Link></Button>
+          <Button variant="ghost" size="icon" asChild className="rounded-full hover:scale-110 transition-transform"><Link href="/dashboard/trails"><ChevronLeft className="h-5 w-5" /></Link></Button>
           <div>
             <h1 className="text-xl font-black text-primary italic leading-none">{data.trail?.title}</h1>
             <div className="flex items-center gap-2 mt-1">
@@ -170,31 +182,31 @@ export default function ClassroomPage() {
         <div className="lg:col-span-3 space-y-6">
           <Tabs value={uiState.currentTab} onValueChange={(v) => setUiState(p => ({ ...p, currentTab: v }))} className="w-full">
             <TabsList className="grid grid-cols-4 h-14 bg-muted/50 p-1 rounded-2xl mb-6">
-              <TabsTrigger value="content" className="rounded-xl gap-2 font-black text-[9px] uppercase"><Layout className="h-3 w-3" /> AULA</TabsTrigger>
-              <TabsTrigger value="live" disabled={!data.activeLive} className="rounded-xl gap-2 font-black text-[9px] uppercase data-[state=active]:bg-red-600 data-[state=active]:text-white"><Radio className="h-3 w-3" /> LIVE</TabsTrigger>
-              <TabsTrigger value="assessment" className="rounded-xl gap-2 font-black text-[9px] uppercase"><CheckSquare className="h-3 w-3" /> QUIZ IA</TabsTrigger>
-              <TabsTrigger value="aurora" className="rounded-xl gap-2 font-black text-[9px] uppercase"><Bot className="h-3 w-3" /> AURORA</TabsTrigger>
+              <TabsTrigger value="content" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><Layout className="h-3 w-3" /> AULA</TabsTrigger>
+              <TabsTrigger value="live" disabled={!data.activeLive} className="rounded-xl gap-2 font-black text-[9px] uppercase data-[state=active]:bg-red-600 data-[state=active]:text-white transition-all"><Radio className="h-3 w-3" /> LIVE</TabsTrigger>
+              <TabsTrigger value="assessment" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><CheckSquare className="h-3 w-3" /> QUIZ IA</TabsTrigger>
+              <TabsTrigger value="aurora" className="rounded-xl gap-2 font-black text-[9px] uppercase transition-all"><Bot className="h-3 w-3" /> AURORA</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="content" className="space-y-6">
-              <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl">
-                {data.contents.find(c => c.id === uiState.activeContentId)?.type === 'video' ? (
-                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${data.contents.find(c => c.id === uiState.activeContentId)?.url.split('v=')[1] || 'rfscVS0vtbw'}`} frameBorder="0" allowFullScreen />
+            <TabsContent value="content" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Card className="aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl transform-gpu">
+                {activeContent?.type === 'video' ? (
+                  <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${activeContent?.url.split('v=')[1] || 'rfscVS0vtbw'}`} frameBorder="0" allowFullScreen />
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-white bg-primary p-12 text-center">
                     <FileText className="h-16 w-16 mb-4 opacity-40" />
-                    <h3 className="text-2xl font-black italic">{data.contents.find(c => c.id === uiState.activeContentId)?.title || "Material Pedagógico"}</h3>
+                    <h3 className="text-2xl font-black italic">{activeContent?.title || "Material Pedagógico"}</h3>
                   </div>
                 )}
               </Card>
               <Card className="p-8 bg-white rounded-[2.5rem] shadow-xl border-none">
-                <h3 className="text-2xl font-black text-primary italic mb-2">{data.contents.find(c => c.id === uiState.activeContentId)?.title}</h3>
-                <p className="text-muted-foreground font-medium italic leading-relaxed line-clamp-4">{data.contents.find(c => c.id === uiState.activeContentId)?.description || "Este material foi revisado pela curadoria docente EduCore."}</p>
+                <h3 className="text-2xl font-black text-primary italic mb-2">{activeContent?.title}</h3>
+                <p className="text-muted-foreground font-medium italic leading-relaxed line-clamp-4">{activeContent?.description || "Este material foi revisado pela curadoria docente EduCore."}</p>
               </Card>
             </TabsContent>
 
-            <TabsContent value="live" className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-              <div className="xl:col-span-2 aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-red-600/10">
+            <TabsContent value="live" className="grid grid-cols-1 xl:grid-cols-3 gap-6 animate-in fade-in duration-300">
+              <div className="xl:col-span-2 aspect-video bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-red-600/10 transform-gpu">
                 <iframe width="100%" height="100%" src={`https://www.youtube.com/embed/${data.activeLive?.youtube_id || 'rfscVS0vtbw'}?autoplay=1`} frameBorder="0" allowFullScreen />
               </div>
               <Card className="h-[500px] xl:h-full flex flex-col bg-white rounded-[2.5rem] overflow-hidden shadow-xl border-none">
@@ -205,7 +217,7 @@ export default function ClassroomPage() {
                 <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                   <div className="flex flex-col gap-3">
                     {uiState.liveMessages.map((m, i) => (
-                      <div key={i} className={`p-3 rounded-2xl text-xs animate-in slide-in-from-bottom-2 ${m.is_question ? 'bg-amber-50 border border-amber-200' : 'bg-muted/30'}`}>
+                      <div key={i} className={`p-3 rounded-2xl text-xs animate-in slide-in-from-bottom-2 duration-300 ${m.is_question ? 'bg-amber-50 border border-amber-200' : 'bg-muted/30'}`}>
                         <p className="text-[8px] font-black text-primary/40 uppercase mb-1">{m.author_name}</p>
                         <p className="font-medium">{m.content}</p>
                       </div>
@@ -225,7 +237,7 @@ export default function ClassroomPage() {
                       size="icon" 
                       onClick={() => handleSendLive(false)} 
                       disabled={uiState.isSendingLive || !uiState.liveInput.trim()}
-                      className="h-10 w-10 bg-primary rounded-xl shrink-0"
+                      className="h-10 w-10 bg-primary rounded-xl shrink-0 transition-transform active:scale-90"
                     >
                       {uiState.isSendingLive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 text-white" />}
                     </Button>
@@ -234,7 +246,7 @@ export default function ClassroomPage() {
                     onClick={() => handleSendLive(true)} 
                     variant="outline" 
                     disabled={uiState.isSendingLive || !uiState.liveInput.trim()}
-                    className="w-full h-10 border-2 border-amber-500/50 text-amber-600 font-black text-[9px] uppercase gap-2 rounded-xl"
+                    className="w-full h-10 border-2 border-amber-500/50 text-amber-600 font-black text-[9px] uppercase gap-2 rounded-xl hover:bg-amber-50 transition-colors"
                   >
                     <Lightbulb className="h-3.5 w-3.5" /> Fazer Pergunta
                   </Button>
@@ -251,8 +263,8 @@ export default function ClassroomPage() {
               <Badge className="bg-white/20 border-none text-[8px]">{data.modules.length} Blocos</Badge>
             </div>
             <div className="flex flex-col">
-              {data.modules.map((mod, i) => (
-                <button key={mod.id} onClick={() => switchModule(mod.id)} className={`p-5 text-left border-b last:border-0 transition-all ${uiState.activeModuleId === mod.id ? 'bg-accent/5 border-l-4 border-l-accent' : 'hover:bg-muted/20'}`}>
+              {data.modules.map((mod: any, i: number) => (
+                <button key={mod.id} onClick={() => switchModule(mod.id)} className={`p-5 text-left border-b last:border-0 transition-all duration-200 ${uiState.activeModuleId === mod.id ? 'bg-accent/5 border-l-4 border-l-accent' : 'hover:bg-muted/20'}`}>
                   <p className="text-[8px] font-black uppercase opacity-40 mb-1">Módulo {i + 1}</p>
                   <p className={`text-xs font-black truncate ${uiState.activeModuleId === mod.id ? 'text-accent italic' : 'text-primary'}`}>{mod.title}</p>
                 </button>
@@ -261,8 +273,8 @@ export default function ClassroomPage() {
           </Card>
 
           <div className="space-y-3">
-            {data.contents.map((c) => (
-              <button key={c.id} onClick={() => setUiState(p => ({ ...p, activeContentId: c.id }))} className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all border-2 ${uiState.activeContentId === c.id ? 'bg-white border-accent shadow-lg' : 'bg-white/50 border-transparent hover:border-muted/30'}`}>
+            {data.contents.map((c: any) => (
+              <button key={c.id} onClick={() => setUiState(p => ({ ...p, activeContentId: c.id }))} className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 border-2 ${uiState.activeContentId === c.id ? 'bg-white border-accent shadow-lg scale-[1.02]' : 'bg-white/50 border-transparent hover:border-muted/30'}`}>
                 <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${uiState.activeContentId === c.id ? 'bg-accent text-accent-foreground' : 'bg-muted'}`}>
                   {c.type === 'video' ? <Youtube className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
                 </div>

@@ -26,22 +26,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    // OTIMIZAÇÃO TURBO: Recuperação de sessão ultra-rápida
+    // TURBO: Recuperação de sessão prioritária
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setState({
-        session,
-        user: session?.user ?? null,
-        loading: false
-      });
+      if (session) {
+        setState({ session, user: session.user, loading: false });
+      } else {
+        setState(prev => ({ ...prev, loading: false }));
+      }
     };
 
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      // TURBO: Evita re-renders se os dados forem idênticos (previne o "agarrar")
       setState(prev => {
-        // Só atualiza se houver mudança real para evitar re-renders desnecessários nas trocas de página
-        if (prev.user?.id === session?.user?.id && prev.loading === false) return prev;
+        if (prev.user?.id === session?.user?.id && prev.session?.access_token === session?.access_token && !prev.loading) {
+          return prev;
+        }
         return {
           session,
           user: session?.user ?? null,
@@ -60,11 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/login';
   };
 
-  // Memoiza o valor do contexto para evitar re-render em todos os filhos quando o estado não muda
   const contextValue = useMemo(() => ({
     ...state,
     signOut
-  }), [state]);
+  }), [state.user?.id, state.session?.access_token, state.loading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

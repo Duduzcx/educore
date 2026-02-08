@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
 import { supabase } from "@/lib/supabase"; 
 
@@ -34,6 +34,28 @@ const teacherItems = [
   { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
 ];
 
+// TURBO: Componente de Menu memoizado para evitar lag na navegação
+const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname: string, unreadCount: number }) => {
+  return (
+    <SidebarMenu className="gap-1">
+      {items.map((item) => (
+        <SidebarMenuItem key={item.label}>
+          <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label} className="h-11 rounded-xl data-[active=true]:bg-accent data-[active=true]:text-accent-foreground transition-all duration-200">
+            <Link href={item.href} className="flex items-center gap-3">
+              <item.icon className="h-5 w-5" />
+              <span className="font-bold text-sm">{item.label}</span>
+              {item.badge && unreadCount > 0 && (
+                <Badge className="ml-auto bg-white/20 text-white text-[8px] h-5 min-w-5 rounded-full animate-in zoom-in">{unreadCount}</Badge>
+              )}
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+});
+NavMenu.displayName = "NavMenu";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -41,13 +63,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   const isTeacher = useMemo(() => 
     user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin'
-  , [user]);
+  , [user?.user_metadata?.role]);
   
   const [profile, setProfile] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
 
-  // Busca de perfil eficiente
   useEffect(() => {
     if (!user) return;
     const fetchProfile = async () => {
@@ -58,12 +79,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     fetchProfile();
   }, [user?.id, isTeacher]);
 
-  // Redirecionamento se não autenticado
   useEffect(() => {
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
-  // Listener Realtime Otimizado para Notificações
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel('global_notifs')
@@ -92,7 +111,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="bg-sidebar border-none">
+      <Sidebar collapsible="icon" className="bg-sidebar border-none transition-[width] duration-300 ease-in-out">
         <SidebarHeader className="p-6">
            <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/20">
@@ -109,27 +128,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarGroupLabel className="px-4 py-4 text-[9px] font-black text-white/30 uppercase tracking-widest">
               {isTeacher ? "Gestão Docente" : "Estudante"}
             </SidebarGroupLabel>
-            <SidebarMenu className="gap-1">
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.label}>
-                  <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label} className="h-11 rounded-xl data-[active=true]:bg-accent data-[active=true]:text-accent-foreground">
-                    <Link href={item.href} className="flex items-center gap-3">
-                      <item.icon className="h-5 w-5" />
-                      <span className="font-bold text-sm">{item.label}</span>
-                      {item.badge && unreadCount > 0 && (
-                        <Badge className="ml-auto bg-white/20 text-white text-[8px] h-5 min-w-5 rounded-full">{unreadCount}</Badge>
-                      )}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <NavMenu items={navItems} pathname={pathname} unreadCount={unreadCount} />
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="p-4 border-t border-white/5">
            <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleSignOut} disabled={isSignOutLoading} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl">
+              <SidebarMenuButton onClick={handleSignOut} disabled={isSignOutLoading} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl transition-colors">
                 {isSignOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 <span className="font-bold text-xs">Sair</span>
               </SidebarMenuButton>
@@ -137,22 +142,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-background overflow-hidden flex flex-col">
-        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-6 shrink-0">
-          <SidebarTrigger className="h-9 w-9 rounded-full" />
+      <SidebarInset className="bg-background flex flex-col min-h-0">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-6 shrink-0 transition-all duration-300">
+          <SidebarTrigger className="h-9 w-9 rounded-full hover:bg-muted transition-colors" />
           <div className="flex-1" />
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Usuário"}</span>
               <span className="text-[8px] font-black text-accent uppercase tracking-widest">{isTeacher ? "Docente" : "Aluno"}</span>
             </div>
-            <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-xl">
+            <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-xl transition-transform hover:scale-105">
               <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} />
               <AvatarFallback className="bg-primary text-white text-xs">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
           </div>
         </header>
-        <main className="p-4 md:p-8 flex-1 overflow-y-auto scrollbar-hide">
+        <main className="flex-1 overflow-y-auto scrollbar-hide p-4 md:p-8 animate-in fade-in duration-500">
           {children}
         </main>
       </SidebarInset>
