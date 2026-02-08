@@ -39,11 +39,11 @@ export default function DirectChatPage() {
         return;
       }
       
-      const { data: teacher } = await supabase.from('teachers').select('*').eq('id', contactId).single();
+      const { data: teacher } = await supabase.from('teachers').select('id, name, subjects').eq('id', contactId).single();
       if (teacher) {
         setContact({ ...teacher, type: 'teacher' });
       } else {
-        const { data: student } = await supabase.from('profiles').select('*').eq('id', contactId).single();
+        const { data: student } = await supabase.from('profiles').select('id, name, course').eq('id', contactId).single();
         setContact({ ...student, type: 'student' });
       }
     }
@@ -153,7 +153,7 @@ export default function DirectChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500 overflow-hidden space-y-4 max-w-full mx-auto w-full px-1">
+    <div className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-500 overflow-hidden space-y-4 w-full">
       <div className="flex items-center justify-between px-2 py-2 shrink-0 bg-white/50 backdrop-blur-md rounded-2xl shadow-sm border border-white/20">
         <div className="flex items-center gap-2 overflow-hidden">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10 shrink-0 hover:bg-primary/5 active:scale-90 transition-all">
@@ -190,7 +190,7 @@ export default function DirectChatPage() {
         </div>
       </div>
 
-      <Card className="flex-1 min-h-0 flex flex-col shadow-[0_10px_40px_-15px_hsl(var(--accent)/0.15)] border-none overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white relative animate-in zoom-in-95 duration-700 max-w-full">
+      <Card className="flex-1 min-h-0 flex flex-col shadow-[0_10px_40px_-15px_hsl(var(--accent)/0.15)] border-none overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white relative animate-in zoom-in-95 duration-700">
         <ScrollArea className="flex-1" ref={scrollRef}>
           <div className="flex flex-col gap-6 py-8 px-4 md:px-12">
             {isLoading ? (

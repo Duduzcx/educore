@@ -82,8 +82,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
+  // Páginas que devem travar o scroll do main para usar scroll interno
   const isAppPage = useMemo(() => {
-    return pathname.includes('/chat/') || pathname.includes('/forum/') || pathname.includes('/classroom/');
+    return pathname.includes('/chat/') || 
+           pathname.includes('/forum/') || 
+           pathname.includes('/classroom/') ||
+           pathname.includes('/teacher/live/');
   }, [pathname]);
 
   const navItems = useMemo(() => isTeacher ? teacherItems : studentItems, [isTeacher]);
@@ -151,7 +155,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Avatar>
           </div>
         </header>
-        {/* TURBO: O main só rola se NÃO for uma página de App (Chat/Forum/Classroom) */}
+        
+        {/* FIX: Se for uma página de App, travamos o scroll principal. Caso contrário, liberamos. */}
         <main className={`flex-1 min-h-0 flex flex-col ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto scrollbar-hide'} p-4 md:p-8 animate-in fade-in duration-500`}>
           {children}
         </main>

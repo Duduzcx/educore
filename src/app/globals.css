@@ -43,8 +43,9 @@
   }
   
   html, body {
-    @apply overflow-x-hidden max-w-full;
+    @apply overflow-hidden max-w-full;
     width: 100%;
+    height: 100%;
     position: relative;
     scroll-behavior: smooth;
     overscroll-behavior-y: none;
@@ -61,17 +62,13 @@
   }
 }
 
-/* ESCONDER SCROLLBARS TOTAIS PARA UX DE APP */
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Global Scrollbar Hide */
+/* ESCONDER SCROLLBARS TOTAIS EM TODO O APP */
 *::-webkit-scrollbar {
-  display: none;
+  display: none !important;
 }
 * {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 .content-auto {
