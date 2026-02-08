@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,20 +15,15 @@ import {
   CheckSquare, 
   ChevronLeft, 
   Loader2, 
-  Sparkles, 
   Send, 
   Bot, 
-  TrendingUp, 
   Radio, 
   Lightbulb, 
   Youtube, 
-  MessageCircle, 
-  ShieldCheck 
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
-import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ClassroomPage() {
@@ -62,6 +57,7 @@ export default function ClassroomPage() {
   const loadPageData = useCallback(async () => {
     if (!user || !trailId) return;
     
+    // OTIMIZAÇÃO: Busca paralela de todos os dados críticos
     const [trailRes, modulesRes, progressRes, liveRes] = await Promise.all([
       supabase.from('learning_trails').select('*').eq('id', trailId).single(),
       supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true }),

@@ -5,7 +5,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, UserCircle, Loader2, Sparkles, Send, Users, GraduationCap, MessageCircle, Bot, BookOpen, School } from "lucide-react";
+import { Search, UserCircle, Loader2, Sparkles, Send, Users, BookOpen, School, Bot } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/AuthProvider";
@@ -23,11 +23,14 @@ export default function ChatListPage() {
       if (!user) return;
       setLoading(true);
       
-      const { data: profilesData } = await supabase.from('profiles').select('*').limit(50);
-      const { data: teachersData } = await supabase.from('teachers').select('*').limit(50);
+      // OTIMIZAÇÃO: Busca paralela e limites para performance
+      const [profilesRes, teachersRes] = await Promise.all([
+        supabase.from('profiles').select('*').limit(50),
+        supabase.from('teachers').select('*').limit(50)
+      ]);
       
-      setStudents(profilesData || []);
-      setTeachers(teachersData || []);
+      setStudents(profilesRes.data || []);
+      setTeachers(teachersRes.data || []);
       setLoading(false);
     }
     fetchData();

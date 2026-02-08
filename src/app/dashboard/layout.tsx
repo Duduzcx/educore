@@ -1,15 +1,12 @@
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, Settings, LogOut, Bell, Search, User, ClipboardList, Users, BarChart3, LayoutDashboard, FilePenLine, MessageSquare, MessagesSquare, Loader2, MonitorPlay } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, FilePenLine, MessageSquare, MessagesSquare, Loader2, MonitorPlay } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
 import { supabase } from "@/lib/supabase"; 
 
@@ -41,7 +38,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading: isUserLoading } = useAuth();
-  const { toast } = useToast();
   
   const isTeacher = useMemo(() => 
     user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin'
@@ -51,7 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [unreadCount, setUnreadCount] = useState(0);
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
 
-  // TURBO: Busca de perfil ultra-eficiente e isolada
+  // Busca de perfil eficiente
   useEffect(() => {
     if (!user) return;
     const fetchProfile = async () => {
@@ -62,15 +58,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     fetchProfile();
   }, [user?.id, isTeacher]);
 
-  // Redirecionamento instantâneo
+  // Redirecionamento se não autenticado
   useEffect(() => {
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
-  // Listener Realtime Otimizado (Single Instance)
+  // Listener Realtime Otimizado para Notificações
   useEffect(() => {
     if (!user) return;
-    const channel = supabase.channel('notifs')
+    const channel = supabase.channel('global_notifs')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `receiver_id=eq.${user.id}` }, 
       () => setUnreadCount(prev => prev + 1))
       .subscribe();
