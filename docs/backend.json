@@ -4,7 +4,7 @@
     "Profile": {
       "title": "Profile",
       "type": "object",
-      "description": "Dados de perfil do estudante ou administrador.",
+      "description": "Dados de perfil do estudante.",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
@@ -21,7 +21,7 @@
     "Teacher": {
       "title": "Teacher",
       "type": "object",
-      "description": "Represents a teacher or coordinator in the system.",
+      "description": "Dados do professor ou mentor.",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
@@ -50,7 +50,7 @@
     "LearningModule": {
       "title": "LearningModule",
       "type": "object",
-      "description": "Módulo ou capítulo dentro de uma trilha.",
+      "description": "Capítulo dentro de uma trilha.",
       "properties": {
         "id": { "type": "string" },
         "trail_id": { "type": "string" },
@@ -68,13 +68,13 @@
         "title": { "type": "string" },
         "type": { "type": "string", "enum": ["video", "pdf", "text", "quiz"] },
         "url": { "type": "string" },
-        "description": { "type": "string", "description": "Contém o texto da aula ou o JSON do quiz." }
+        "description": { "type": "string", "description": "Texto da aula ou JSON do quiz." }
       }
     },
     "Live": {
       "title": "Live",
       "type": "object",
-      "description": "Transmissão ao vivo agendada.",
+      "description": "Transmissão ao vivo agendada com data e hora.",
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
@@ -85,47 +85,17 @@
         "start_time": { "type": "string", "format": "date-time" },
         "trail_id": { "type": "string" }
       }
-    },
-    "ForumPost": {
-      "title": "ForumPost",
-      "type": "object",
-      "description": "Mensagem em chat de live ou fórum comunitário.",
-      "properties": {
-        "id": { "type": "string" },
-        "forum_id": { "type": "string" },
-        "author_id": { "type": "string" },
-        "author_name": { "type": "string" },
-        "content": { "type": "string" },
-        "is_question": { "type": "boolean" },
-        "is_answered": { "type": "boolean" },
-        "created_at": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Notice": {
-      "title": "Notice",
-      "type": "object",
-      "description": "Aviso do mural de comunicados.",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "content": { "type": "string" },
-        "priority": { "type": "string" },
-        "author": { "type": "string" },
-        "read_by": { "type": "array" }
-      }
     }
   },
   "auth": {
     "providers": ["password"]
   },
   "firestore": {
-    "/profiles/{uid}": { "schema": "Profile", "description": "User profiles and progress." },
-    "/teachers/{teacherId}": { "schema": "Teacher", "description": "Teacher data." },
-    "/learning_trails/{trailId}": { "schema": "LearningTrail", "description": "Course trails." },
-    "/learning_modules/{modId}": { "schema": "LearningModule", "description": "Trail chapters." },
-    "/learning_contents/{contentId}": { "schema": "LearningContent", "description": "Lessons and quizzes." },
-    "/lives/{liveId}": { "schema": "Live", "description": "Live events." },
-    "/forum_posts/{postId}": { "schema": "ForumPost", "description": "Chat/Forum messages." },
-    "/notices/{noticeId}": { "schema": "Notice", "description": "System bulletins." }
+    "/profiles/{uid}": { "schema": "Profile", "description": "Perfis de usuários." },
+    "/teachers/{teacherId}": { "schema": "Teacher", "description": "Dados de mentores." },
+    "/learning_trails/{trailId}": { "schema": "LearningTrail", "description": "Trilhas de estudo." },
+    "/learning_modules/{modId}": { "schema": "LearningModule", "description": "Capítulos das trilhas." },
+    "/learning_contents/{contentId}": { "schema": "LearningContent", "description": "Aulas e Quizzes." },
+    "/lives/{liveId}": { "schema": "Live", "description": "Eventos ao vivo agendados." }
   }
 }
