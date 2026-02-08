@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -22,7 +23,8 @@ import {
   Activity,
   History,
   ExternalLink,
-  Eye
+  Eye,
+  ChevronRight
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -282,14 +284,14 @@ export default function TeacherLiveManagement() {
                         {trails.find(t => t.id === live.trail_id)?.title || 'Geral'}
                       </Badge>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => window.open(live.youtube_url || live.url, '_blank')} className="rounded-full text-slate-400 hover:text-primary"><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(live.id)} className="rounded-full text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => window.open(live.youtube_url || live.url, '_blank')} className="rounded-full text-slate-400 hover:text-primary" title="Ver como Aluno"><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(live.id)} className="rounded-full text-slate-400 hover:text-red-600" title="Remover Sinal"><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </div>
                     
                     <Button asChild className="w-full bg-slate-900 text-white hover:bg-red-600 font-black h-14 rounded-2xl shadow-xl gap-3 transition-all">
                       <Link href={`/dashboard/teacher/live/${live.id}`}>
-                        <Activity className="h-5 w-5" /> Monitorar Estúdio
+                        Monitorar Estúdio <ChevronRight className="h-5 w-5" />
                       </Link>
                     </Button>
                   </CardContent>
@@ -319,9 +321,9 @@ export default function TeacherLiveManagement() {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-400"><MessageCircle className="h-5 w-5" /></div>
-                <p className="font-black italic">Ecossistema Social</p>
+                <p className="font-black italic">Fluxo de Interação</p>
               </div>
-              <p className="text-[11px] text-white/60 leading-relaxed italic">As perguntas dos alunos aparecem instantaneamente no seu monitor de estúdio.</p>
+              <p className="text-[11px] text-white/60 leading-relaxed italic">As perguntas dos alunos aparecem instantaneamente no seu monitor de estúdio. Clique em "Monitorar" para interagir.</p>
             </div>
           </Card>
         </div>
