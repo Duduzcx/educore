@@ -65,17 +65,17 @@ export default function ClassroomPage() {
     // OTIMIZAÇÃO: Busca paralela de todos os dados críticos
     try {
       const [trailRes, modulesRes, progressRes, liveRes] = await Promise.all([
-        supabase.from('learning_trails').select('*').eq('id', trailId).single(),
-        supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true }),
-        supabase.from('user_progress').select('*').eq('user_id', user.id).eq('trail_id', trailId).maybeSingle(),
-        supabase.from('lives').select('*').eq('trail_id', trailId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        supabase.from('learning_trails').select('id, title, category').eq('id', trailId).single(),
+        supabase.from('learning_modules').select('id, title, order_index').eq('trail_id', trailId).order('order_index', { ascending: true }),
+        supabase.from('user_progress').select('percentage').eq('user_id', user.id).eq('trail_id', trailId).maybeSingle(),
+        supabase.from('lives').select('id, youtube_id').eq('trail_id', trailId).order('created_at', { ascending: false }).limit(1).maybeSingle()
       ]);
 
       let initialContents: any[] = [];
       let firstModuleId = modulesRes.data?.[0]?.id;
 
       if (firstModuleId) {
-        const { data: cData } = await supabase.from('learning_contents').select('*').eq('module_id', firstModuleId).order('created_at', { ascending: true });
+        const { data: cData } = await supabase.from('learning_contents').select('id, title, type, url, description').eq('module_id', firstModuleId).order('created_at', { ascending: true });
         initialContents = cData || [];
       }
 
@@ -119,7 +119,7 @@ export default function ClassroomPage() {
     if (uiState.activeModuleId === moduleId) return;
     
     setUiState(prev => ({ ...prev, activeModuleId: moduleId }));
-    const { data: cData } = await supabase.from('learning_contents').select('*').eq('module_id', moduleId).order('created_at', { ascending: true });
+    const { data: cData } = await supabase.from('learning_contents').select('id, title, type, url, description').eq('module_id', moduleId).order('created_at', { ascending: true });
     setData((prev: any) => ({ ...prev, contents: cData || [] }));
     if (cData?.length) setUiState(prev => ({ ...prev, activeContentId: cData[0].id }));
   };
