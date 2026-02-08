@@ -24,7 +24,8 @@ import {
   History,
   ExternalLink,
   Eye,
-  ChevronRight
+  ChevronRight,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -47,9 +48,11 @@ export default function TeacherLiveManagement() {
     title: "",
     description: "",
     youtube_id: "",
-    start_time: "",
     trail_id: "none"
   });
+
+  const [liveDate, setLiveDate] = useState("");
+  const [liveTime, setLiveTime] = useState("");
 
   const fetchData = async () => {
     if (!user) return;
@@ -73,13 +76,18 @@ export default function TeacherLiveManagement() {
 
   const handleCreateLive = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !liveForm.title || !liveForm.youtube_id) return;
+    if (!user || !liveForm.title || !liveForm.youtube_id || !liveDate || !liveTime) {
+      toast({ variant: "destructive", title: "Campos Incompletos", description: "Por favor, defina o título, o link e o cronograma (data/hora)." });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const cleanYid = liveForm.youtube_id.includes('v=') 
         ? liveForm.youtube_id.split('v=')[1]?.split('&')[0] 
         : liveForm.youtube_id.split('/').pop() || liveForm.youtube_id;
+
+      const combinedStartTime = new Date(`${liveDate}T${liveTime}`).toISOString();
 
       const { data, error } = await supabase.from('lives').insert({
         title: liveForm.title,
@@ -89,7 +97,7 @@ export default function TeacherLiveManagement() {
         youtube_id: cleanYid,
         youtube_url: `https://www.youtube.com/watch?v=${cleanYid}`,
         url: `https://www.youtube.com/watch?v=${cleanYid}`,
-        start_time: liveForm.start_time || new Date().toISOString(),
+        start_time: combinedStartTime,
         trail_id: liveForm.trail_id === 'none' ? null : liveForm.trail_id
       }).select().single();
 
@@ -97,7 +105,9 @@ export default function TeacherLiveManagement() {
 
       setLives([data, ...lives]);
       toast({ title: "Transmissão Agendada!", description: "O sinal já está configurado no portal." });
-      setForm({ title: "", description: "", youtube_id: "", start_time: "", trail_id: "none" });
+      setForm({ title: "", description: "", youtube_id: "", trail_id: "none" });
+      setLiveDate("");
+      setLiveTime("");
       setIsAddOpen(false);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erro no Estúdio", description: "Verifique os dados ou se as tabelas existem." });
@@ -199,6 +209,7 @@ export default function TeacherLiveManagement() {
                       </SelectContent>
                     </Select>
                   </div>
+                  
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase opacity-40">Título da Live</Label>
                     <Input 
@@ -209,6 +220,30 @@ export default function TeacherLiveManagement() {
                       required
                     />
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase opacity-40">Data da Aula</Label>
+                      <Input 
+                        type="date"
+                        value={liveDate}
+                        onChange={(e) => setLiveDate(e.target.value)}
+                        className="h-14 rounded-2xl bg-muted/30 border-none font-bold"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase opacity-40">Horário</Label>
+                      <Input 
+                        type="time"
+                        value={liveTime}
+                        onChange={(e) => setLiveTime(e.target.value)}
+                        className="h-14 rounded-2xl bg-muted/30 border-none font-bold"
+                        required
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase opacity-40">Link ou ID do YouTube</Label>
                     <div className="relative">
@@ -267,12 +302,12 @@ export default function TeacherLiveManagement() {
                        <h3 className="text-2xl font-black text-white italic leading-tight line-clamp-1">{live.title}</h3>
                        <div className="flex items-center gap-4 mt-3 text-white/60">
                          <div className="flex items-center gap-1.5">
-                           <Clock className="h-3.5 w-3.5 text-red-500" />
-                           <span className="text-[10px] font-bold uppercase">{new Date(live.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                           <CalendarIcon className="h-3.5 w-3.5 text-red-500" />
+                           <span className="text-[10px] font-bold uppercase">{new Date(live.start_time).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}</span>
                          </div>
                          <div className="flex items-center gap-1.5">
-                           <Users className="h-3.5 w-3.5 text-blue-400" />
-                           <span className="text-[10px] font-bold uppercase">Monitorando</span>
+                           <Clock className="h-3.5 w-3.5 text-red-500" />
+                           <span className="text-[10px] font-bold uppercase">{new Date(live.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                          </div>
                        </div>
                     </div>

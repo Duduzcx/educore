@@ -35,7 +35,7 @@ export default function LivePage() {
         const { data, error } = await supabase
           .from('lives')
           .select('*')
-          .order('start_time', { ascending: false });
+          .order('start_time', { ascending: true });
 
         if (!error) {
           setLives(data || []);
@@ -58,12 +58,15 @@ export default function LivePage() {
   };
 
   const now = new Date();
+  
+  // Uma live é considerada "No Ar" se começou e ainda não se passaram 3 horas
   const liveNow = lives.filter(l => {
     const start = new Date(l.start_time);
     const end = new Date(start.getTime() + 3 * 60 * 60 * 1000); 
     return now >= start && now <= end;
   });
 
+  // Uma live é considerada "Agenda" se começa no futuro
   const upcomingLives = lives.filter(l => {
     const start = new Date(l.start_time);
     return start > now;
