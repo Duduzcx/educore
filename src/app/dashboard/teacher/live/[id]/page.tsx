@@ -15,14 +15,13 @@ import {
   Signal, 
   ChevronLeft, 
   Zap, 
-  Clock, 
   Send,
   CheckCircle2,
   Loader2,
-  Trophy,
   ShieldCheck,
   ExternalLink,
-  Radio
+  Radio,
+  Clock
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -39,6 +38,7 @@ export default function TeacherLiveStudioPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"all" | "questions">("all");
+  const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export default function TeacherLiveStudioPage() {
           }, (payload) => {
             setMessages(prev => [...prev, payload.new]);
             if (payload.new.is_question) {
-              toast({ title: "Nova Dúvida!", description: `${payload.new.author_name} enviou uma pergunta.` });
+              toast({ title: "Nova Pergunta!", description: `Estudante: ${payload.new.author_name}`, variant: "default" });
             }
           })
           .on('postgres_changes', { 
@@ -89,6 +89,22 @@ export default function TeacherLiveStudioPage() {
     }
     loadData();
   }, [user, liveId, toast]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || !user) return;
+
+    const { error } = await supabase.from('forum_posts').insert({
+      forum_id: liveId,
+      author_id: user.id,
+      author_name: "PROFESSOR (MENTOR)",
+      content: input,
+      is_question: false,
+      created_at: new Date().toISOString()
+    });
+
+    if (!error) setInput("");
+  };
 
   const markAsAnswered = async (msgId: string) => {
     const { error } = await supabase
@@ -269,12 +285,17 @@ export default function TeacherLiveStudioPage() {
           </ScrollArea>
 
           <div className="p-6 bg-slate-50 border-t mt-auto">
-            <div className="flex items-center gap-3 bg-white p-2 pl-6 rounded-full shadow-2xl border border-slate-200 focus-within:ring-2 focus-within:ring-slate-900 transition-all">
-              <Input placeholder="Escrever para os alunos..." className="border-none shadow-none text-sm font-bold italic h-12 bg-transparent focus-visible:ring-0 px-0" />
-              <Button size="icon" className="h-12 w-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full shrink-0 shadow-lg transition-transform active:scale-90">
+            <form onSubmit={handleSendMessage} className="flex items-center gap-3 bg-white p-2 pl-6 rounded-full shadow-2xl border border-slate-200 focus-within:ring-2 focus-within:ring-slate-900 transition-all">
+              <Input 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Escrever para os alunos..." 
+                className="border-none shadow-none text-sm font-bold italic h-12 bg-transparent focus-visible:ring-0 px-0" 
+              />
+              <Button type="submit" size="icon" className="h-12 w-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full shrink-0 shadow-lg transition-transform active:scale-90">
                 <Send className="h-5 w-5" />
               </Button>
-            </div>
+            </form>
           </div>
         </Card>
       </div>
