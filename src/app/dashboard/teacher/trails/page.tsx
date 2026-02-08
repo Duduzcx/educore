@@ -32,6 +32,7 @@ export default function TeacherTrailsPage() {
     setLoading(true);
     setErrorState("none");
     
+    // OTIMIZAÇÃO: Busca apenas colunas necessárias para performance Turbo
     const { data, error } = await supabase
       .from('learning_trails')
       .select('id, title, category, description, status, image_url, teacher_id, teacher_name')
@@ -133,7 +134,7 @@ export default function TeacherTrailsPage() {
       <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-white rounded-[2rem] shadow-xl border-2 border-dashed border-accent/20">
         <AlertCircle className="h-12 w-12 text-accent mb-4 animate-pulse" />
         <h2 className="text-2xl font-black text-primary italic">Configuração Pendente</h2>
-        <p className="text-muted-foreground mt-2 max-w-md font-medium">A tabela learning_trails não foi encontrada.</p>
+        <p className="text-muted-foreground mt-2 max-w-md font-medium">A tabela learning_trails não foi encontrada no banco de dados. Clique para inicializar a demo.</p>
         <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>Tentar Novamente</Button>
       </div>
     );
@@ -144,7 +145,7 @@ export default function TeacherTrailsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-primary italic leading-none">Gestão de Trilhas</h1>
-          <p className="text-muted-foreground font-medium">Administre caminhos pedagógicos no Supabase.</p>
+          <p className="text-muted-foreground font-medium">Administre caminhos pedagógicos estruturados via Supabase.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -167,7 +168,7 @@ export default function TeacherTrailsPage() {
               <DialogHeader><DialogTitle className="text-2xl font-black italic">Configurar Trilha</DialogTitle></DialogHeader>
               <div className="grid gap-6 py-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase opacity-40">Título</Label>
+                  <Label className="text-[10px] font-black uppercase opacity-40">Título da Trilha</Label>
                   <Input placeholder="Ex: Fundamentos de IA" className="h-12 rounded-xl bg-muted/30 border-none font-bold" value={newTrail.title} onChange={(e) => setNewTrail({ ...newTrail, title: e.target.value })} />
                 </div>
                 <div className="space-y-2">
@@ -175,13 +176,13 @@ export default function TeacherTrailsPage() {
                   <Input placeholder="Ex: Tecnologia" className="h-12 rounded-xl bg-muted/30 border-none font-bold" value={newTrail.category} onChange={(e) => setNewTrail({ ...newTrail, category: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase opacity-40">Descrição</Label>
-                  <Textarea placeholder="O que o aluno aprenderá?" className="min-h-[120px] rounded-xl bg-muted/30 border-none font-medium" value={newTrail.description} onChange={(e) => setNewTrail({ ...newTrail, description: e.target.value })} />
+                  <Label className="text-[10px] font-black uppercase opacity-40">Descrição Geral</Label>
+                  <Textarea placeholder="O que o aluno aprenderá nesta jornada?" className="min-h-[120px] rounded-xl bg-muted/30 border-none font-medium" value={newTrail.description} onChange={(e) => setNewTrail({ ...newTrail, description: e.target.value })} />
                 </div>
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateTrail} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl">
-                  {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Trilha"}
+                  {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Trilha Pedagógica"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -204,7 +205,7 @@ export default function TeacherTrailsPage() {
                 <Image src={trail.image_url || `https://picsum.photos/seed/trail-${trail.id}/600/400`} alt={trail.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" />
                 <div className="absolute top-4 left-4">
                   <Badge className={`${trail.status === 'active' ? 'bg-green-600' : 'bg-orange-500'} text-white border-none px-4 py-1 font-black text-[10px] uppercase shadow-lg`}>
-                    {trail.status === 'active' ? 'PUBLICADA' : 'RASCUNHO'}
+                    {trail.status === 'active' ? 'PÚBLICA' : 'RASCUNHO'}
                   </Badge>
                 </div>
               </div>
@@ -214,15 +215,15 @@ export default function TeacherTrailsPage() {
               </CardHeader>
               <CardFooter className="p-8 pt-4 border-t border-muted/10 mt-auto flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-muted-foreground uppercase">Gerenciar</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase">Ver Aluno</span>
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-accent hover:bg-accent/10" asChild>
-                    <Link href={`/dashboard/classroom/${trail.id}`} title="Visão do Aluno">
+                    <Link href={`/dashboard/classroom/${trail.id}`} title="Visão Real do Aluno">
                       <Eye className="h-4 w-4" />
                     </Link>
                   </Button>
                 </div>
                 <Button variant="ghost" className="text-accent font-black text-[10px] uppercase group/btn" asChild>
-                  <Link href={`/dashboard/teacher/trails/${trail.id}`}>Painel <LayoutDashboard className="h-4 w-4 ml-2 group-hover/btn:rotate-12 transition-transform" /></Link>
+                  <Link href={`/dashboard/teacher/trails/${trail.id}`}>Gerenciar <LayoutDashboard className="h-4 w-4 ml-2 group-hover/btn:rotate-12 transition-transform" /></Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -231,6 +232,7 @@ export default function TeacherTrailsPage() {
             <div className="col-span-full py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5 animate-in fade-in duration-1000">
               <Database className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
               <p className="font-black text-primary italic text-xl">Nenhuma trilha encontrada</p>
+              <p className="text-muted-foreground font-medium mt-2">Inicie uma nova trilha ou gere as demos acima.</p>
             </div>
           )}
         </div>

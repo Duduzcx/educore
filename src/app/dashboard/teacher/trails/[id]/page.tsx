@@ -29,7 +29,8 @@ import {
   Link as LinkIcon,
   AlignLeft,
   GraduationCap,
-  Eye
+  Eye,
+  CheckCircle2
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -66,6 +67,7 @@ export default function TrailManagementPage() {
   const loadData = useCallback(async () => {
     if (!user || !trailId) return;
     
+    // Proteção: Verifica se o ID é um UUID válido para evitar erros de banco em trilhas demo
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trailId);
     
     if (!isUuid) {
@@ -194,7 +196,7 @@ export default function TrailManagementPage() {
           <AlertCircle className="h-8 w-8 text-amber-600" />
           <div>
             <p className="font-black text-amber-900 italic uppercase text-xs">Modo Visualização (Trilha de Exemplo)</p>
-            <p className="text-amber-700 text-sm font-medium">Esta é uma trilha de demonstração.</p>
+            <p className="text-amber-700 text-sm font-medium">Crie uma trilha real para gerenciar módulos e aulas no banco de dados.</p>
           </div>
         </Card>
       )}
@@ -206,18 +208,18 @@ export default function TrailManagementPage() {
             <h1 className="text-3xl font-black text-primary italic leading-none">{trail?.title || "Gerenciador de Trilha"}</h1>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest border-accent text-accent">{trail?.category || "Categoria"}</Badge>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">• {modules.length} Capítulos</span>
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">• {modules.length} Capítulos Planejados</span>
             </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button 
             variant="outline" 
-            className="rounded-xl h-12 border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
+            className="rounded-xl h-12 border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm group"
             asChild
           >
             <Link href={`/dashboard/classroom/${trailId}`}>
-              <Eye className="h-5 w-5 mr-2" /> Visão do Aluno
+              <Eye className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" /> Visão do Aluno
             </Link>
           </Button>
           {!isDemoTrail && (
@@ -234,6 +236,7 @@ export default function TrailManagementPage() {
             <div className="p-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
               <BookOpen className="h-16 w-16 mx-auto mb-4" />
               <p className="font-black italic text-xl">Estrutura Vazia</p>
+              <p className="text-sm font-medium mt-2">Clique em "Novo Capítulo" para iniciar o roteiro.</p>
             </div>
           ) : (
             modules.map((mod, idx) => (
@@ -280,7 +283,7 @@ export default function TrailManagementPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center py-10 text-[10px] font-black uppercase text-muted-foreground/40 italic border-2 border-dashed border-muted/20 rounded-2xl">Nenhum material vinculado.</p>
+                    <p className="text-center py-10 text-[10px] font-black uppercase text-muted-foreground/40 italic border-2 border-dashed border-muted/20 rounded-2xl">Nenhum material vinculado a este capítulo.</p>
                   )}
                 </CardContent>
               </Card>
@@ -295,16 +298,16 @@ export default function TrailManagementPage() {
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-3xl bg-white/10 flex items-center justify-center shadow-lg"><Settings2 className="h-8 w-8 text-accent" /></div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status da Jornada</p>
                   <p className="text-2xl font-black italic">{trail?.status === 'active' ? 'Publicada' : 'Rascunho'}</p>
                 </div>
               </div>
               <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                 <div className="flex items-center gap-2 text-accent">
                   <Sparkles className="h-4 w-4 animate-pulse" />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Dica Docente</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest">Dica da Aurora</span>
                 </div>
-                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">Use a "Visão do Aluno" para validar seu roteiro pedagógico.</p>
+                <p className="text-[11px] font-medium leading-relaxed italic opacity-80">Use a "Visão do Aluno" para validar se os vídeos e guias de estudo estão aparecendo como você planejou.</p>
               </div>
               {!isDemoTrail && (
                 <Button 
@@ -352,8 +355,8 @@ export default function TrailManagementPage() {
                 <SelectContent className="rounded-xl">
                   <SelectItem value="video" className="font-bold">🎞️ Videoaula (YouTube)</SelectItem>
                   <SelectItem value="pdf" className="font-bold">📄 Documento PDF / Arquivo</SelectItem>
-                  <SelectItem value="text" className="font-bold">📝 Texto / Artigo Completo</SelectItem>
-                  <SelectItem value="quiz" className="font-bold">❓ Quiz de Avaliação</SelectItem>
+                  <SelectItem value="text" className="font-bold">📝 Conteúdo em Texto (Artigo)</SelectItem>
+                  <SelectItem value="quiz" className="font-bold">❓ Quiz / Avaliação</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -366,6 +369,7 @@ export default function TrailManagementPage() {
               </div>
             </div>
 
+            {/* URL DINÂMICO CONFORME O TIPO */}
             {(contentForm.type === 'video' || contentForm.type === 'pdf' || contentForm.type === 'quiz') && (
               <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                 <Label className="text-[10px] font-black uppercase opacity-40">
@@ -383,13 +387,14 @@ export default function TrailManagementPage() {
               </div>
             )}
 
+            {/* DESCRIÇÃO / CONTEÚDO EM TEXTO */}
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase opacity-40">
-                {contentForm.type === 'text' ? 'Conteúdo da Aula (Texto Completo)' : 'Resumo Pedagógico (Guia de Estudo)'}
+                {contentForm.type === 'text' ? 'Conteúdo da Aula (Texto Completo)' : 'Guia de Estudo (Resumo Pedagógico)'}
               </Label>
               <div className="relative">
                 <Textarea 
-                  placeholder={contentForm.type === 'text' ? 'Escreva aqui todo o conteúdo que o aluno deve ler...' : 'Descreva o que o aluno aprenderá...'} 
+                  placeholder={contentForm.type === 'text' ? 'Escreva aqui todo o conteúdo que o aluno deve ler...' : 'Descreva o que o aluno aprenderá nesta aula...'} 
                   value={contentForm.description} 
                   onChange={(e) => setContentForm({...contentForm, description: e.target.value})} 
                   className="min-h-[180px] rounded-2xl bg-muted/30 border-none resize-none p-5 font-medium leading-relaxed" 
