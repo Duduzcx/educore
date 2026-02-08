@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -41,7 +42,7 @@
   }
   
   html, body {
-    @apply max-w-full;
+    @apply max-w-full overflow-x-hidden;
     width: 100%;
     height: 100%;
     position: relative;
@@ -52,8 +53,6 @@
     @apply bg-background text-foreground font-body antialiased;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
     min-height: 100dvh;
     text-rendering: optimizeLegibility;
   }
@@ -61,8 +60,8 @@
 
 /* BARRA DE ROLAGEM MODERNA E DISCRETA */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -70,12 +69,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.2);
+  background: hsl(var(--primary) / 0.1);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--accent) / 0.5);
+  background: hsl(var(--accent) / 0.4);
 }
 
 .content-auto {

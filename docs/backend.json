@@ -1,6 +1,23 @@
 
 {
   "entities": {
+    "Profile": {
+      "title": "Profile",
+      "type": "object",
+      "description": "Dados de perfil do estudante ou administrador.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "profile_type": { "type": "string", "enum": ["etec", "uni", "teacher"] },
+        "institution": { "type": "string" },
+        "course": { "type": "string" },
+        "is_financial_aid_eligible": { "type": "boolean" },
+        "last_access": { "type": "string", "format": "date-time" },
+        "last_financial_simulation": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email"]
+    },
     "Teacher": {
       "title": "Teacher",
       "type": "object",
@@ -14,10 +31,50 @@
       },
       "required": ["id", "name", "email"]
     },
+    "LearningTrail": {
+      "title": "LearningTrail",
+      "type": "object",
+      "description": "Trilha de aprendizado estruturada.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active"] },
+        "teacher_id": { "type": "string" },
+        "teacher_name": { "type": "string" },
+        "image_url": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "LearningModule": {
+      "title": "LearningModule",
+      "type": "object",
+      "description": "Módulo ou capítulo dentro de uma trilha.",
+      "properties": {
+        "id": { "type": "string" },
+        "trail_id": { "type": "string" },
+        "title": { "type": "string" },
+        "order_index": { "type": "number" }
+      }
+    },
+    "LearningContent": {
+      "title": "LearningContent",
+      "type": "object",
+      "description": "Aula individual (vídeo, texto ou quiz IA).",
+      "properties": {
+        "id": { "type": "string" },
+        "module_id": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["video", "pdf", "text", "quiz"] },
+        "url": { "type": "string" },
+        "description": { "type": "string", "description": "Contém o texto da aula ou o JSON do quiz." }
+      }
+    },
     "Live": {
       "title": "Live",
       "type": "object",
-      "description": "Represents a scheduled or active live streaming class.",
+      "description": "Transmissão ao vivo agendada.",
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
@@ -25,17 +82,14 @@
         "teacher_name": { "type": "string" },
         "teacher_id": { "type": "string" },
         "youtube_id": { "type": "string" },
-        "youtube_url": { "type": "string" },
-        "url": { "type": "string" },
         "start_time": { "type": "string", "format": "date-time" },
-        "trail_id": { "type": "string" },
-        "created_at": { "type": "string", "format": "date-time" }
+        "trail_id": { "type": "string" }
       }
     },
     "ForumPost": {
       "title": "ForumPost",
       "type": "object",
-      "description": "A message in a forum or live chat with interaction flags.",
+      "description": "Mensagem em chat de live ou fórum comunitário.",
       "properties": {
         "id": { "type": "string" },
         "forum_id": { "type": "string" },
@@ -46,23 +100,32 @@
         "is_answered": { "type": "boolean" },
         "created_at": { "type": "string", "format": "date-time" }
       }
+    },
+    "Notice": {
+      "title": "Notice",
+      "type": "object",
+      "description": "Aviso do mural de comunicados.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "priority": { "type": "string" },
+        "author": { "type": "string" },
+        "read_by": { "type": "array" }
+      }
     }
   },
   "auth": {
     "providers": ["password"]
   },
   "firestore": {
-    "/teachers/{teacherId}": {
-      "schema": "Teacher",
-      "description": "Teacher profiles."
-    },
-    "/lives/{liveId}": {
-      "schema": "Live",
-      "description": "Live classes data."
-    },
-    "/forum_posts/{postId}": {
-      "schema": "ForumPost",
-      "description": "Chat messages and pedagogical questions."
-    }
+    "/profiles/{uid}": { "schema": "Profile", "description": "User profiles and progress." },
+    "/teachers/{teacherId}": { "schema": "Teacher", "description": "Teacher data." },
+    "/learning_trails/{trailId}": { "schema": "LearningTrail", "description": "Course trails." },
+    "/learning_modules/{modId}": { "schema": "LearningModule", "description": "Trail chapters." },
+    "/learning_contents/{contentId}": { "schema": "LearningContent", "description": "Lessons and quizzes." },
+    "/lives/{liveId}": { "schema": "Live", "description": "Live events." },
+    "/forum_posts/{postId}": { "schema": "ForumPost", "description": "Chat/Forum messages." },
+    "/notices/{noticeId}": { "schema": "Notice", "description": "System bulletins." }
   }
 }
