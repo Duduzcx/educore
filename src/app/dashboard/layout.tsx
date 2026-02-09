@@ -19,7 +19,6 @@ const studentItems = [
   { icon: Library, label: "Biblioteca Digital", href: "/dashboard/library" },
   { icon: Video, label: "Aulas ao Vivo", href: "/dashboard/live" },
   { icon: Wallet, label: "Simulador de Isenção", href: "/dashboard/financial-aid" },
-  { icon: HelpCircle, label: "Central da Aurora", href: "/dashboard/support" },
 ];
 
 const teacherItems = [
@@ -30,8 +29,6 @@ const teacherItems = [
   { icon: MessagesSquare, label: "Fórum Pedagógico", href: "/dashboard/forum" },
   { icon: MessageSquare, label: "Chats com Alunos", href: "/dashboard/chat", badge: true },
   { icon: Bell, label: "Mural de Avisos", href: "/dashboard/teacher/communication" },
-  { icon: FilePenLine, label: "Avaliações IA", href: "/dashboard/teacher/essays" },
-  { icon: Users, label: "Gestão de Alunos", href: "/dashboard/teacher/students" },
   { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
 ];
 
@@ -83,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
-  // Inteligência de Scroll: Trava o scroll do container principal apenas em páginas de "App"
+  // Inteligência de Scroll: Trava o scroll do container principal APENAS em páginas de Aplicativo
   const isAppPage = useMemo(() => {
     return pathname.includes('/chat/') || 
            pathname.includes('/forum/') || 
@@ -141,8 +138,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-background flex flex-col min-h-0 h-screen overflow-hidden">
-        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-6 shrink-0 transition-all duration-300">
+      <SidebarInset className="bg-background flex flex-col h-screen overflow-hidden">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-6 shrink-0">
           <SidebarTrigger className="h-9 w-9 rounded-full hover:bg-muted transition-colors" />
           <div className="flex-1" />
           <div className="flex items-center gap-4">
@@ -157,8 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
-        {/* O container principal agora controla a rolagem de forma inteligente */}
-        <main className={`flex-1 min-h-0 flex flex-col ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in duration-500`}>
+        <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in`}>
           {children}
         </main>
       </SidebarInset>

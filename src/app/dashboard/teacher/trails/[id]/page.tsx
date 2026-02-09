@@ -74,17 +74,11 @@ export default function TrailManagementPage() {
   const loadData = useCallback(async () => {
     if (!user || !trailId) return;
     
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trailId);
-    
-    if (!isUuid) {
-      setLoading(false);
-      return;
-    }
-
+    setLoading(true);
     try {
       const [trailRes, modulesRes] = await Promise.all([
-        supabase.from('learning_trails').select('id, title, category, status').eq('id', trailId).single(),
-        supabase.from('learning_modules').select('id, title, order_index').eq('trail_id', trailId).order('order_index', { ascending: true })
+        supabase.from('learning_trails').select('*').eq('id', trailId).single(),
+        supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true })
       ]);
 
       if (trailRes.data) setTrail(trailRes.data);
@@ -95,7 +89,7 @@ export default function TrailManagementPage() {
         const moduleIds = modulesData.map(m => m.id);
         const { data: contentsData } = await supabase
           .from('learning_contents')
-          .select('id, module_id, title, type, url, description')
+          .select('*')
           .in('module_id', moduleIds)
           .order('created_at', { ascending: true });
         
@@ -107,7 +101,7 @@ export default function TrailManagementPage() {
         setContents(groupedContents);
       }
     } catch (err) {
-      console.error("Erro ao carregar dados da trilha:", err);
+      console.error("Erro ao carregar dados:", err);
     } finally {
       setLoading(false);
     }
@@ -127,10 +121,10 @@ export default function TrailManagementPage() {
       .eq('id', trailId);
 
     if (!error) {
-      toast({ title: "Trilha Ativa!", description: "O conteúdo agora está visível para todos os alunos." });
+      toast({ title: "Trilha Publicada!", description: "O conteúdo agora está visível para a rede." });
       loadData();
     } else {
-      toast({ title: "Erro ao publicar", variant: "destructive" });
+      toast({ title: "Falha na Publicação", variant: "destructive" });
     }
     setIsPublishing(false);
   };
@@ -146,12 +140,12 @@ export default function TrailManagementPage() {
         created_at: new Date().toISOString()
       });
       if (error) throw error;
-      toast({ title: "Módulo Adicionado!" });
+      toast({ title: "Capítulo Criado!" });
       setModuleForm({ title: "" });
       setIsModuleDialogOpen(false);
       loadData(); 
     } catch (err) {
-      toast({ title: "Erro ao Adicionar", variant: "destructive" });
+      toast({ title: "Erro ao criar capítulo", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -170,13 +164,13 @@ export default function TrailManagementPage() {
         created_at: new Date().toISOString()
       });
       if (error) throw error;
-      toast({ title: "Material Anexado!" });
+      toast({ title: "Aula Anexada!" });
       setContentForm({ title: "", type: "video", url: "", description: "" });
       setIsContentDialogOpen(false);
       setActiveModuleId(null);
       loadData(); 
     } catch (err) {
-      toast({ title: "Erro ao Anexar", variant: "destructive" });
+      toast({ title: "Erro ao anexar aula", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -189,15 +183,14 @@ export default function TrailManagementPage() {
     setAiQuizData(null);
 
     try {
-      // Pega o contexto do módulo (títulos das aulas existentes)
       const contextText = contents[modId]?.map(c => c.title).join(", ") || "";
       const result = await generateQuiz({ 
         topic: modTitle, 
-        description: `Esta unidade aborda: ${contextText}` 
+        description: `Esta unidade aborda os seguintes tópicos: ${contextText}` 
       });
       setAiQuizData(result);
     } catch (err) {
-      toast({ title: "Erro Aurora", description: "Não foi possível gerar o quiz agora.", variant: "destructive" });
+      toast({ title: "Erro Aurora IA", description: "Não foi possível gerar o quiz no momento.", variant: "destructive" });
       setIsAiQuizDialogOpen(false);
     } finally {
       setIsGeneratingQuiz(false);
@@ -210,13 +203,13 @@ export default function TrailManagementPage() {
     try {
       const { error } = await supabase.from('learning_contents').insert({
         module_id: activeModuleId,
-        title: "Avaliação IA - " + modules.find(m => m.id === activeModuleId)?.title,
+        title: "Quiz IA: " + modules.find(m => m.id === activeModuleId)?.title,
         type: "quiz",
         description: JSON.stringify(aiQuizData.questions),
         created_at: new Date().toISOString()
       });
       if (error) throw error;
-      toast({ title: "Quiz IA Publicado!" });
+      toast({ title: "Avaliação IA Publicada!" });
       setIsAiQuizDialogOpen(false);
       loadData();
     } catch (err) {
@@ -229,7 +222,7 @@ export default function TrailManagementPage() {
   const handleDeleteModule = async (id: string) => {
     const { error } = await supabase.from('learning_modules').delete().eq('id', id);
     if (!error) {
-      toast({ title: "Módulo removido" });
+      toast({ title: "Capítulo removido" });
       loadData();
     }
   };
@@ -237,7 +230,7 @@ export default function TrailManagementPage() {
   const handleDeleteContent = async (id: string) => {
     const { error } = await supabase.from('learning_contents').delete().eq('id', id);
     if (!error) {
-      toast({ title: "Conteúdo removido" });
+      toast({ title: "Aula removida" });
       loadData();
     }
   };
@@ -249,44 +242,30 @@ export default function TrailManagementPage() {
     </div>
   );
 
-  const isDemoTrail = !trail && !loading;
-
   return (
     <div className="max-w-6xl mx-auto w-full space-y-10 animate-in fade-in duration-500 pb-20">
-      {isDemoTrail && (
-        <Card className="bg-amber-50 border-2 border-amber-200 p-6 rounded-[2rem] flex items-center gap-4">
-          <AlertCircle className="h-8 w-8 text-amber-600" />
-          <div>
-            <p className="font-black text-amber-900 italic uppercase text-xs">Modo Visualização (Trilha de Exemplo)</p>
-            <p className="text-amber-700 text-sm font-medium">Crie uma trilha real para gerenciar módulos e aulas no banco de dados.</p>
-          </div>
-        </Card>
-      )}
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-12 w-12 bg-white shadow-sm border border-muted/20 hover:scale-110 transition-transform"><ChevronLeft className="h-6 w-6" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-12 w-12 bg-white shadow-sm border hover:scale-110 transition-transform"><ChevronLeft className="h-6 w-6" /></Button>
           <div className="space-y-1">
-            <h1 className="text-3xl font-black text-primary italic leading-none">{trail?.title || "Gerenciador de Trilha"}</h1>
+            <h1 className="text-3xl font-black text-primary italic leading-none">{trail?.title || "Gestão da Trilha"}</h1>
             <div className="flex items-center gap-2">
               <Badge variant={trail?.status === 'active' ? 'default' : 'outline'} className={`text-[10px] font-black uppercase tracking-widest ${trail?.status === 'active' ? 'bg-green-600 border-none' : 'border-orange-500 text-orange-500'}`}>
                 {trail?.status === 'active' ? 'PÚBLICA NA REDE' : 'RASCUNHO PRIVADO'}
               </Badge>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">• {modules.length} Capítulos Planejados</span>
+              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">• {modules.length} Capítulos</span>
             </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" className="rounded-xl h-12 border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm group" asChild>
             <Link href={`/dashboard/classroom/${trailId}`}>
-              <Eye className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" /> Visão do Aluno
+              <Eye className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" /> Ver como Aluno
             </Link>
           </Button>
-          {!isDemoTrail && (
-            <Button onClick={() => setIsModuleDialogOpen(true)} className="bg-accent text-accent-foreground font-black rounded-xl shadow-xl h-12 px-8 hover:scale-105 active:scale-95 transition-all">
-              <Plus className="h-5 w-5 mr-2" /> Novo Capítulo
-            </Button>
-          )}
+          <Button onClick={() => setIsModuleDialogOpen(true)} className="bg-accent text-accent-foreground font-black rounded-xl shadow-xl h-12 px-8 hover:scale-105 transition-all">
+            <Plus className="h-5 w-5 mr-2" /> Novo Capítulo
+          </Button>
         </div>
       </div>
 
@@ -295,29 +274,29 @@ export default function TrailManagementPage() {
           {modules.length === 0 ? (
             <div className="p-20 text-center border-4 border-dashed border-muted/20 rounded-[2.5rem] bg-muted/5 opacity-40">
               <BookOpen className="h-16 w-16 mx-auto mb-4" />
-              <p className="font-black italic text-xl">Estrutura Vazia</p>
-              <p className="text-sm font-medium mt-2">Clique em "Novo Capítulo" para iniciar o roteiro.</p>
+              <p className="font-black italic text-xl">Nenhuma unidade criada</p>
+              <p className="text-sm font-medium mt-2">Clique em "Novo Capítulo" para iniciar o roteiro pedagógico.</p>
             </div>
           ) : (
             modules.map((mod, idx) => (
-              <Card key={mod.id} className="border-none shadow-lg bg-white overflow-hidden rounded-[2.5rem] border-l-8 border-l-primary/10 group/card">
+              <Card key={mod.id} className="border-none shadow-lg bg-white overflow-hidden rounded-[2.5rem] border-l-8 border-l-primary/10">
                 <CardHeader className="bg-muted/5 p-8 flex flex-row items-center justify-between">
                   <div className="flex items-center gap-6">
                     <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center font-black italic shadow-lg">{idx + 1}</div>
                     <div>
                       <CardTitle className="text-xl font-black text-primary italic">{mod.title}</CardTitle>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Unidade Pedagógica</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Unidade Curricular</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteModule(mod.id)} className="text-muted-foreground hover:text-red-500 rounded-full transition-colors">
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteModule(mod.id)} className="text-muted-foreground hover:text-red-500 rounded-full">
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <Button onClick={() => handleGenerateAiQuiz(mod.id, mod.title)} className="bg-accent text-accent-foreground hover:bg-accent/90 font-black text-[9px] uppercase rounded-xl h-10 px-4 transition-all shadow-md gap-2">
+                    <Button onClick={() => handleGenerateAiQuiz(mod.id, mod.title)} className="bg-accent text-accent-foreground hover:bg-accent/90 font-black text-[9px] uppercase rounded-xl h-10 px-4 shadow-md gap-2">
                       <Sparkles className="h-3 w-3" /> Gerar Quiz IA
                     </Button>
-                    <Button onClick={() => { setActiveModuleId(mod.id); setIsContentDialogOpen(true); }} className="bg-primary text-white hover:bg-primary/90 font-black text-[9px] uppercase rounded-xl h-10 px-4 transition-all shadow-md gap-2">
-                      <Plus className="h-3 w-3" /> Add Conteúdo
+                    <Button onClick={() => { setActiveModuleId(mod.id); setIsContentDialogOpen(true); }} className="bg-primary text-white hover:bg-primary/90 font-black text-[9px] uppercase rounded-xl h-10 px-4 shadow-md gap-2">
+                      <Plus className="h-3 w-3" /> Add Aula
                     </Button>
                   </div>
                 </CardHeader>
@@ -334,21 +313,21 @@ export default function TrailManagementPage() {
                               <p className="font-black text-sm text-primary truncate">{content.title}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="outline" className="text-[7px] font-black uppercase bg-white border-none px-2">{content.type}</Badge>
-                                <p className="text-[10px] text-muted-foreground font-medium truncate italic line-clamp-1">{content.type === 'quiz' ? 'Avaliação gerada por IA' : content.description || "Sem resumo informado."}</p>
+                                <p className="text-[10px] text-muted-foreground font-medium truncate italic line-clamp-1">{content.type === 'quiz' ? 'Avaliação gerada por Aurora IA' : content.description || "Sem resumo informado."}</p>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             {content.type !== 'quiz' && (
-                              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary hover:text-white shadow-sm" onClick={() => window.open(content.url, '_blank')}><ExternalLink className="h-5 w-5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary hover:text-white" onClick={() => window.open(content.url, '_blank')}><ExternalLink className="h-5 w-5" /></Button>
                             )}
-                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-red-500 hover:text-white shadow-sm" onClick={() => handleDeleteContent(content.id)}><Trash2 className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-red-500 hover:text-white" onClick={() => handleDeleteContent(content.id)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-center py-10 text-[10px] font-black uppercase text-muted-foreground/40 italic border-2 border-dashed border-muted/20 rounded-2xl">Nenhum material vinculado.</p>
+                    <p className="text-center py-10 text-[10px] font-black uppercase text-muted-foreground/40 italic border-2 border-dashed border-muted/20 rounded-2xl">Nenhuma aula vinculada.</p>
                   )}
                 </CardContent>
               </Card>
@@ -365,20 +344,18 @@ export default function TrailManagementPage() {
                   {trail?.status === 'active' ? <Globe className="h-8 w-8 text-green-400 animate-pulse" /> : <Settings2 className="h-8 w-8 text-accent" />}
                 </div>
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status da Jornada</p>
-                  <p className="text-2xl font-black italic uppercase">{trail?.status === 'active' ? 'Publicada' : 'Rascunho'}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status da Trilha</p>
+                  <p className="text-2xl font-black italic uppercase">{trail?.status === 'active' ? 'Ativa na Rede' : 'Em Construção'}</p>
                 </div>
               </div>
-              {!isDemoTrail && (
-                <Button 
-                  onClick={handlePublish} 
-                  disabled={isPublishing || trail?.status === 'active'} 
-                  className={`w-full font-black h-14 rounded-2xl shadow-xl transition-all border-none ${trail?.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground hover:bg-accent/90'}`}
-                >
-                  {isPublishing ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : trail?.status === 'active' ? <CheckCircle2 className="h-5 w-5 mr-2" /> : <Globe className="h-5 w-5 mr-2" />}
-                  {trail?.status === 'active' ? 'Conteúdo Publicado' : 'Publicar para a Rede'}
-                </Button>
-              )}
+              <Button 
+                onClick={handlePublish} 
+                disabled={isPublishing || trail?.status === 'active'} 
+                className={`w-full font-black h-14 rounded-2xl shadow-xl transition-all border-none ${trail?.status === 'active' ? 'bg-green-600 hover:bg-green-700' : 'bg-accent text-accent-foreground hover:bg-accent/90'}`}
+              >
+                {isPublishing ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : trail?.status === 'active' ? <CheckCircle2 className="h-5 w-5 mr-2" /> : <Globe className="h-5 w-5 mr-2" />}
+                {trail?.status === 'active' ? 'Publicada para Alunos' : 'Publicar Agora'}
+              </Button>
             </div>
           </Card>
         </div>
@@ -391,11 +368,11 @@ export default function TrailManagementPage() {
           <div className="py-6 space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase opacity-40 mb-2 block">Título da Unidade</Label>
-              <Input placeholder="Ex: Introdução ao Cálculo" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg focus:ring-accent" />
+              <Input placeholder="Ex: Fundamentos da Matéria" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg" />
             </div>
           </div>
           <Button onClick={handleAddModule} disabled={isSubmitting || !moduleForm.title} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl active:scale-95 transition-all">
-            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Unidade"}
+            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Capítulo"}
           </Button>
         </DialogContent>
       </Dialog>
@@ -403,36 +380,36 @@ export default function TrailManagementPage() {
       {/* DIÁLOGO CONTEÚDO */}
       <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
         <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white border-none shadow-2xl">
-          <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Configurar Aula</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Anexar Material</DialogTitle></DialogHeader>
           <div className="space-y-6 py-6 max-h-[70vh] overflow-y-auto pr-2 scrollbar-hide">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Tipo</Label>
+              <Label className="text-[10px] font-black uppercase opacity-40">Formato</Label>
               <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})}>
                 <SelectTrigger className="h-14 rounded-xl bg-muted/30 border-none font-bold"><SelectValue /></SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="video">🎞️ Videoaula</SelectItem>
-                  <SelectItem value="pdf">📄 PDF / Drive</SelectItem>
-                  <SelectItem value="text">📝 Aula em Texto</SelectItem>
+                  <SelectItem value="video">🎞️ Videoaula (YouTube)</SelectItem>
+                  <SelectItem value="pdf">📄 PDF / Apostila</SelectItem>
+                  <SelectItem value="text">📝 Resumo Escrito</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Título</Label>
+              <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
               <Input value={contentForm.title} onChange={(e) => setContentForm({...contentForm, title: e.target.value})} className="h-14 rounded-xl bg-muted/30 border-none font-bold" />
             </div>
             {contentForm.type !== 'text' && (
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">URL / Link</Label>
+                <Label className="text-[10px] font-black uppercase opacity-40">Link Externo</Label>
                 <Input value={contentForm.url} onChange={(e) => setContentForm({...contentForm, url: e.target.value})} className="h-14 rounded-xl bg-muted/30 border-none font-medium" />
               </div>
             )}
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40">Resumo / Conteúdo</Label>
+              <Label className="text-[10px] font-black uppercase opacity-40">Resumo / Detalhes</Label>
               <Textarea value={contentForm.description} onChange={(e) => setContentForm({...contentForm, description: e.target.value})} className="min-h-[150px] rounded-xl bg-muted/30 border-none resize-none p-4" />
             </div>
           </div>
           <Button onClick={handleAddContent} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl">
-            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Aula"}
+            {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Material"}
           </Button>
         </DialogContent>
       </Dialog>
@@ -450,7 +427,7 @@ export default function TrailManagementPage() {
             {isGeneratingQuiz ? (
               <div className="py-20 flex flex-col items-center justify-center gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-accent" />
-                <p className="font-black text-primary italic animate-pulse">Aurora formulando questões estilo ENEM...</p>
+                <p className="font-black text-primary italic animate-pulse">Aurora formulando questões...</p>
               </div>
             ) : aiQuizData ? (
               <div className="space-y-8">
@@ -477,7 +454,7 @@ export default function TrailManagementPage() {
                       <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-start gap-3">
                         <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                         <p className="text-[10px] font-medium text-amber-800 leading-relaxed">
-                          <strong>Feedback Pedagógico:</strong> {q.explanation}
+                          <strong>Explicação Aurora:</strong> {q.explanation}
                         </p>
                       </div>
                     </CardContent>
@@ -491,7 +468,7 @@ export default function TrailManagementPage() {
             <Button variant="outline" onClick={() => setIsAiQuizDialogOpen(false)} className="flex-1 h-14 rounded-2xl font-black uppercase text-xs">Descartar</Button>
             <Button onClick={handleSaveAiQuiz} disabled={isSubmitting || isGeneratingQuiz || !aiQuizData} className="flex-1 h-14 bg-primary text-white rounded-2xl font-black uppercase text-xs shadow-xl">
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-              Aprovar e Publicar Quiz
+              Aprovar e Publicar
             </Button>
           </div>
         </DialogContent>

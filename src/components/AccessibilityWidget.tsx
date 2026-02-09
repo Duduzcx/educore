@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -5,7 +6,6 @@ import { MessageCircle, HandMetal, Send, Bot, User, Sparkles, Loader2, Eraser, X
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Sheet, 
   SheetContent, 
@@ -24,7 +24,7 @@ interface Message {
 export function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Olá! Sou a Aurora. Como posso ajudar você agora?" }
+    { role: "assistant", content: "Olá! Sou a Aurora. Como posso ajudar seu aprendizado hoje?" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,7 +61,7 @@ export function AccessibilityWidget() {
         setMessages(prev => [...prev, { role: "assistant", content: result.response }]);
       }
     } catch (err) {
-      toast({ title: "Aurora está processando dados", variant: "destructive" });
+      toast({ title: "Aurora está ocupada agora", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export function AccessibilityWidget() {
         <SheetTrigger asChild>
           <button 
             className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group relative"
-            title="Falar com a Aurora"
+            title="Abrir Aurora IA"
           >
             <MessageCircle className="h-7 w-7 transition-transform group-hover:rotate-12 text-accent" />
             <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full border-2 border-white animate-bounce" />
@@ -88,7 +88,7 @@ export function AccessibilityWidget() {
                 </div>
                 <div className="text-left">
                   <SheetTitle className="text-white font-black italic leading-none">Aurora IA</SheetTitle>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-accent mt-1">Assistente Ativa</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-accent mt-1">SISTEMA DE APOIO ATIVO</p>
                 </div>
               </div>
               <Button 
@@ -135,7 +135,7 @@ export function AccessibilityWidget() {
               <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Pergunte qualquer coisa..."
+                placeholder="Tire uma dúvida agora..."
                 disabled={loading}
                 className="border-none shadow-none focus-visible:ring-0 text-xs font-bold italic h-10 bg-transparent"
               />
@@ -148,14 +148,14 @@ export function AccessibilityWidget() {
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </form>
-            <p className="text-[7px] text-center text-muted-foreground mt-3 uppercase font-black tracking-widest opacity-40">Tecnologia Gemini 1.5 Flash</p>
+            <p className="text-[7px] text-center text-muted-foreground mt-3 uppercase font-black tracking-widest opacity-40">Powered by Genkit & Gemini 1.5 Flash</p>
           </div>
         </SheetContent>
       </Sheet>
 
       <button 
         className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group" 
-        title="Acessibilidade - VLibras"
+        title="Acessibilidade VLibras"
       >
         <HandMetal className="h-6 w-6 transition-transform group-hover:rotate-12" />
       </button>

@@ -16,16 +16,13 @@ import {
   Video, 
   Radio, 
   MessageCircle,
-  Users,
   Zap,
   Clock,
   Signal,
-  Activity,
-  History,
-  ExternalLink,
-  Eye,
+  Calendar as CalendarIcon,
   ChevronRight,
-  Calendar as CalendarIcon
+  Eye,
+  History
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -58,12 +55,12 @@ export default function TeacherLiveManagement() {
     if (!user) return;
     setLivesLoading(true);
     try {
-      const { data: livesData, error: lError } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
-      if (!lError) setLives(livesData || []);
+      const { data: livesData } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
+      setLives(livesData || []);
       
       const { data: trailsData } = await supabase.from('learning_trails').select('id, title').eq('teacher_id', user.id);
       setTrails(trailsData || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
     } finally {
       setLivesLoading(false);
@@ -77,7 +74,7 @@ export default function TeacherLiveManagement() {
   const handleCreateLive = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !liveForm.title || !liveForm.youtube_id || !liveDate || !liveTime) {
-      toast({ variant: "destructive", title: "Campos Incompletos", description: "Por favor, defina o título, o link e o cronograma (data/hora)." });
+      toast({ variant: "destructive", title: "Campos Obrigatórios", description: "Defina título, link, data e horário." });
       return;
     }
 
@@ -92,11 +89,10 @@ export default function TeacherLiveManagement() {
       const { data, error } = await supabase.from('lives').insert({
         title: liveForm.title,
         description: liveForm.description,
-        teacher_name: user.user_metadata?.full_name || "Docente da Rede",
+        teacher_name: user.user_metadata?.full_name || "Mentor",
         teacher_id: user.id,
         youtube_id: cleanYid,
         youtube_url: `https://www.youtube.com/watch?v=${cleanYid}`,
-        url: `https://www.youtube.com/watch?v=${cleanYid}`,
         start_time: combinedStartTime,
         trail_id: liveForm.trail_id === 'none' ? null : liveForm.trail_id
       }).select().single();
@@ -104,42 +100,15 @@ export default function TeacherLiveManagement() {
       if (error) throw error;
 
       setLives([data, ...lives]);
-      toast({ title: "Transmissão Agendada!", description: "O sinal já está configurado no portal." });
+      toast({ title: "Sinal Agendado!", description: "A live já está configurada no cronograma." });
+      setIsAddOpen(false);
       setForm({ title: "", description: "", youtube_id: "", trail_id: "none" });
       setLiveDate("");
       setLiveTime("");
-      setIsAddOpen(false);
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro no Estúdio", description: "Verifique os dados ou se as tabelas existem." });
+    } catch (err) {
+      toast({ variant: "destructive", title: "Erro no Agendamento" });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleSeedLives = async () => {
-    if (!user) return;
-    setIsSeeding(true);
-    try {
-      const demoLives = [
-        {
-          title: "Aulão de Redação: Nota 1000",
-          description: "Técnicas de argumentação para o ENEM.",
-          teacher_name: user.user_metadata?.full_name || "Mentor",
-          teacher_id: user.id,
-          youtube_id: "rfscVS0vtbw",
-          youtube_url: "https://www.youtube.com/watch?v=rfscVS0vtbw",
-          url: "https://www.youtube.com/watch?v=rfscVS0vtbw",
-          start_time: new Date().toISOString()
-        }
-      ];
-      const { error } = await supabase.from('lives').insert(demoLives);
-      if (error) throw error;
-      toast({ title: "Estúdio Populado!", description: "Transmissões de demonstração criadas." });
-      fetchData();
-    } catch (err) {
-      toast({ variant: "destructive", title: "Erro ao gerar demos" });
-    } finally {
-      setIsSeeding(false);
     }
   };
 
@@ -147,14 +116,13 @@ export default function TeacherLiveManagement() {
     const { error } = await supabase.from('lives').delete().eq('id', id);
     if (!error) {
       setLives(lives.filter(l => l.id !== id));
-      toast({ title: "Sinal Encerrado", description: "A transmissão foi removida do sistema." });
+      toast({ title: "Live Removida" });
     }
   };
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-700 pb-20 max-w-[1600px] mx-auto">
       <div className="relative bg-slate-950 rounded-[2.5rem] p-8 md:p-12 overflow-hidden shadow-2xl border-b-8 border-red-600">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-red-600/10 to-transparent pointer-events-none" />
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-4">
@@ -163,132 +131,86 @@ export default function TeacherLiveManagement() {
               </div>
               <div>
                 <h1 className="text-3xl md:text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Studio Core</h1>
-                <p className="text-red-500 font-bold text-[10px] tracking-[0.3em] uppercase mt-2">Master Control Room • Ativo</p>
+                <p className="text-red-500 font-bold text-[10px] tracking-[0.3em] uppercase mt-2">Centro de Monitoramento Ativo</p>
               </div>
             </div>
             <p className="text-slate-400 font-medium max-w-xl italic text-sm md:text-lg">
-              Gerencie transmissões e interaja com alunos em tempo real através do monitoramento de estúdio integrado.
+              Gerencie transmissões agendadas e interaja com a rede em tempo real.
             </p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-4">
-            <Button 
-              variant="outline" 
-              onClick={handleSeedLives} 
-              disabled={isSeeding}
-              className="rounded-2xl h-14 border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 px-6 font-black uppercase text-[10px] tracking-widest transition-all"
-            >
-              {isSeeding ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <History className="h-4 w-4 mr-2 text-red-500" />}
-              Restaurar Demos
-            </Button>
-            
-            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-              <DialogTrigger asChild>
-                <Button className="rounded-2xl h-14 bg-red-600 text-white font-black px-8 shadow-[0_10px_40px_rgba(220,38,38,0.4)] hover:bg-red-700 hover:scale-105 active:scale-95 transition-all">
-                  <Plus className="h-6 w-6 mr-2" /> Agendar Nova Live
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white border-none shadow-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-black italic text-primary flex items-center gap-3">
-                    <Video className="h-6 w-6 text-red-600" /> Configurar Sinal
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleCreateLive} className="space-y-6 py-6">
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button className="rounded-2xl h-14 bg-red-600 text-white font-black px-8 shadow-xl hover:bg-red-700 transition-all">
+                <Plus className="h-6 w-6 mr-2" /> Agendar Nova Live
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white border-none shadow-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black italic text-primary">Configurar Transmissão</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreateLive} className="space-y-6 py-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
+                  <Input 
+                    placeholder="Ex: Revisão ENEM Química" 
+                    value={liveForm.title}
+                    onChange={(e) => setForm({...liveForm, title: e.target.value})}
+                    className="h-14 rounded-2xl bg-muted/30 border-none font-bold"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase opacity-40">Vincular à Trilha (Opcional)</Label>
-                    <Select value={liveForm.trail_id} onValueChange={(v) => setForm({...liveForm, trail_id: v})}>
-                      <SelectTrigger className="h-14 rounded-2xl bg-muted/30 border-none font-bold">
-                        <SelectValue placeholder="Selecione uma trilha" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        <SelectItem value="none">Live Geral (Mural de Lives)</SelectItem>
-                        {trails.map(t => (
-                          <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase opacity-40">Título da Live</Label>
+                    <Label className="text-[10px] font-black uppercase opacity-40">Data da Aula</Label>
                     <Input 
-                      placeholder="Ex: Revisão de Cálculo" 
-                      value={liveForm.title}
-                      onChange={(e) => setForm({...liveForm, title: e.target.value})}
+                      type="date"
+                      value={liveDate}
+                      onChange={(e) => setLiveDate(e.target.value)}
                       className="h-14 rounded-2xl bg-muted/30 border-none font-bold"
                       required
                     />
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase opacity-40">Data da Aula</Label>
-                      <Input 
-                        type="date"
-                        value={liveDate}
-                        onChange={(e) => setLiveDate(e.target.value)}
-                        className="h-14 rounded-2xl bg-muted/30 border-none font-bold"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase opacity-40">Horário</Label>
-                      <Input 
-                        type="time"
-                        value={liveTime}
-                        onChange={(e) => setLiveTime(e.target.value)}
-                        className="h-14 rounded-2xl bg-muted/30 border-none font-bold"
-                        required
-                      />
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase opacity-40">Link ou ID do YouTube</Label>
-                    <div className="relative">
-                      <Youtube className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-red-600" />
-                      <Input 
-                        placeholder="youtube.com/watch?v=..." 
-                        value={liveForm.youtube_id}
-                        onChange={(e) => setForm({...liveForm, youtube_id: e.target.value})}
-                        className="h-14 pl-12 rounded-2xl bg-muted/30 border-none font-medium"
-                        required
-                      />
-                    </div>
+                    <Label className="text-[10px] font-black uppercase opacity-40">Horário de Início</Label>
+                    <Input 
+                      type="time"
+                      value={liveTime}
+                      onChange={(e) => setLiveTime(e.target.value)}
+                      className="h-14 rounded-2xl bg-muted/30 border-none font-bold"
+                      required
+                    />
                   </div>
-                  <Button type="submit" disabled={isSubmitting} className="w-full h-16 bg-red-600 text-white font-black text-lg rounded-2xl shadow-xl">
-                    {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Iniciar Agendamento"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase opacity-40">ID do Vídeo YouTube</Label>
+                  <Input 
+                    placeholder="Ex: rfscVS0vtbw" 
+                    value={liveForm.youtube_id}
+                    onChange={(e) => setForm({...liveForm, youtube_id: e.target.value})}
+                    className="h-14 rounded-2xl bg-muted/30 border-none font-medium"
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={isSubmitting} className="w-full h-16 bg-red-600 text-white font-black text-lg rounded-2xl shadow-xl">
+                  {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Agendar Agora"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
         <div className="xl:col-span-3 space-y-6">
-          <div className="flex items-center justify-between px-4">
-            <h2 className="text-xl font-black text-primary italic flex items-center gap-3">
-              <MonitorPlay className="h-6 w-6 text-red-600" />
-              Monitoramento de Sinais
-            </h2>
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sistema Operacional</span>
-            </div>
-          </div>
-
           {livesLoading ? (
-            <div className="py-32 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="animate-spin h-12 w-12 text-red-600" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Sincronizando Estúdio...</p>
-            </div>
+            <div className="py-32 flex justify-center"><Loader2 className="animate-spin h-12 w-12 text-red-600" /></div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {lives.map((live) => (
-                <Card key={live.id} className="group border-none bg-white rounded-[2.5rem] overflow-hidden shadow-xl hover:shadow-[0_20px_60px_-15px_rgba(220,38,38,0.2)] transition-all duration-500 flex flex-col border-t-4 border-transparent hover:border-red-600">
+                <Card key={live.id} className="group border-none bg-white rounded-[2.5rem] overflow-hidden shadow-xl transition-all duration-500 hover:border-red-600 border-t-4 border-transparent flex flex-col">
                   <div className="relative aspect-video bg-slate-900 overflow-hidden">
                     <img 
                       src={`https://img.youtube.com/vi/${live.youtube_id}/maxresdefault.jpg`} 
@@ -296,11 +218,10 @@ export default function TeacherLiveManagement() {
                       alt={live.title}
                       onError={(e) => { (e.target as any).src = `https://img.youtube.com/vi/${live.youtube_id}/mqdefault.jpg` }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent opacity-90" />
-                    
-                    <div className="absolute bottom-6 left-6 right-6">
-                       <h3 className="text-2xl font-black text-white italic leading-tight line-clamp-1">{live.title}</h3>
-                       <div className="flex items-center gap-4 mt-3 text-white/60">
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent" />
+                    <div className="absolute bottom-6 left-6">
+                       <h3 className="text-2xl font-black text-white italic leading-tight">{live.title}</h3>
+                       <div className="flex items-center gap-4 mt-2 text-white/60">
                          <div className="flex items-center gap-1.5">
                            <CalendarIcon className="h-3.5 w-3.5 text-red-500" />
                            <span className="text-[10px] font-bold uppercase">{new Date(live.start_time).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}</span>
@@ -315,19 +236,11 @@ export default function TeacherLiveManagement() {
                   
                   <CardContent className="p-8 flex flex-col gap-6 bg-white mt-auto">
                     <div className="flex items-center justify-between">
-                      <Badge variant="outline" className="border-slate-200 text-slate-600 font-bold">
-                        {trails.find(t => t.id === live.trail_id)?.title || 'Geral'}
-                      </Badge>
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => window.open(live.youtube_url || live.url, '_blank')} className="rounded-full text-slate-400 hover:text-primary" title="Ver como Aluno"><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(live.id)} className="rounded-full text-slate-400 hover:text-red-600" title="Remover Sinal"><Trash2 className="h-4 w-4" /></Button>
-                      </div>
+                      <Badge variant="outline" className="border-slate-200 text-slate-600 font-bold uppercase text-[8px]">Agendada</Badge>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(live.id)} className="rounded-full text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></Button>
                     </div>
-                    
-                    <Button asChild className="w-full bg-slate-900 text-white hover:bg-red-600 font-black h-14 rounded-2xl shadow-xl gap-3 transition-all">
-                      <Link href={`/dashboard/teacher/live/${live.id}`}>
-                        Monitorar Estúdio <ChevronRight className="h-5 w-5" />
-                      </Link>
+                    <Button asChild className="w-full bg-slate-900 text-white hover:bg-red-600 font-black h-14 rounded-2xl shadow-xl gap-3">
+                      <Link href={`/dashboard/teacher/live/${live.id}`}>Monitorar Estúdio <ChevronRight className="h-5 w-5" /></Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -338,27 +251,12 @@ export default function TeacherLiveManagement() {
 
         <div className="space-y-8">
           <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-xl">
-            <div className="space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600"><Zap className="h-6 w-6" /></div>
-                <div>
-                  <p className="text-[10px] font-black uppercase opacity-40">Status Rede</p>
-                  <p className="text-xl font-black italic">Operacional</p>
-                </div>
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600"><Zap className="h-6 w-6" /></div>
+              <div>
+                <p className="text-[10px] font-black uppercase opacity-40">Status Rede</p>
+                <p className="text-xl font-black italic">Operacional</p>
               </div>
-              <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full w-[98%] bg-green-500" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="border-none bg-slate-900 text-white rounded-[2.5rem] p-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center text-blue-400"><MessageCircle className="h-5 w-5" /></div>
-                <p className="font-black italic">Fluxo de Interação</p>
-              </div>
-              <p className="text-[11px] text-white/60 leading-relaxed italic">As perguntas dos alunos aparecem instantaneamente no seu monitor de estúdio. Clique em "Monitorar" para interagir.</p>
             </div>
           </Card>
         </div>

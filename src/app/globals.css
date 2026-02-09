@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -42,7 +43,7 @@
   
   html, body {
     width: 100%;
-    height: 100%;
+    min-height: 100%;
     position: relative;
     scroll-behavior: smooth;
   }
@@ -51,16 +52,14 @@
     @apply bg-background text-foreground font-body antialiased;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
-    min-height: 100dvh;
     text-rendering: optimizeLegibility;
-    overflow-x: hidden;
   }
 }
 
 /* BARRA DE ROLAGEM MODERNA E DISCRETA */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -68,26 +67,24 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary) / 0.15);
+  background: hsl(var(--primary) / 0.1);
   border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--accent) / 0.4);
+  background: hsl(var(--accent) / 0.3);
+  background-clip: padding-box;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-.content-auto {
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 1000px;
-}
-
-img { 
-  content-visibility: auto;
-  transform: translateZ(0); 
+/* Prevenção de conflito de scroll em mobile */
+.overflow-touch {
+  -webkit-overflow-scrolling: touch;
 }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
