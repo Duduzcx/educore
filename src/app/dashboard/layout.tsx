@@ -1,8 +1,7 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, FilePenLine, MessageSquare, MessagesSquare, Loader2, MonitorPlay } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -80,7 +79,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
-  // Inteligência de Scroll: Trava o scroll do container principal APENAS em páginas de Aplicativo
   const isAppPage = useMemo(() => {
     return pathname.includes('/chat/') || 
            pathname.includes('/forum/') || 
@@ -155,7 +153,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         
         <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in`}>
-          {children}
+          <div className={isAppPage ? 'app-container' : ''}>
+            {children}
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

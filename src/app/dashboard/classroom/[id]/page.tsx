@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -13,14 +12,12 @@ import {
   FileText, 
   Sparkles, 
   BookOpen, 
-  ListChecks, 
   PlayCircle, 
   BrainCircuit,
   Bot,
   Paperclip,
   Loader2,
   Video,
-  Send,
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
@@ -83,7 +80,6 @@ export default function ClassroomPage() {
   const activeModule = modules.find(m => m.id === activeModuleId);
   const activeContent = contents[activeModuleId || ""]?.find(c => c.id === activeContentId);
 
-  // Auto-scroll para o topo quando muda de aula
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
@@ -98,9 +94,8 @@ export default function ClassroomPage() {
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] space-y-6 overflow-hidden animate-in fade-in duration-500">
+    <div className="flex flex-col h-full space-y-6 overflow-hidden animate-in fade-in duration-500">
       
-      {/* CABEÇALHO FIXO */}
       <header className="bg-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10 hover:bg-primary/5">
@@ -123,13 +118,10 @@ export default function ClassroomPage() {
         </div>
       </header>
 
-      {/* ÁREA DE CONTEÚDO E MÓDULOS */}
       <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
-
-        {/* Coluna Esquerda: Player e Detalhes (COM SCROLL INTERNO) */}
-        <div className="col-span-12 lg:col-span-8 flex flex-col bg-white rounded-[2rem] shadow-xl overflow-hidden border">
+        <div className="col-span-12 lg:col-span-8 flex flex-col bg-white rounded-[2rem] shadow-xl overflow-hidden border relative">
           
-          <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
+          <Tabs defaultValue="summary" className="absolute inset-0 flex flex-col">
             <div className="w-full aspect-video bg-slate-950 shrink-0">
               {activeContent?.type === 'video' ? (
                 <iframe 
@@ -152,22 +144,22 @@ export default function ClassroomPage() {
             </div>
 
             <TabsList className="grid w-full grid-cols-4 bg-muted/30 p-1 h-14 rounded-none border-b shrink-0">
-              <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest transition-all">
+              <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest">
                 <BookOpen className="h-4 w-4 text-accent"/>Aula
               </TabsTrigger>
-              <TabsTrigger value="quiz" className="gap-2 font-black text-[9px] uppercase tracking-widest transition-all">
+              <TabsTrigger value="quiz" className="gap-2 font-black text-[9px] uppercase tracking-widest">
                 <BrainCircuit className="h-4 w-4 text-accent"/>Quiz IA
               </TabsTrigger>
-              <TabsTrigger value="live" className="gap-2 font-black text-[9px] uppercase tracking-widest transition-all">
+              <TabsTrigger value="live" className="gap-2 font-black text-[9px] uppercase tracking-widest">
                 <Video className="h-4 w-4 text-red-500"/>Live
               </TabsTrigger>
-              <TabsTrigger value="materials" className="gap-2 font-black text-[9px] uppercase tracking-widest transition-all">
+              <TabsTrigger value="materials" className="gap-2 font-black text-[9px] uppercase tracking-widest">
                 <Paperclip className="h-4 w-4 text-blue-500"/>Apoio
               </TabsTrigger>
             </TabsList>
             
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 scrollbar-thin" ref={scrollRef}>
-              <TabsContent value="summary" className="mt-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 scrollable-content" ref={scrollRef}>
+              <TabsContent value="summary" className="mt-0 outline-none">
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center"><Bot className="h-6 w-6 text-accent" /></div>
@@ -223,7 +215,7 @@ export default function ClassroomPage() {
                  </div>
               </TabsContent>
 
-              <TabsContent value="live" className="mt-0 outline-none h-full">
+              <TabsContent value="live" className="mt-0 outline-none">
                 <div className="flex flex-col gap-6 h-full">
                   <div className="flex items-center gap-4 p-6 bg-red-50 rounded-[2rem] border-2 border-red-100">
                     <div className="h-12 w-12 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg"><Video className="h-6 w-6 text-white animate-pulse" /></div>
@@ -233,7 +225,7 @@ export default function ClassroomPage() {
                     </div>
                   </div>
                   
-                  <Card className="flex-1 bg-muted/10 rounded-[2rem] border-none shadow-inner p-6 flex flex-col items-center justify-center text-center opacity-40">
+                  <Card className="bg-muted/10 rounded-[2rem] border-none shadow-inner p-6 flex flex-col items-center justify-center text-center opacity-40">
                     <AlertCircle className="h-12 w-12 mb-4" />
                     <p className="font-black italic">Chat de Live Ativado</p>
                     <p className="text-xs font-medium mt-2">Esta aba conecta você diretamente ao Master Control durante as transmissões oficiais.</p>
@@ -266,10 +258,8 @@ export default function ClassroomPage() {
           </Tabs>
         </div>
 
-        {/* Coluna Direita: Módulos (FIXA COM SCROLL INTERNO) */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6 min-h-0">
           <Card className="bg-primary text-white shadow-2xl p-6 rounded-[2.5rem] border-none overflow-hidden relative shrink-0">
-            <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Estrutura da Trilha</h2>
             <div className="space-y-2 max-h-[200px] overflow-y-auto scrollbar-hide">
               {modules.map((module, idx) => (
@@ -306,9 +296,6 @@ export default function ClassroomPage() {
                       {activeContentId === content.id && <CheckCircle2 className="h-4 w-4 text-accent ml-auto shrink-0" />}
                   </button>
               ))}
-              {(!contents[activeModuleId || ""] || contents[activeModuleId || ""].length === 0) && (
-                <div className="py-10 text-center opacity-20 italic text-[10px] font-black uppercase">Vazio</div>
-              )}
              </div>
           </Card>
         </div>

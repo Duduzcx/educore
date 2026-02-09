@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,27 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
-  MonitorPlay, 
   Plus, 
   Trash2, 
-  Youtube, 
   Loader2, 
   Video, 
-  Radio, 
-  MessageCircle,
-  Zap,
-  Clock,
-  Signal,
+  Signal, 
   Calendar as CalendarIcon,
   ChevronRight,
-  Eye,
-  History
+  Clock,
+  Zap
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 
 export default function TeacherLiveManagement() {
@@ -36,16 +28,13 @@ export default function TeacherLiveManagement() {
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
   const [lives, setLives] = useState<any[]>([]);
-  const [trails, setTrails] = useState<any[]>([]);
   const [livesLoading, setLivesLoading] = useState(true);
 
   const [liveForm, setForm] = useState({
     title: "",
     description: "",
     youtube_id: "",
-    trail_id: "none"
   });
 
   const [liveDate, setLiveDate] = useState("");
@@ -55,11 +44,8 @@ export default function TeacherLiveManagement() {
     if (!user) return;
     setLivesLoading(true);
     try {
-      const { data: livesData } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
-      setLives(livesData || []);
-      
-      const { data: trailsData } = await supabase.from('learning_trails').select('id, title').eq('teacher_id', user.id);
-      setTrails(trailsData || []);
+      const { data } = await supabase.from('lives').select('*').order('start_time', { ascending: false });
+      setLives(data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -93,8 +79,7 @@ export default function TeacherLiveManagement() {
         teacher_id: user.id,
         youtube_id: cleanYid,
         youtube_url: `https://www.youtube.com/watch?v=${cleanYid}`,
-        start_time: combinedStartTime,
-        trail_id: liveForm.trail_id === 'none' ? null : liveForm.trail_id
+        start_time: combinedStartTime
       }).select().single();
 
       if (error) throw error;
@@ -102,7 +87,7 @@ export default function TeacherLiveManagement() {
       setLives([data, ...lives]);
       toast({ title: "Sinal Agendado!", description: "A live já está configurada no cronograma." });
       setIsAddOpen(false);
-      setForm({ title: "", description: "", youtube_id: "", trail_id: "none" });
+      setForm({ title: "", description: "", youtube_id: "" });
       setLiveDate("");
       setLiveTime("");
     } catch (err) {

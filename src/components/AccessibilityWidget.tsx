@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -148,7 +147,6 @@ export function AccessibilityWidget() {
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </form>
-            <p className="text-[7px] text-center text-muted-foreground mt-3 uppercase font-black tracking-widest opacity-40">Powered by Genkit & Gemini 1.5 Flash</p>
           </div>
         </SheetContent>
       </Sheet>
