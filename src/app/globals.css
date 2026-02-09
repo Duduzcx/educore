@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -42,7 +41,6 @@
   }
   
   html, body {
-    @apply max-w-full overflow-x-hidden;
     width: 100%;
     height: 100%;
     position: relative;
@@ -55,10 +53,11 @@
     padding-bottom: env(safe-area-inset-bottom);
     min-height: 100dvh;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
   }
 }
 
-/* BARRA DE ROLAGEM MODERNA E DISCRETA - VISÍVEL APENAS QUANDO NECESSÁRIO */
+/* BARRA DE ROLAGEM MODERNA E DISCRETA */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

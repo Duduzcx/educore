@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "Profile": {
@@ -9,12 +8,13 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string" },
-        "profile_type": { "type": "string", "enum": ["etec", "uni", "teacher"] },
+        "profile_type": { "type": "string", "enum": ["etec", "uni"] },
         "institution": { "type": "string" },
         "course": { "type": "string" },
         "is_financial_aid_eligible": { "type": "boolean" },
         "last_access": { "type": "string", "format": "date-time" },
-        "last_financial_simulation": { "type": "string", "format": "date-time" }
+        "last_financial_simulation": { "type": "string", "format": "date-time" },
+        "interests": { "type": "string" }
       },
       "required": ["id", "name", "email"]
     },
@@ -27,6 +27,8 @@
         "name": { "type": "string" },
         "email": { "type": "string" },
         "subjects": { "type": "string" },
+        "experience": { "type": "string" },
+        "interests": { "type": "string" },
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "name", "email"]
@@ -82,8 +84,22 @@
         "teacher_name": { "type": "string" },
         "teacher_id": { "type": "string" },
         "youtube_id": { "type": "string" },
+        "youtube_url": { "type": "string" },
         "start_time": { "type": "string", "format": "date-time" },
         "trail_id": { "type": "string" }
+      }
+    },
+    "Notice": {
+      "title": "Notice",
+      "type": "object",
+      "description": "Comunicado oficial no mural.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "priority": { "type": "string" },
+        "author": { "type": "string" },
+        "read_by": { "type": "array" }
       }
     }
   },
@@ -91,11 +107,12 @@
     "providers": ["password"]
   },
   "firestore": {
-    "/profiles/{uid}": { "schema": "Profile", "description": "Perfis de usuários." },
+    "/profiles/{uid}": { "schema": "Profile", "description": "Perfis de estudantes." },
     "/teachers/{teacherId}": { "schema": "Teacher", "description": "Dados de mentores." },
     "/learning_trails/{trailId}": { "schema": "LearningTrail", "description": "Trilhas de estudo." },
     "/learning_modules/{modId}": { "schema": "LearningModule", "description": "Capítulos das trilhas." },
     "/learning_contents/{contentId}": { "schema": "LearningContent", "description": "Aulas e Quizzes." },
-    "/lives/{liveId}": { "schema": "Live", "description": "Eventos ao vivo agendados." }
+    "/lives/{liveId}": { "schema": "Live", "description": "Eventos ao vivo agendados." },
+    "/notices/{noticeId}": { "schema": "Notice", "description": "Comunicados oficiais." }
   }
 }
