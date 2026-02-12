@@ -39,12 +39,17 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
   }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
-/* Scrollbar Moderna e Única */
+/* Scrollbar Moderna e Única - Estilização Global */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -64,7 +69,7 @@
   display: none;
 }
 
-/* Estabilização de Layout para Apps Fixos */
+/* Estabilização de Layout para Apps Fixos (Chat, Classroom) */
 .app-container {
   height: 100%;
   overflow: hidden;
