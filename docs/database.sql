@@ -1,113 +1,130 @@
--- SCRIPT SQL DEFINITIVO PARA EDUCORE
--- Execute no SQL Editor do Supabase
+-- SCRIPT SQL PARA SUPABASE - EDUCORE
+-- Execute este código no SQL Editor do Supabase para criar as tabelas necessárias.
 
 -- 1. EXTENSÕES
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. TABELAS DE PERFIL
+-- 2. TABELA DE PERFIS (ESTUDANTES)
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name varchar(255),
-  email varchar(255),
-  profile_type text CHECK (profile_type IN ('etec', 'uni')),
-  institution text,
-  course text,
-  is_financial_aid_eligible boolean DEFAULT false,
-  last_access timestamptz DEFAULT now(),
-  last_financial_simulation timestamptz,
-  interests text,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    profile_type TEXT CHECK (profile_type IN ('etec', 'uni')),
+    institution TEXT,
+    course TEXT,
+    is_financial_aid_eligible BOOLEAN DEFAULT FALSE,
+    last_access TIMESTAMPTZ DEFAULT NOW(),
+    last_financial_simulation TIMESTAMPTZ,
+    interests TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 3. TABELA DE PROFESSORES
 CREATE TABLE IF NOT EXISTS public.teachers (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name varchar(255),
-  email varchar(255),
-  subjects text,
-  experience text,
-  interests text,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    subjects TEXT,
+    experience TEXT,
+    interests TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. TRILHAS E CONTEÚDOS
+-- 4. TRILHAS DE APRENDIZAGEM
 CREATE TABLE IF NOT EXISTS public.learning_trails (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  title varchar(255) NOT NULL,
-  category varchar(100),
-  description text,
-  status text DEFAULT 'draft',
-  teacher_id uuid REFERENCES auth.users(id),
-  teacher_name varchar(255),
-  image_url text,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    category TEXT,
+    description TEXT,
+    status TEXT CHECK (status IN ('draft', 'active')) DEFAULT 'draft',
+    teacher_id UUID REFERENCES public.teachers(id),
+    teacher_name TEXT,
+    image_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 5. MÓDULOS (CAPÍTULOS)
 CREATE TABLE IF NOT EXISTS public.learning_modules (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  trail_id uuid REFERENCES public.learning_trails(id) ON DELETE CASCADE,
-  title varchar(255) NOT NULL,
-  order_index integer DEFAULT 0,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    trail_id UUID REFERENCES public.learning_trails(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    order_index INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. CONTEÚDOS (AULAS E QUIZZES)
 CREATE TABLE IF NOT EXISTS public.learning_contents (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  module_id uuid REFERENCES public.learning_modules(id) ON DELETE CASCADE,
-  title varchar(255) NOT NULL,
-  type text CHECK (type IN ('video', 'pdf', 'text', 'quiz')),
-  url text,
-  description text, -- Armazena texto da aula ou JSON do quiz
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    module_id UUID REFERENCES public.learning_modules(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    type TEXT CHECK (type IN ('video', 'pdf', 'text', 'quiz')),
+    url TEXT,
+    description TEXT, -- Para quizzes, armazenar JSON
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. LIVES
+-- 7. LIVES AGENDADAS
 CREATE TABLE IF NOT EXISTS public.lives (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  title varchar(255) NOT NULL,
-  description text,
-  teacher_id uuid REFERENCES auth.users(id),
-  teacher_name varchar(255),
-  youtube_id varchar(100),
-  start_time timestamptz NOT NULL,
-  status text DEFAULT 'scheduled',
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    description TEXT,
+    teacher_name TEXT,
+    teacher_id UUID REFERENCES public.teachers(id),
+    youtube_id TEXT,
+    start_time TIMESTAMPTZ NOT NULL,
+    trail_id UUID REFERENCES public.learning_trails(id),
+    status TEXT DEFAULT 'scheduled',
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. COMUNIDADE E FÓRUM
+-- 8. FÓRUNS E CHAT DE LIVE
 CREATE TABLE IF NOT EXISTS public.forums (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name varchar(255) NOT NULL,
-  description text,
-  category varchar(100),
-  author_id uuid REFERENCES auth.users(id),
-  author_name varchar(255),
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT,
+    author_id UUID REFERENCES auth.users(id),
+    author_name TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.forum_posts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  forum_id uuid REFERENCES public.forums(id) ON DELETE CASCADE,
-  content text NOT NULL,
-  author_id uuid REFERENCES auth.users(id),
-  author_name varchar(255),
-  is_question boolean DEFAULT false,
-  is_answered boolean DEFAULT false,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    forum_id UUID REFERENCES public.forums(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    author_id UUID REFERENCES auth.users(id),
+    author_name TEXT,
+    is_question BOOLEAN DEFAULT FALSE,
+    is_answered BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. BIBLIOTECA
+-- 9. MENSAGENS PRIVADAS
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sender_id TEXT NOT NULL, -- Pode ser UUID ou "aurora-ai"
+    receiver_id TEXT NOT NULL,
+    message TEXT NOT NULL,
+    file_url TEXT,
+    file_name TEXT,
+    file_type TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. BIBLIOTECA DIGITAL
 CREATE TABLE IF NOT EXISTS public.library_items (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  title varchar(255) NOT NULL,
-  description text,
-  category varchar(100),
-  type text,
-  url text,
-  image_url text,
-  created_at timestamptz DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    description TEXT,
+    category TEXT,
+    type TEXT,
+    url TEXT,
+    image_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. DESATIVAR RLS PARA DEMO (OPCIONAL)
+-- DESATIVAR RLS PARA DEMO (OPCIONAL - FACILITA APRESENTAÇÃO)
 ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.teachers DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.learning_trails DISABLE ROW LEVEL SECURITY;
@@ -116,4 +133,5 @@ ALTER TABLE public.learning_contents DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lives DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forums DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.forum_posts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.library_items DISABLE ROW LEVEL SECURITY;

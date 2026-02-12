@@ -15,8 +15,7 @@
         "last_access": { "type": "string", "format": "date-time" },
         "last_financial_simulation": { "type": "string", "format": "date-time" },
         "interests": { "type": "string" }
-      },
-      "required": ["id", "name", "email"]
+      }
     },
     "Teacher": {
       "title": "Teacher",
@@ -28,91 +27,35 @@
         "email": { "type": "string" },
         "subjects": { "type": "string" },
         "experience": { "type": "string" },
-        "interests": { "type": "string" },
-        "created_at": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "name", "email"]
-    },
-    "LearningTrail": {
-      "title": "LearningTrail",
-      "type": "object",
-      "description": "Trilha de aprendizado estruturada.",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "category": { "type": "string" },
-        "description": { "type": "string" },
-        "status": { "type": "string", "enum": ["draft", "active"] },
-        "teacher_id": { "type": "string" },
-        "teacher_name": { "type": "string" },
-        "image_url": { "type": "string" },
-        "created_at": { "type": "string", "format": "date-time" }
+        "interests": { "type": "string" }
       }
     },
-    "LearningModule": {
-      "title": "LearningModule",
+    "Live": {
+      "title": "Live",
       "type": "object",
-      "description": "Capítulo dentro de uma trilha.",
+      "description": "Transmissão ao vivo agendada com data e hora obrigatórias.",
       "properties": {
         "id": { "type": "string" },
-        "trail_id": { "type": "string" },
         "title": { "type": "string" },
-        "order_index": { "type": "number" }
+        "description": { "type": "string" },
+        "teacher_name": { "type": "string" },
+        "youtube_id": { "type": "string" },
+        "start_time": { "type": "string", "format": "date-time", "description": "Momento exato do início da aula." },
+        "status": { "type": "string", "enum": ["scheduled", "live", "finished"] }
       }
     },
     "LearningContent": {
       "title": "LearningContent",
       "type": "object",
-      "description": "Aula individual (vídeo, texto ou quiz IA).",
+      "description": "Aula ou Quiz IA. No caso de quiz, o campo description armazena o JSON das questões.",
       "properties": {
         "id": { "type": "string" },
         "module_id": { "type": "string" },
         "title": { "type": "string" },
         "type": { "type": "string", "enum": ["video", "pdf", "text", "quiz"] },
         "url": { "type": "string" },
-        "description": { "type": "string", "description": "Texto da aula ou JSON do quiz." }
-      }
-    },
-    "Live": {
-      "title": "Live",
-      "type": "object",
-      "description": "Transmissão ao vivo agendada com data e hora.",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "teacher_name": { "type": "string" },
-        "teacher_id": { "type": "string" },
-        "youtube_id": { "type": "string" },
-        "youtube_url": { "type": "string" },
-        "start_time": { "type": "string", "format": "date-time" },
-        "trail_id": { "type": "string" }
-      }
-    },
-    "Notice": {
-      "title": "Notice",
-      "type": "object",
-      "description": "Comunicado oficial no mural.",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "content": { "type": "string" },
-        "priority": { "type": "string" },
-        "author": { "type": "string" },
-        "read_by": { "type": "array" }
+        "description": { "type": "string" }
       }
     }
-  },
-  "auth": {
-    "providers": ["password"]
-  },
-  "firestore": {
-    "/profiles/{uid}": { "schema": "Profile", "description": "Perfis de estudantes." },
-    "/teachers/{teacherId}": { "schema": "Teacher", "description": "Dados de mentores." },
-    "/learning_trails/{trailId}": { "schema": "LearningTrail", "description": "Trilhas de estudo." },
-    "/learning_modules/{modId}": { "schema": "LearningModule", "description": "Capítulos das trilhas." },
-    "/learning_contents/{contentId}": { "schema": "LearningContent", "description": "Aulas e Quizzes." },
-    "/lives/{liveId}": { "schema": "Live", "description": "Eventos ao vivo agendados." },
-    "/notices/{noticeId}": { "schema": "Notice", "description": "Comunicados oficiais." }
   }
 }
