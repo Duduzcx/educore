@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { gradeEssayFlow } from '@/lib/ai/essay-grading-flow';
 
 export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
 /**
  * Rota da API para corrigir uma redação usando o fluxo de IA.
- * CORREÇÃO: Nome da função importada ajustado para gradeEssayFlow.
+ * Corrigido: Nome da função importada para gradeEssayFlow.
  */
 export async function POST(request: Request) {
   try {

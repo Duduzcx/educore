@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FilePlus, CheckCircle, ListChecks } from 'lucide-react';
@@ -37,7 +36,7 @@ const parseExamText = (rawText: string): { questions: ParsedQuestion[], errors: 
     questionMarkers.forEach((marker, i) => {
         const startIdx = marker.index;
         const endIdx = (i + 1 < questionMarkers.length) ? questionMarkers[i + 1].index : rawText.length;
-        let block = rawText.substring(startIdx, endIdx);
+        let block = rawText.substring(startIdx!, endIdx);
 
         const altMarkers = Array.from(block.matchAll(/^([A-E])(?:\)|\.)?\s/gm)).map(m => ({ letter: m[1], index: m.index }));
 

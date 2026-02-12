@@ -41,12 +41,13 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Permite scroll nativo, o layout controla onde trava */
+    /* Scroll Nativo Habilitado */
     overflow-x: hidden;
+    overflow-y: auto;
   }
 }
 
-/* Scrollbar Moderna */
+/* Scrollbar Moderna e Fina */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -65,6 +66,7 @@
   background: hsl(var(--accent) / 0.4);
 }
 
+/* Classes para manter o layout de App em páginas fixas */
 .app-container {
   height: 100%;
   display: flex;
