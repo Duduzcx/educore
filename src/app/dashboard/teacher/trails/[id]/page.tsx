@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -20,18 +19,11 @@ import {
   Sparkles,
   ExternalLink,
   BookOpen,
-  AlertCircle,
-  FileType,
-  Settings2,
-  ListPlus,
-  Info,
-  Link as LinkIcon,
-  AlignLeft,
   Eye,
   CheckCircle2,
   Globe,
   BrainCircuit,
-  X
+  Info
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -341,7 +333,7 @@ export default function TrailManagementPage() {
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-3xl bg-white/10 flex items-center justify-center shadow-lg">
-                  {trail?.status === 'active' ? <Globe className="h-8 w-8 text-green-400 animate-pulse" /> : <Settings2 className="h-8 w-8 text-accent" />}
+                  {trail?.status === 'active' ? <Globe className="h-8 w-8 text-green-400 animate-pulse" /> : <Plus className="h-8 w-8 text-accent" />}
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Status da Trilha</p>
@@ -361,7 +353,6 @@ export default function TrailManagementPage() {
         </div>
       </div>
 
-      {/* DIÁLOGO MÓDULO */}
       <Dialog open={isModuleDialogOpen} onOpenChange={setIsModuleDialogOpen}>
         <DialogContent className="rounded-[2.5rem] p-10 bg-white border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Novo Capítulo</DialogTitle></DialogHeader>
@@ -377,7 +368,6 @@ export default function TrailManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* DIÁLOGO CONTEÚDO */}
       <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
         <DialogContent className="rounded-[2.5rem] p-10 max-w-lg bg-white border-none shadow-2xl">
           <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Anexar Material</DialogTitle></DialogHeader>
@@ -414,7 +404,6 @@ export default function TrailManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* DIÁLOGO CURADORIA QUIZ IA */}
       <Dialog open={isAiQuizDialogOpen} onOpenChange={setIsAiQuizDialogOpen}>
         <DialogContent className="rounded-[2.5rem] p-10 max-w-2xl bg-white border-none shadow-2xl">
           <DialogHeader>

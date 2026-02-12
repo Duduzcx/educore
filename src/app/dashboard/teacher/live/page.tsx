@@ -48,7 +48,10 @@ export default function ManageLivePage() {
   }, [user]);
 
   const handleCreateLive = async () => {
-    if (!formData.title || !formData.date || !formData.time || !user) return;
+    if (!formData.title || !formData.date || !formData.time || !user) {
+      toast({ title: "Dados Incompletos", description: "Por favor, preencha o título, a data e o horário.", variant: "destructive" });
+      return;
+    }
 
     setIsSubmitting(true);
     const start_time = new Date(`${formData.date}T${formData.time}`).toISOString();

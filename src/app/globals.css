@@ -41,7 +41,7 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Scroll Nativo Habilitado */
+    /* Scroll Nativo Restaurado para leitura de páginas longas */
     overflow-x: hidden;
     overflow-y: auto;
   }
