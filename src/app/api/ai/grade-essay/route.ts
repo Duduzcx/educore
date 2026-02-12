@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Rota da API para corrigir uma redação usando o fluxo de IA.
- * Corrigido: Nome da função importada para gradeEssayFlow e exportação dinâmica para o build.
+ * Corrigido: Nome da função importada para gradeEssayFlow para evitar Erro 500 no Netlify.
  */
 export async function POST(request: Request) {
   try {

@@ -101,7 +101,12 @@ export default function QuestionBankPage() {
                 description: JSON.stringify([q])
             }))
         );
-        if (!error) setView('finished');
+        if (!error) {
+            toast({ title: "Questões Importadas!", description: "O banco foi atualizado." });
+            setView('finished');
+        } else {
+            toast({ title: "Erro ao salvar", variant: "destructive" });
+        }
         setIsSaving(false);
     };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, HandMetal, Send, Bot, User, Sparkles, Loader2, Eraser, X } from "lucide-react";
+import { MessageCircle, HandMetal, Send, Bot, User, Sparkles, Loader2, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
