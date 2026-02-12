@@ -358,7 +358,7 @@ export default function TrailManagementPage() {
           <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Novo Capítulo</DialogTitle></DialogHeader>
           <div className="py-6 space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase opacity-40 mb-2 block">Título da Unidade</Label>
+              <Label className="text-[9px] font-black uppercase opacity-40 mb-2 block">Título da Unidade</Label>
               <Input placeholder="Ex: Fundamentos da Matéria" value={moduleForm.title} onChange={(e) => setModuleForm({title: e.target.value})} className="h-14 rounded-2xl bg-muted/30 border-none font-bold italic text-lg" />
             </div>
           </div>

@@ -95,9 +95,9 @@ export default function ManageLivePage() {
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl shadow-accent/20 hover:scale-105 transition-all">
-              <PlusCircle className="h-6 w-6 mr-2" /> Agendar Nova Aula
-            </Button>
+            <button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+              <PlusCircle className="h-6 w-6" /> Agendar Nova Aula
+            </button>
           </DialogTrigger>
           <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-lg border-none shadow-2xl">
             <DialogHeader>
