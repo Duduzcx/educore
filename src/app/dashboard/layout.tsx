@@ -2,7 +2,7 @@
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -14,6 +14,7 @@ import { supabase } from "@/lib/supabase";
 const studentItems = [
   { icon: Home, label: "Página Inicial", href: "/dashboard/home" },
   { icon: Compass, label: "Trilhas de Estudo", href: "/dashboard/trails" },
+  { icon: FileText, label: "Simulados", href: "/dashboard/student/simulados" },
   { icon: MessagesSquare, label: "Fóruns de Discussão", href: "/dashboard/forum" },
   { icon: MessageSquare, label: "Chat com Mentores", href: "/dashboard/chat", badge: true },
   { icon: Library, label: "Biblioteca Digital", href: "/dashboard/library" },
@@ -24,6 +25,7 @@ const studentItems = [
 const teacherItems = [
   { icon: LayoutDashboard, label: "Painel de Gestão", href: "/dashboard/teacher/home" },
   { icon: ClipboardList, label: "Gestão de Trilhas", href: "/dashboard/teacher/trails" },
+  { icon: Database, label: "Banco de Questões", href: "/dashboard/teacher/questions" },
   { icon: MonitorPlay, label: "Gerenciar Lives", href: "/dashboard/teacher/live" },
   { icon: BookOpen, label: "Gestão da Biblioteca", href: "/dashboard/teacher/library" },
   { icon: MessagesSquare, label: "Fórum Pedagógico", href: "/dashboard/forum" },

@@ -144,7 +144,7 @@ export function AccessibilityWidget() {
                 disabled={!input.trim() || loading} 
                 className="rounded-full bg-primary hover:bg-primary/95 shadow-xl h-10 w-10 shrink-0 transition-all active:scale-90"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Send className="h-4 w-4" />}
               </Button>
             </form>
           </div>

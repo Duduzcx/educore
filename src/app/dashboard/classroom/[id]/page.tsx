@@ -94,13 +94,13 @@ export default function ClassroomPage() {
   );
 
   return (
-    <div className="flex flex-col h-full space-y-6 overflow-hidden animate-in fade-in duration-500">
+    <div className="app-container animate-in fade-in duration-500 space-y-6">
       
       <header className="bg-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10 hover:bg-primary/5">
+          <button onClick={() => router.back()} className="rounded-full h-10 w-10 hover:bg-primary/5 flex items-center justify-center transition-colors">
             <ChevronLeft className="h-6 w-6 text-primary" />
-          </Button>
+          </button>
           <div className="min-w-0">
             <h1 className="text-lg font-black text-primary italic leading-none truncate max-w-[300px]">{trail?.title}</h1>
             <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Módulo: {activeModule?.title}</p>
@@ -133,7 +133,7 @@ export default function ClassroomPage() {
                   allowFullScreen
                 />
               ) : (
-                <div className="h-full w-full flex flex-col items-center justify-center gap-4 text-white p-10 text-center">
+                <div className="h-full w-full flex flex-col items-center justify-center gap-4 text-white p-10 text-center bg-gradient-to-br from-primary to-slate-900">
                   <div className="h-20 w-20 rounded-3xl bg-white/10 flex items-center justify-center">
                     {activeContent?.type === 'quiz' ? <BrainCircuit className="h-10 w-10 text-accent" /> : <FileText className="h-10 w-10 text-blue-400" />}
                   </div>
@@ -185,25 +185,32 @@ export default function ClassroomPage() {
                     
                     {activeContent?.type === 'quiz' && activeContent.description ? (
                       <div className="space-y-6">
-                        {JSON.parse(activeContent.description).map((q: any, i: number) => (
-                          <Card key={i} className="border-none shadow-lg bg-slate-50 rounded-[2rem] overflow-hidden">
-                            <div className="bg-primary p-4 text-white flex justify-between items-center">
-                              <span className="text-[9px] font-black uppercase tracking-widest">Questão {i+1}</span>
-                              <Badge variant="secondary" className="text-[7px]">{q.sourceStyle}</Badge>
-                            </div>
-                            <CardContent className="p-8 space-y-6">
-                              <p className="font-bold text-sm md:text-base text-slate-800 leading-relaxed">{q.question}</p>
-                              <div className="grid gap-3">
-                                {q.options.map((opt: string, j: number) => (
-                                  <Button key={j} variant="outline" className="justify-start h-auto py-4 px-6 rounded-2xl border-2 hover:bg-accent/5 hover:border-accent text-xs font-medium whitespace-normal text-left gap-4">
-                                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center font-black shrink-0">{String.fromCharCode(65 + j)}</div>
-                                    {opt}
-                                  </Button>
-                                ))}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                        {(() => {
+                          try {
+                            const quizData = JSON.parse(activeContent.description);
+                            return quizData.map((q: any, i: number) => (
+                              <Card key={i} className="border-none shadow-lg bg-slate-50 rounded-[2rem] overflow-hidden">
+                                <div className="bg-primary p-4 text-white flex justify-between items-center">
+                                  <span className="text-[9px] font-black uppercase tracking-widest">Questão {i+1}</span>
+                                  <Badge variant="secondary" className="text-[7px]">{q.sourceStyle}</Badge>
+                                </div>
+                                <CardContent className="p-8 space-y-6">
+                                  <p className="font-bold text-sm md:text-base text-slate-800 leading-relaxed">{q.question}</p>
+                                  <div className="grid gap-3">
+                                    {q.options.map((opt: string, j: number) => (
+                                      <Button key={j} variant="outline" className="justify-start h-auto py-4 px-6 rounded-2xl border-2 hover:bg-accent/5 hover:border-accent text-xs font-medium whitespace-normal text-left gap-4">
+                                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center font-black shrink-0">{String.fromCharCode(65 + j)}</div>
+                                        {opt}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ));
+                          } catch (e) {
+                            return <p className="text-center text-red-500 font-bold">Erro ao processar quiz.</p>;
+                          }
+                        })()}
                       </div>
                     ) : (
                       <div className="py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5">

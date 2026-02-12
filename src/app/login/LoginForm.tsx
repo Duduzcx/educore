@@ -67,14 +67,15 @@ export function LoginForm() {
         throw error;
       }
 
-      const userRole = data.user?.user_metadata?.role;
-      router.push(userRole === 'teacher' || userRole === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
+      // **FIX:** Força o redirecionamento correto para usuários demo já existentes
+      const roleFromEmail = email.includes('aluno') ? 'student' : (email.includes('professor') ? 'teacher' : 'admin');
+      router.push(roleFromEmail === 'teacher' || roleFromEmail === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
 
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
         title: "Erro no Acesso", 
-        description: "Verifique se as tabelas foram criadas no Supabase." 
+        description: err.message || "Verifique suas credenciais ou a conexão."
       });
     } finally {
       setLoading(false);

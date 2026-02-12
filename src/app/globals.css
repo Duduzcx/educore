@@ -39,17 +39,6 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
   }
-  
-  html, body {
-    width: 100%;
-    min-height: 100%;
-    position: relative;
-  }
-
-  body {
-    @apply bg-background text-foreground font-body antialiased;
-    text-rendering: optimizeLegibility;
-  }
 }
 
 /* Scrollbar Moderna e Única */
@@ -77,7 +66,7 @@
 
 /* Estabilização de Layout para Apps Fixos */
 .app-container {
-  height: calc(100vh - 64px); /* Altura do Dashboard Header */
+  height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;

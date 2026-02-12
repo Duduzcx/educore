@@ -57,14 +57,15 @@ export default function ForumPage() {
   const [forums, setForums] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchForums = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase.from('forums').select('*').order('created_at', { ascending: false });
+    if (!error) setForums(data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    async function fetchForums() {
-      if (!user) return;
-      setLoading(true);
-      const { data, error } = await supabase.from('forums').select('*').order('created_at', { ascending: false });
-      if (!error) setForums(data || []);
-      setLoading(false);
-    }
     fetchForums();
   }, [user]);
 
@@ -90,6 +91,61 @@ export default function ForumPage() {
       toast({ title: "Erro ao publicar", variant: "destructive" });
     }
     setIsSubmitting(false);
+  };
+
+  const handleSeedForums = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
+
+    const demoForums = [
+      { 
+        name: "Qual a melhor forma de estudar para a prova de Matemática do ENEM?", 
+        description: "Estou com dificuldade em matemática e queria saber como vocês organizam os estudos para o ENEM. Quais assuntos focam mais?", 
+        category: "Matemática", 
+        author_id: user.id, 
+        author_name: "Estudante Curioso"
+      },
+      { 
+        name: "Dicas para a redação: como fazer uma boa proposta de intervenção?", 
+        description: "Sempre perco pontos na competência 5. Alguém tem um passo a passo ou algum modelo que ajude a detalhar a proposta de intervenção?", 
+        category: "Linguagens", 
+        author_id: user.id, 
+        author_name: "Futuro Calouro"
+      },
+      { 
+        name: "Revolução Industrial: quais os principais impactos que podem cair na prova?", 
+        description: "Sei que o tema é importante, mas é muito vasto. Quais as chances de cair algo sobre os impactos sociais ou ambientais?", 
+        category: "História", 
+        author_id: user.id, 
+        author_name: "Amante de História"
+      },
+      { 
+        name: "Vale a pena tentar SISU para um curso muito concorrido?", 
+        description: "Minha nota de corte está um pouco abaixo do ano passado. Devo arriscar na primeira chamada ou é melhor garantir uma opção na segunda?", 
+        category: "Carreira", 
+        author_id: user.id, 
+        author_name: "Análise de Dados"
+      }
+    ];
+
+    try {
+      const { error } = await supabase.from('forums').insert(demoForums);
+      if (error) throw error;
+      
+      toast({ 
+        title: "Fóruns de Exemplo Criados!", 
+        description: "A comunidade agora tem novos pontos de partida para discussão."
+      });
+      fetchForums(); // Re-fetch para atualizar a UI
+    } catch (err: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao criar fóruns", 
+        description: err.message 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredForums = forums?.filter(f => {
@@ -122,58 +178,69 @@ export default function ForumPage() {
           </h1>
           <p className="text-muted-foreground font-medium text-sm md:text-lg italic">Onde o conhecimento se torna colaborativo.</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <button className="rounded-xl md:rounded-[1.25rem] h-12 md:h-14 bg-accent text-accent-foreground font-black px-6 md:px-8 shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 w-full md:w-auto border-none">
-              <Plus className="h-5 w-5 md:h-6 md:w-6" />
-              <span className="text-sm md:text-base">Novo Tópico</span>
-            </button>
-          </DialogTrigger>
-          <DialogContent className="rounded-3xl border-none shadow-2xl p-6 md:p-10 max-w-[95vw] md:max-w-lg bg-white mx-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl md:text-2xl font-black italic text-primary">Iniciar Discussão</DialogTitle>
-              <DialogDescription className="font-medium text-xs">Compartilhe sua dúvida com a rede.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 md:space-y-6 py-4">
-              <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase opacity-40">Título</Label>
-                <Input 
-                  placeholder="Ex: Como resolver limites?" 
-                  value={newForum.name}
-                  onChange={(e) => setNewForum({...newForum, name: e.target.value})}
-                  className="rounded-xl bg-muted/30 border-none h-12 font-bold"
-                />
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            onClick={handleSeedForums}
+            disabled={isSubmitting}
+            className="rounded-xl md:rounded-[1.25rem] h-12 md:h-14 font-black px-6 shadow-sm flex items-center gap-3 text-accent border-accent border-dashed"
+          >
+            {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+            <span>Gerar Fóruns (Demo)</span>
+          </Button>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <button className="rounded-xl md:rounded-[1.25rem] h-12 md:h-14 bg-accent text-accent-foreground font-black px-6 md:px-8 shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 w-full md:w-auto border-none">
+                <Plus className="h-5 w-5 md:h-6 md:w-6" />
+                <span className="text-sm md:text-base">Novo Tópico</span>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="rounded-3xl border-none shadow-2xl p-6 md:p-10 max-w-[95vw] md:max-w-lg bg-white mx-auto">
+              <DialogHeader>
+                <DialogTitle className="text-xl md:text-2xl font-black italic text-primary">Iniciar Discussão</DialogTitle>
+                <DialogDescription className="font-medium text-xs">Compartilhe sua dúvida com a rede.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 md:space-y-6 py-4">
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase opacity-40">Título</Label>
+                  <Input 
+                    placeholder="Ex: Como resolver limites?" 
+                    value={newForum.name}
+                    onChange={(e) => setNewForum({...newForum, name: e.target.value})}
+                    className="rounded-xl bg-muted/30 border-none h-12 font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase opacity-40">Categoria</Label>
+                  <Select value={newForum.category} onValueChange={(v) => setNewForum({...newForum, category: v})}>
+                    <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {FORUM_CATEGORIES.filter(c => c !== "Todos").map(cat => (
+                        <SelectItem key={cat} value={cat} className="font-bold">{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase opacity-40">Pergunta</Label>
+                  <Input 
+                    placeholder="Descreva o assunto..." 
+                    value={newForum.description}
+                    onChange={(e) => setNewForum({...newForum, description: e.target.value})}
+                    className="rounded-xl bg-muted/30 border-none h-12"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase opacity-40">Categoria</Label>
-                <Select value={newForum.category} onValueChange={(v) => setNewForum({...newForum, category: v})}>
-                  <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {FORUM_CATEGORIES.filter(c => c !== "Todos").map(cat => (
-                      <SelectItem key={cat} value={cat} className="font-bold">{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase opacity-40">Pergunta</Label>
-                <Input 
-                  placeholder="Descreva o assunto..." 
-                  value={newForum.description}
-                  onChange={(e) => setNewForum({...newForum, description: e.target.value})}
-                  className="rounded-xl bg-muted/30 border-none h-12"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleCreateForum} disabled={isSubmitting} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl active:scale-95 transition-all border-none">
-                {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Publicar no Mural"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button onClick={handleCreateForum} disabled={isSubmitting} className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl active:scale-95 transition-all border-none">
+                  {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Publicar no Mural"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row items-center gap-4 px-1 shrink-0">

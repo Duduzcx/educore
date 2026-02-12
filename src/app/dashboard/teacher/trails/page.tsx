@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, LayoutDashboard, Search, Loader2, AlertCircle, FlaskConical, Database, Eye, Globe, Lock } from "lucide-react";
+import { Plus, LayoutDashboard, Search, Loader2, AlertCircle, FlaskConical, Database, Eye, Globe, Lock, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -85,6 +85,11 @@ export default function TeacherTrailsPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleGenerateTopics = () => {
+    // Lógica para chamar a IA generativa será implementada aqui.
+    toast({ title: "Funcionalidade em desenvolvimento", description: "Em breve, a IA irá sugerir tópicos para você." });
   };
 
   const handleSeedTrails = async () => {
@@ -202,7 +207,13 @@ export default function TeacherTrailsPage() {
               <DialogHeader><DialogTitle className="text-2xl font-black italic">Configurar Trilha</DialogTitle></DialogHeader>
               <div className="grid gap-6 py-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase opacity-40">Título da Trilha</Label>
+                  <div className="flex justify-between items-center">
+                    <Label className="text-[10px] font-black uppercase opacity-40">Título da Trilha</Label>
+                    <Button variant="ghost" size="sm" onClick={handleGenerateTopics} className="text-xs text-accent font-bold hover:bg-accent/10">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Gerar Tópicos com IA
+                    </Button>
+                  </div>
                   <Input placeholder="Ex: Fundamentos de IA" className="h-12 rounded-xl bg-muted/30 border-none font-bold" value={newTrail.title} onChange={(e) => setNewTrail({ ...newTrail, title: e.target.value })} />
                 </div>
                 <div className="space-y-2">
