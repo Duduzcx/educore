@@ -1,6 +1,6 @@
 
 import { NextResponse } from 'next/server';
-import { essayGradingFlow } from '@/lib/ai/essay-grading-flow';
+import { gradeEssayFlow } from '@/lib/ai/essay-grading-flow';
 
 // Define o tempo máximo de execução da função
 export const maxDuration = 60;
@@ -24,8 +24,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Executa o fluxo de IA para correção da redação
-    //    (Atualmente, isso usa dados mockados, mas a estrutura está pronta)
-    const result = await essayGradingFlow(theme, text);
+    const result = await gradeEssayFlow(theme, text);
 
     // 4. Retorna o resultado da análise como JSON
     return NextResponse.json(result);
