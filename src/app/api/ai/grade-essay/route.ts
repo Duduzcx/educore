@@ -4,10 +4,6 @@ import { gradeEssayFlow } from '@/lib/ai/essay-grading-flow';
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-/**
- * Rota da API para corrigir uma redação usando o fluxo de IA.
- * Corrigido: Nome da função importada para gradeEssayFlow para evitar Erro 500 no Netlify.
- */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

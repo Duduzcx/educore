@@ -68,7 +68,7 @@
 
 /* Classes para manter o layout de App em páginas fixas */
 .app-container {
-  height: 100%;
+  height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
   overflow: hidden;

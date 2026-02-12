@@ -113,7 +113,9 @@ export default function QuestionBankPage() {
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
             <div className="flex items-center gap-4">
-                <FilePlus className="h-10 w-10 text-accent"/>
+                <div className="h-12 w-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+                    <FilePlus className="h-6 w-6 text-accent"/>
+                </div>
                 <h1 className="text-3xl font-black text-primary italic">Banco de Questões</h1>
             </div>
 
