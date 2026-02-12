@@ -1,7 +1,8 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +18,7 @@ const studentItems = [
   { icon: MessageSquare, label: "Chat com Mentores", href: "/dashboard/chat", badge: true },
   { icon: Library, label: "Biblioteca Digital", href: "/dashboard/library" },
   { icon: Video, label: "Aulas ao Vivo", href: "/dashboard/live" },
-  { icon: Wallet, label: "Simulador de Isenção", href: "/dashboard/financial-aid" },
+  { icon: Calculator, label: "Simulador de Isenção", href: "/dashboard/student/exemption-simulator" },
 ];
 
 const teacherItems = [

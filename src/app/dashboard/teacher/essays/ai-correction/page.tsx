@@ -9,14 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Loader2 } from "lucide-react";
 
-// Definição do tipo para o resultado da correção da IA
-interface AIResponse {
-  geral: {
-    nota_final: number;
-    feedback_geral: string;
-  };
-  competencias: {
-    [key: string]: {
+// Definição do tipo para o resultado da correção da IA (alinhado com a API)
+interface AIAnalysisResult {
+  notaFinal: number;
+  feedbackGeral: string;
+  analiseCompetencias: {
+    [key: string]: { 
       nota: number;
       analise: string;
     };
@@ -27,7 +25,7 @@ export default function AICorrectionPage() {
   const [essayTopic, setEssayTopic] = useState("");
   const [essayText, setEssayText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<AIResponse | null>(null);
+  const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleCorrection = async () => {
@@ -41,38 +39,22 @@ export default function AICorrectionPage() {
     setAiResult(null);
 
     try {
-      // TODO: Substituir pela chamada real à API quando o endpoint for criado
-      // const response = await fetch('/api/ai/grade-essay', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ topic: essayTopic, text: essayText }),
-      // });
-      // if (!response.ok) {
-      //   throw new Error('A resposta do servidor não foi bem-sucedida.');
-      // }
-      // const data = await response.json();
+      const response = await fetch('/api/ai/grade-essay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: essayTopic, essay: essayText }),
+      });
 
-      // --- DADOS MOCKADOS PARA DESENVOLVIMENTO --- 
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simula a latência da rede
-      const mockData: AIResponse = {
-        geral: {
-          nota_final: 920,
-          feedback_geral: "Excelente redação! O texto demonstra ótimo domínio da norma culta e uma argumentação muito bem estruturada. A proposta de intervenção é detalhada e criativa. Continue assim!",
-        },
-        competencias: {
-          "Competência 1": { nota: 200, analise: "Domínio excelente da modalidade escrita formal da Língua Portuguesa. Não foram identificados desvios gramaticais ou de convenções da escrita significativos." },
-          "Competência 2": { nota: 200, analise: "Compreensão perfeita do tema e uso de repertório sociocultural produtivo, como a citação do filósofo Zygmunt Bauman, que foi bem articulada com a argumentação." },
-          "Competência 3": { nota: 160, analise: "A argumentação está clara e bem defendida na maior parte do texto. No terceiro parágrafo, a conexão entre a causa e a consequência poderia ser um pouco mais explícita para fortalecer o ponto." },
-          "Competência 4": { nota: 200, analise: "Uso exemplar dos mecanismos de coesão textual. Os parágrafos estão bem conectados e as ideias fluem naturalmente." },
-          "Competência 5": { nota: 160, analise: "A proposta de intervenção é boa e bem relacionada ao tema, mas poderia ser um pouco mais detalhada. Faltou especificar quais 'órgãos governamentais' seriam responsáveis e como a 'mídia' poderia atuar de forma prática." },
-        }
-      };
-      // --- FIM DOS DADOS MOCKADOS ---
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'A resposta do servidor não foi bem-sucedida.');
+      }
       
-      setAiResult(mockData); // Substitua `mockData` por `data` quando a API estiver pronta
+      setAiResult(data);
 
     } catch (e: any) {
-      setError("Ocorreu um erro ao processar a correção. Por favor, tente novamente.");
+      setError(e.message || "Ocorreu um erro ao processar a correção. Por favor, tente novamente.");
       console.error(e);
     } finally {
       setIsLoading(false);
@@ -137,7 +119,7 @@ export default function AICorrectionPage() {
             <CardDescription>O resultado da correção será exibido aqui.</CardDescription>
           </CardHeader>
           <CardContent>
-            {!aiResult && !isLoading && (
+            {!aiResult && !isLoading && !error && (
               <div className="text-center text-muted-foreground py-12">
                 <Sparkles className="mx-auto h-12 w-12 opacity-50" />
                 <p className="mt-4 font-medium">Aguardando uma redação para analisar.</p>
@@ -149,19 +131,25 @@ export default function AICorrectionPage() {
                 <p className="mt-4 font-bold">A Aurora está lendo e analisando o texto...</p>
               </div>
             )}
+            {error && !isLoading && (
+                <div className="text-center text-destructive py-12">
+                    <p className="font-bold">Erro na Análise</p>
+                    <p className="text-sm mt-2">{error}</p>
+                </div>
+            )}
             {aiResult && (
               <div className="space-y-6 animate-in fade-in duration-500">
                 <Card className="bg-primary/5 border-primary/20">
                   <CardHeader className="text-center">
                     <CardTitle className="text-sm font-bold uppercase tracking-widest text-primary/80">Nota Final</CardTitle>
-                    <p className="text-6xl font-black text-primary">{aiResult.geral.nota_final}</p>
+                    <p className="text-6xl font-black text-primary">{aiResult.notaFinal}</p>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-center text-primary/90 font-medium">{aiResult.geral.feedback_geral}</p>
+                    <p className="text-sm text-center text-primary/90 font-medium">{aiResult.feedbackGeral}</p>
                   </CardContent>
                 </Card>
                 <div className="space-y-4">
-                  {Object.entries(aiResult.competencias).map(([key, value]) => (
+                  {Object.entries(aiResult.analiseCompetencias).map(([key, value]) => (
                     <details key={key} className="border p-3 rounded-lg bg-white" open={value.nota < 200}>
                       <summary className="font-bold flex items-center justify-between cursor-pointer">
                         <span>{key}</span>

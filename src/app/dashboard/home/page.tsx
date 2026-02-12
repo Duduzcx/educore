@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,13 +10,17 @@ import {
   Bot,
   ShieldCheck,
   Loader2,
-  Sparkles
+  Sparkles,
+  Megaphone,
+  AlertOctagon,
+  Info
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider"; 
 import { supabase } from "@/lib/supabase"; 
 
+// Tipagens
 interface LibraryItem {
   id: string;
   title: string;
@@ -23,30 +28,52 @@ interface LibraryItem {
   category: string;
 }
 
+interface Announcement {
+  id: number;
+  title: string;
+  message: string;
+  priority: 'low' | 'medium' | 'high';
+}
+
+// Mapeamento de estilos para os avisos
+const priorityStyles = {
+  low: { icon: Info, color: 'text-slate-500', bgColor: 'bg-slate-100' },
+  medium: { icon: Megaphone, color: 'text-amber-600', bgColor: 'bg-amber-100' },
+  high: { icon: AlertOctagon, color: 'text-red-600', bgColor: 'bg-red-100' },
+};
+
 export default function DashboardHome() {
   const { user, loading: isUserLoading } = useAuth();
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
+  
+  // Estado para os avisos (simulando dados recebidos)
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
   useEffect(() => {
+    // Simula a busca de avisos
+    setLoadingAnnouncements(true);
+    setTimeout(() => {
+        setAnnouncements([
+             { id: 2, title: 'Manutenção Programada', message: 'A plataforma passará por uma manutenção rápida na próxima sexta-feira às 23h.', priority: 'medium' },
+             { id: 1, title: 'Boas-vindas à Plataforma EduCore!', message: 'Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.', priority: 'low' },
+        ]);
+        setLoadingAnnouncements(false);
+    }, 800);
+
+    // Busca de itens da biblioteca (lógica existente)
     const fetchLibraryItems = async () => {
       setLoadingLibrary(true);
       try {
-        const { data, error } = await supabase
-          .from('library_items')
-          .select('id, title, description, category')
-          .limit(4);
-
-        if (!error) {
-          setLibraryItems(data as LibraryItem[]);
-        }
+        const { data, error } = await supabase.from('library_items').select('id, title, description, category').limit(4);
+        if (!error) setLibraryItems(data as LibraryItem[]);
       } catch (err) {
         console.error("Erro ao buscar itens da biblioteca:", err);
       } finally {
         setLoadingLibrary(false);
       }
     };
-
     fetchLibraryItems();
   }, []);
 
@@ -62,7 +89,7 @@ export default function DashboardHome() {
   const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Estudante';
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-700">
+    <div className="space-y-8 pb-12 animate-in fade-in duration-700">
       <section className="bg-primary p-8 md:p-12 rounded-[2.5rem] text-primary-foreground relative overflow-hidden shadow-2xl">
          <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
          <div className="relative z-10 space-y-4">
@@ -77,40 +104,62 @@ export default function DashboardHome() {
            </p>
          </div>
       </section>
+
+      {/* Seção do Mural de Avisos */}
+      <div>
+        <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2 mb-4">
+          <Megaphone className="h-5 w-5 text-accent" /> Mural de Avisos
+        </h2>
+        {loadingAnnouncements ? (
+          <div className="py-10 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
+            <Loader2 className="animate-spin text-accent h-8 w-8" />
+            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Carregando comunicados...</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {announcements.map(ann => {
+              const Icon = priorityStyles[ann.priority].icon;
+              const color = priorityStyles[ann.priority].color;
+              const bgColor = priorityStyles[ann.priority].bgColor;
+              return (
+                <div key={ann.id} className={`p-4 rounded-xl flex items-start gap-4 shadow-sm ${bgColor}`}>
+                  <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${color}`} />
+                  <div className="flex-1">
+                    <p className={`font-bold text-sm ${color}`}>{ann.title}</p>
+                    <p className="text-xs text-slate-600">{ann.message}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8">
         <div className="lg:col-span-2 space-y-6">
             <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2">
               <Library className="h-5 w-5 text-accent" /> Acervo em Destaque
             </h2>
-            
             {loadingLibrary ? (
-              <div className="py-20 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
+               <div className="py-20 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
                 <Loader2 className="animate-spin text-accent h-10 w-10" />
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Consultando Acervo Digital...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {libraryItems && libraryItems.length > 0 ? (
+                {libraryItems.length > 0 ? (
                   libraryItems.map((item) => (
                     <Link key={item.id} href="/dashboard/library" className="group block">
-                        <Card className="border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-[2rem] flex items-center gap-5 p-5">
-                            <div className='w-20 h-20 shrink-0 relative rounded-2xl overflow-hidden shadow-md'>
-                                <Image 
-                                  src={`https://picsum.photos/seed/${item.id}/150/150`} 
-                                  alt={item.title} 
-                                  width={150}
-                                  height={150}
-                                  className="object-cover"
-                                  data-ai-hint="educational cover"
-                                />
-                            </div>
-                            <div className='flex-1 space-y-1.5 overflow-hidden'>
-                                <Badge variant='secondary' className='font-black text-[7px] uppercase tracking-widest bg-accent/10 text-accent border-none'>{item.category}</Badge>
-                                <h3 className='font-black text-sm leading-tight text-primary truncate italic'>{item.title}</h3>
-                                <p className='text-[10px] text-muted-foreground line-clamp-2 font-medium'>{item.description}</p>
-                            </div>
-                        </Card>
+                      <Card className="border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-[2rem] flex items-center gap-5 p-5">
+                          <div className='w-20 h-20 shrink-0 relative rounded-2xl overflow-hidden shadow-md'>
+                              <Image src={`https://picsum.photos/seed/${item.id}/150/150`} alt={item.title} width={150} height={150} className="object-cover" data-ai-hint="educational cover" />
+                          </div>
+                          <div className='flex-1 space-y-1.5 overflow-hidden'>
+                              <Badge variant='secondary' className='font-black text-[7px] uppercase tracking-widest bg-accent/10 text-accent border-none'>{item.category}</Badge>
+                              <h3 className='font-black text-sm leading-tight text-primary truncate italic'>{item.title}</h3>
+                              <p className='text-[10px] text-muted-foreground line-clamp-2 font-medium'>{item.description}</p>
+                          </div>
+                      </Card>
                     </Link>
                   ))
                 ) : (
