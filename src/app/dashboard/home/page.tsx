@@ -47,8 +47,8 @@ export default function DashboardHome() {
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
   useEffect(() => {
+    // Busca de avisos simulada
     setLoadingAnnouncements(true);
-    // Simulação de avisos (poderia vir de uma tabela 'announcements')
     setTimeout(() => {
         setAnnouncements([
              { id: 2, title: 'Manutenção Programada', message: 'A plataforma passará por uma manutenção rápida na próxima sexta-feira às 23h.', priority: 'medium' },
@@ -60,8 +60,10 @@ export default function DashboardHome() {
     const fetchLibraryItems = async () => {
       setLoadingLibrary(true);
       try {
-        // Otimização: Select de campos específicos
-        const { data, error } = await supabase.from('library_items').select('id, title, description, category').limit(4);
+        const { data, error } = await supabase
+          .from('library_items')
+          .select('id, title, description, category')
+          .limit(4);
         if (!error) setLibraryItems(data as LibraryItem[]);
       } catch (err) {
         console.error("Erro ao buscar itens da biblioteca:", err);
@@ -107,7 +109,6 @@ export default function DashboardHome() {
         {loadingAnnouncements ? (
           <div className="py-10 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
             <Loader2 className="animate-spin text-accent h-8 w-8" />
-            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Carregando comunicados...</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -137,38 +138,30 @@ export default function DashboardHome() {
             {loadingLibrary ? (
                <div className="py-20 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
                 <Loader2 className="animate-spin text-accent h-10 w-10" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Consultando Acervo Digital...</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {libraryItems.length > 0 ? (
-                  libraryItems.map((item, idx) => (
-                    <Link key={item.id} href="/dashboard/library" className="group block">
-                      <Card className="border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-[2rem] flex items-center gap-5 p-5">
-                          <div className='w-20 h-20 shrink-0 relative rounded-2xl overflow-hidden shadow-md'>
-                              <Image 
-                                src={`https://picsum.photos/seed/${item.id}/150/150`} 
-                                alt={item.title} 
-                                width={150} 
-                                height={150} 
-                                className="object-cover" 
-                                data-ai-hint="educational cover"
-                                priority={idx < 2}
-                              />
-                          </div>
-                          <div className='flex-1 space-y-1.5 overflow-hidden'>
-                              <Badge variant='secondary' className='font-black text-[7px] uppercase tracking-widest bg-accent/10 text-accent border-none'>{item.category}</Badge>
-                              <h3 className='font-black text-sm leading-tight text-primary truncate italic'>{item.title}</h3>
-                              <p className='text-[10px] text-muted-foreground line-clamp-2 font-medium'>{item.description}</p>
-                          </div>
-                      </Card>
-                    </Link>
-                  ))
-                ) : (
-                  <div className="col-span-full py-10 text-center opacity-40 italic text-sm border-2 border-dashed rounded-[2.5rem]">
-                    Nenhum item em destaque no momento.
-                  </div>
-                )}
+                {libraryItems.map((item, idx) => (
+                  <Link key={item.id} href="/dashboard/library" className="group block">
+                    <Card className="border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-[2rem] flex items-center gap-5 p-5">
+                        <div className='w-20 h-20 shrink-0 relative rounded-2xl overflow-hidden shadow-md'>
+                            <Image 
+                              src={`https://picsum.photos/seed/${item.id}/150/150`} 
+                              alt={item.title} 
+                              width={150} 
+                              height={150} 
+                              className="object-cover" 
+                              priority={idx < 2}
+                            />
+                        </div>
+                        <div className='flex-1 space-y-1.5 overflow-hidden'>
+                            <Badge variant='secondary' className='font-black text-[7px] uppercase tracking-widest bg-accent/10 text-accent border-none'>{item.category}</Badge>
+                            <h3 className='font-black text-sm leading-tight text-primary truncate italic'>{item.title}</h3>
+                            <p className='text-[10px] text-muted-foreground line-clamp-2 font-medium'>{item.description}</p>
+                        </div>
+                    </Card>
+                  </Link>
+                ))}
               </div>
             )}
         </div>

@@ -23,9 +23,9 @@ export default function ChatListPage() {
       if (!user) return;
       setLoading(true);
       
-      // Otimização: Seleção apenas dos campos necessários para o card
+      // Busca cirúrgica apenas dos campos necessários
       const [profilesRes, teachersRes] = await Promise.all([
-        supabase.from('profiles').select('id, name, course, institution').limit(50),
+        supabase.from('profiles').select('id, name, course').limit(50),
         supabase.from('teachers').select('id, name, subjects').limit(50)
       ]);
       
@@ -38,7 +38,7 @@ export default function ChatListPage() {
 
   const allContacts = [
     ...(students || []).map(s => ({ ...s, type: 'student', expertise: s.course || 'Estudante' })),
-    ...(teachers || []).map(t => ({ ...t, type: 'teacher', expertise: t.subjects || 'Mentor Geral' }))
+    ...(teachers || []).map(t => ({ ...t, type: 'teacher', expertise: t.subjects || 'Mentor' }))
   ].filter(c => c.id !== user?.id);
 
   const filteredContacts = allContacts.filter(c => 
@@ -47,132 +47,64 @@ export default function ChatListPage() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-full mx-auto overflow-hidden px-1">
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-full mx-auto px-1">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-2xl md:text-4xl font-black text-primary italic leading-none">
-            Diretório de Mentoria
-          </h1>
-          <p className="text-muted-foreground font-medium text-sm md:text-lg italic">Conecte-se com especialistas prontos para acelerar seu futuro.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge className="bg-primary/5 text-primary font-black px-4 py-2 border-none shadow-sm flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            REDE ATIVA
-          </Badge>
+          <h1 className="text-2xl md:text-4xl font-black text-primary italic leading-none">Mentoria</h1>
+          <p className="text-muted-foreground font-medium text-sm italic">Conecte-se com especialistas.</p>
         </div>
       </div>
 
       <div className="relative max-w-xl group w-full">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-accent transition-colors" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors" />
         <Input 
-          placeholder="Pesquisar por nome ou matéria (ex: Matemática)..." 
-          className="pl-12 h-12 md:h-14 bg-white border-none shadow-xl shadow-accent/5 rounded-2xl md:rounded-[1.5rem] text-sm md:text-lg font-medium italic focus-visible:ring-accent transition-all"
+          placeholder="Pesquisar mentor ou matéria..." 
+          className="pl-12 h-12 md:h-14 bg-white border-none shadow-xl rounded-2xl text-sm md:text-lg font-medium italic focus-visible:ring-accent transition-all"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
 
-      {/* AURORA AI - PINNED CONTACT */}
-      <div className="space-y-4">
-        <h3 className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 px-4">Assistência Inteligente 24/7</h3>
-        <Card className="border-none shadow-[0_10px_40px_-15px_hsl(var(--accent)/0.3)] hover:shadow-[0_20px_80px_-15px_hsl(var(--accent)/0.5)] rounded-[2.5rem] bg-primary text-white overflow-hidden group hover:scale-[1.01] transition-all duration-500">
-          <CardContent className="p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <div className="h-16 w-16 md:h-24 md:w-24 rounded-[2rem] bg-accent text-accent-foreground flex items-center justify-center shadow-2xl rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                  <Bot className="h-10 w-10 md:h-14 md:w-14" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 h-5 w-5 md:h-6 md:w-6 bg-green-500 rounded-full border-4 border-primary animate-pulse" />
-              </div>
-              <div className="space-y-1">
-                <CardTitle className="text-xl md:text-3xl font-black italic">Aurora IA</CardTitle>
-                <p className="text-white/60 font-medium text-xs md:text-base">Mentora Pedagógica Especialista em todas as áreas e burocracias escolares.</p>
-                <div className="flex items-center gap-2 pt-2">
-                  <Badge className="bg-white/10 text-white border-none text-[7px] md:text-[8px] font-black uppercase tracking-widest px-2">FULL STACK MENTOR</Badge>
-                  <Badge className="bg-accent text-accent-foreground border-none text-[7px] md:text-[8px] font-black uppercase tracking-widest px-2">SISTEMA ATIVO</Badge>
-                </div>
-              </div>
+      <Card className="border-none shadow-[0_10px_40px_-15px_hsl(var(--accent)/0.3)] rounded-[2.5rem] bg-primary text-white overflow-hidden group transition-all duration-500">
+        <CardContent className="p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="h-16 w-16 md:h-24 md:w-24 rounded-[2rem] bg-accent text-accent-foreground flex items-center justify-center shadow-2xl rotate-3">
+              <Bot className="h-10 w-10 md:h-14 md:w-14" />
             </div>
-            <Button className="bg-white text-primary hover:bg-white/90 font-black h-12 md:h-14 px-8 md:px-10 rounded-2xl shadow-xl group/btn w-full md:w-auto transition-all active:scale-95" asChild>
-              <Link href="/dashboard/chat/aurora-ai">
-                Conversar com a Aurora
-                <Sparkles className="h-4 w-4 ml-2 animate-pulse text-accent" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            <div>
+              <CardTitle className="text-xl md:text-3xl font-black italic">Aurora IA</CardTitle>
+              <p className="text-white/60 font-medium text-xs md:text-base">Mentora Pedagógica 24/7 disponível agora.</p>
+            </div>
+          </div>
+          <Button className="bg-white text-primary hover:bg-white/90 font-black h-12 md:h-14 px-8 md:px-10 rounded-2xl shadow-xl transition-all" asChild>
+            <Link href="/dashboard/chat/aurora-ai">Conversar com a Aurora</Link>
+          </Button>
+        </CardContent>
+      </Card>
 
-      <div className="space-y-4">
-        <h3 className="text-[9px] font-black uppercase tracking-[0.25em] text-primary/40 px-4">Corpo Docente e Mentores</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="h-12 w-12 animate-spin text-accent" />
-            <p className="text-muted-foreground font-bold animate-pulse uppercase tracking-widest text-[10px]">Sincronizando Mentores...</p>
-          </div>
+          <div className="col-span-full py-20 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {filteredContacts?.map((contact, index) => {
-              const isTeacher = contact.type === 'teacher';
-              
-              return (
-                <Card key={contact.id} className="border-none shadow-[0_10px_30px_-15px_rgba(0,0,0,0.1)] rounded-[2.5rem] bg-white overflow-hidden group hover:shadow-[0_20px_60px_-15px_hsl(var(--accent)/0.3)] hover:-translate-y-2 transition-all duration-500" style={{ animationDelay: `${index * 50}ms` }}>
-                  <CardContent className="p-8">
-                    <div className="flex flex-col items-center text-center space-y-4">
-                      <div className="relative">
-                        <Avatar className="h-20 w-20 md:h-24 md:w-24 border-4 border-primary/5 shadow-2xl ring-4 ring-background transition-transform duration-500 group-hover:scale-110">
-                          <AvatarImage src={`https://picsum.photos/seed/${contact.id}/200/200`} />
-                          <AvatarFallback className="bg-primary text-white font-black text-2xl italic">
-                            {contact.name?.charAt(0) || "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 rounded-full border-4 border-white shadow-sm" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg md:text-xl font-black text-primary italic leading-tight truncate max-w-[220px]">
-                            {contact.name || "Usuário"}
-                          </CardTitle>
-                          <Badge variant="outline" className={`text-[7px] md:text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border-none ${
-                            isTeacher ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'
-                          }`}>
-                            {isTeacher ? 'Mentor Pedagógico' : 'Estudante'}
-                          </Badge>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            {isTeacher ? <BookOpen className="h-3 w-3 text-accent" /> : <School className="h-3 w-3 text-primary/40" />}
-                            <span className="text-[10px] md:text-[11px] font-bold italic truncate max-w-[180px]">
-                              {contact.expertise}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="w-full pt-4">
-                        <Button className="w-full bg-primary text-white hover:bg-primary/95 shadow-primary/20 font-black h-12 rounded-2xl shadow-xl group/btn transition-all active:scale-95" asChild>
-                          <Link href={`/dashboard/chat/${contact.id}`}>
-                            Iniciar Mentoria
-                            <Send className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-            {!filteredContacts?.length && !loading && (
-              <div className="col-span-full py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5 animate-in fade-in duration-1000">
-                <UserCircle className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-                <p className="font-black text-primary italic text-xl">Nenhum mentor encontrado</p>
-                <p className="text-muted-foreground font-medium text-sm mt-2">Tente pesquisar por uma matéria específica.</p>
-              </div>
-            )}
-          </div>
+          filteredContacts.map((contact) => (
+            <Card key={contact.id} className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group hover:shadow-2xl transition-all duration-500">
+              <CardContent className="p-8">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <Avatar className="h-20 w-20 md:h-24 md:w-24 border-4 border-primary/5 shadow-2xl">
+                    <AvatarImage src={`https://picsum.photos/seed/${contact.id}/200/200`} />
+                    <AvatarFallback className="bg-primary text-white font-black text-2xl italic">{contact.name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <CardTitle className="text-lg md:text-xl font-black text-primary italic truncate max-w-[220px]">{contact.name}</CardTitle>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">{contact.expertise}</p>
+                  </div>
+                  <Button className="w-full bg-primary text-white hover:bg-primary/95 font-black h-12 rounded-2xl shadow-xl" asChild>
+                    <Link href={`/dashboard/chat/${contact.id}`}>Iniciar Mentoria</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
         )}
       </div>
     </div>

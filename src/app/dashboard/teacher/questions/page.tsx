@@ -30,7 +30,7 @@ const parseExamText = (rawText: string): { questions: ParsedQuestion[], errors: 
     }));
 
     if (questionMarkers.length === 0) {
-        return { questions: [], errors: ["Nenhuma questão encontrada. Verifique o formato do texto."] };
+        return { questions: [], errors: ["Nenhuma questão encontrada."] };
     }
 
     questionMarkers.forEach((marker, i) => {
@@ -40,33 +40,30 @@ const parseExamText = (rawText: string): { questions: ParsedQuestion[], errors: 
 
         const altMarkers = Array.from(block.matchAll(/^([A-E])(?:\)|\.)?\s/gm)).map(m => ({ letter: m[1], index: m.index }));
 
-        if (altMarkers.length < 5) {
-            errors.push(`Questão ${marker.number}: Formato de alternativas inválido.`);
-            return;
-        }
+        if (altMarkers.length >= 4) {
+            try {
+                const enunciadoStart = block.indexOf(marker.rawText) + marker.rawText.length;
+                const enunciadoEnd = altMarkers[0].index;
+                const question_text = block.substring(enunciadoStart, enunciadoEnd).trim();
 
-        try {
-            const enunciadoStart = block.indexOf(marker.rawText) + marker.rawText.length;
-            const enunciadoEnd = altMarkers[0].index;
-            const question_text = block.substring(enunciadoStart, enunciadoEnd).trim();
+                const options = altMarkers.map((alt, j) => {
+                    const optStart = alt.index + alt.letter.length + 1;
+                    const optEnd = (j + 1 < altMarkers.length) ? altMarkers[j + 1].index : block.length;
+                    return { letter: alt.letter, text: block.substring(optStart, optEnd).trim() };
+                });
 
-            const options = altMarkers.map((alt, j) => {
-                const optStart = alt.index + alt.letter.length + 1;
-                const optEnd = (j + 1 < altMarkers.length) ? altMarkers[j + 1].index : block.length;
-                return { letter: alt.letter, text: block.substring(optStart, optEnd).trim() };
-            });
-
-            questions.push({
-                tempId: `q-${marker.number}`,
-                question_number_in_source: marker.number,
-                question_text,
-                options,
-                correct_answer: 'A',
-                year: new Date().getFullYear(),
-                subject: 'Geral'
-            });
-        } catch(e) {
-            errors.push(`Questão ${marker.number}: Erro no processamento.`);
+                questions.push({
+                    tempId: `q-${marker.number}`,
+                    question_number_in_source: marker.number,
+                    question_text,
+                    options,
+                    correct_answer: 'A',
+                    year: new Date().getFullYear(),
+                    subject: 'Geral'
+                });
+            } catch(e) {
+                errors.push(`Erro na Questão ${marker.number}`);
+            }
         }
     });
 
@@ -102,7 +99,7 @@ export default function QuestionBankPage() {
             }))
         );
         if (!error) {
-            toast({ title: "Questões Importadas!", description: "O banco foi atualizado." });
+            toast({ title: "Questões Importadas!" });
             setView('finished');
         } else {
             toast({ title: "Erro ao salvar", variant: "destructive" });
@@ -125,7 +122,7 @@ export default function QuestionBankPage() {
                         <div className="space-y-6">
                             <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Importar Texto de Prova</Label>
                             <Textarea 
-                                placeholder="Cole o texto da prova aqui (ex: Questão 1... A) opção...)"
+                                placeholder="Cole o texto da prova aqui..."
                                 value={rawText}
                                 onChange={(e) => setRawText(e.target.value)}
                                 className="rounded-xl bg-muted/30 border-none min-h-[300px] font-medium"
@@ -142,7 +139,7 @@ export default function QuestionBankPage() {
                         <div className="space-y-8">
                             <div className="flex items-center gap-3">
                                 <ListChecks className="h-8 w-8 text-accent" />
-                                <h3 className="text-2xl font-black text-primary italic">Validar Importação ({extractedQuestions.length})</h3>
+                                <h3 className="text-2xl font-black text-primary italic">Validar ({extractedQuestions.length})</h3>
                             </div>
                             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4">
                                 {extractedQuestions.map((q) => (
@@ -166,10 +163,7 @@ export default function QuestionBankPage() {
                             <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
                                 <CheckCircle className="h-10 w-10" />
                             </div>
-                            <div>
-                                <h3 className="text-2xl font-black text-primary italic">Importação Concluída!</h3>
-                                <p className="text-muted-foreground font-medium mt-2">As questões já estão disponíveis para suas trilhas.</p>
-                            </div>
+                            <h3 className="text-2xl font-black text-primary italic">Importação Concluída!</h3>
                             <Button onClick={() => { setView('upload'); setRawText(''); }} className="h-14 rounded-2xl font-black px-10">Novo Arquivo</Button>
                         </div>
                     )}
