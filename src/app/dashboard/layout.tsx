@@ -87,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (isUserLoading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4">
       <Loader2 className="h-12 w-12 animate-spin text-accent" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Sincronizando Identidade...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Sintonizando Identidade...</p>
     </div>
   );
 
