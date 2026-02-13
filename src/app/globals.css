@@ -43,6 +43,8 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
     min-height: 100vh;
+    /* Reset de scroll global para permitir rolagem do navegador em páginas longas */
+    overflow-y: auto !important;
   }
 }
 
@@ -65,9 +67,9 @@
   background: hsl(var(--accent) / 0.4);
 }
 
-/* App Container para Chat e Classroom (Fixos) */
+/* Container para páginas de interação fixa (Chat e Classroom) */
 .app-container {
-  height: calc(100vh - 8rem);
+  height: calc(100vh - 10rem);
   display: flex;
   flex-direction: column;
   overflow: hidden;

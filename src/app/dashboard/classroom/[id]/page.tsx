@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,11 +19,16 @@ import {
   Loader2,
   Video,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  History,
+  Timer
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+
+// Script do YouTube IFrame API
+let apiLoaded = false;
 
 export default function ClassroomPage() {
   const params = useParams();
@@ -39,7 +44,64 @@ export default function ClassroomPage() {
   const [activeContentId, setActiveContentId] = useState<string | null>(null);
   const [contents, setContents] = useState<Record<string, any[]>>({});
   
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
+  
+  const playerRef = useRef<any>(null);
+  const progressInterval = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const updateServerProgress = useCallback(async (percentage: number) => {
+    if (!user || !activeContentId) return;
+    
+    // Regra industrial: Concluído com 80%
+    const completed = percentage >= 80;
+    
+    await supabase.from('user_progress').upsert({
+      user_id: user.id,
+      trail_id: trailId,
+      content_id: activeContentId,
+      percentage: Math.round(percentage),
+      is_completed: completed,
+      updated_at: new Date().toISOString()
+    });
+
+    if (completed && !isCompleted) {
+      setIsCompleted(true);
+      toast({ title: "Módulo Concluído!", description: "Parabéns por chegar aos 80% desta aula." });
+    }
+  }, [user, activeContentId, trailId, isCompleted, toast]);
+
+  const onPlayerStateChange = (event: any) => {
+    // 1 = PLAYING
+    if (event.data === 1) {
+      progressInterval.current = setInterval(() => {
+        if (playerRef.current && playerRef.current.getDuration) {
+          const currentTime = playerRef.current.getCurrentTime();
+          const duration = playerRef.current.getDuration();
+          const percent = (currentTime / duration) * 100;
+          setVideoProgress(percent);
+          updateServerProgress(percent);
+        }
+      }, 5000); // Check a cada 5 segundos
+    } else {
+      clearInterval(progressInterval.current);
+    }
+  };
+
+  useEffect(() => {
+    if (!apiLoaded) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      apiLoaded = true;
+    }
+
+    (window as any).onYouTubeIframeAPIReady = () => {
+      console.log("YouTube API Ready");
+    };
+  }, []);
 
   useEffect(() => {
     async function loadData() {
@@ -81,9 +143,20 @@ export default function ClassroomPage() {
   const activeContent = contents[activeModuleId || ""]?.find(c => c.id === activeContentId);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    if (activeContent?.type === 'video' && (window as any).YT) {
+      if (playerRef.current) playerRef.current.destroy();
+      
+      const vidId = activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1] : activeContent.url;
+      
+      playerRef.current = new (window as any).YT.Player('youtube-player', {
+        videoId: vidId,
+        events: {
+          'onStateChange': onPlayerStateChange
+        }
+      });
     }
+    setVideoProgress(0);
+    setIsCompleted(false);
   }, [activeContentId]);
 
   if (loading) return (
@@ -109,40 +182,23 @@ export default function ClassroomPage() {
         <div className="flex items-center gap-4 w-full max-w-xs ml-auto">
           <div className="flex-1">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">Progresso</span>
-              <span className="text-[10px] font-black text-accent italic">33%</span>
+              <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">Progresso Aula</span>
+              <span className="text-[10px] font-black text-accent italic">{Math.round(videoProgress)}%</span>
             </div>
-            <Progress value={33} className="h-1.5 bg-muted rounded-full" />
+            <Progress value={videoProgress} className="h-1.5 bg-muted rounded-full" />
           </div>
-          <Badge className="bg-primary/5 text-primary border-none font-black h-8 px-3 text-[10px]">1/3</Badge>
+          {isCompleted && <Badge className="bg-green-100 text-green-700 border-none font-black h-8 px-3 text-[10px] animate-bounce">CONCLUÍDO</Badge>}
         </div>
       </header>
 
       <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
         <div className="col-span-12 lg:col-span-8 flex flex-col bg-white rounded-[2rem] shadow-xl overflow-hidden border relative">
           
-          <Tabs defaultValue="summary" className="absolute inset-0 flex flex-col">
-            <div className="w-full aspect-video bg-slate-950 shrink-0">
-              {activeContent?.type === 'video' ? (
-                <iframe 
-                  width="100%" 
-                  height="100%" 
-                  src={`https://www.youtube.com/embed/${activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1] : activeContent.url}?modestbranding=1&rel=0`} 
-                  title={activeContent.title} 
-                  frameBorder="0" 
-                  allowFullScreen
-                />
-              ) : (
-                <div className="h-full w-full flex flex-col items-center justify-center gap-4 text-white p-10 text-center bg-gradient-to-br from-primary to-slate-900">
-                  <div className="h-20 w-20 rounded-3xl bg-white/10 flex items-center justify-center">
-                    {activeContent?.type === 'quiz' ? <BrainCircuit className="h-10 w-10 text-accent" /> : <FileText className="h-10 w-10 text-blue-400" />}
-                  </div>
-                  <h2 className="text-2xl font-black italic">{activeContent?.title}</h2>
-                  <p className="text-sm opacity-60 font-medium italic">Interaja com o material de apoio abaixo.</p>
-                </div>
-              )}
-            </div>
+          <div className="w-full aspect-video bg-slate-950 shrink-0">
+            <div id="youtube-player" className="w-full h-full" />
+          </div>
 
+          <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-4 bg-muted/30 p-1 h-14 rounded-none border-b shrink-0">
               <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest">
                 <BookOpen className="h-4 w-4 text-accent"/>Aula
@@ -170,7 +226,7 @@ export default function ClassroomPage() {
                   </div>
                   <div className="bg-muted/20 p-8 rounded-[2rem] border-2 border-dashed border-muted/30">
                     <p className="text-sm md:text-base text-muted-foreground leading-relaxed font-medium italic">
-                      {activeContent?.description || "Nesta aula exploramos os conceitos fundamentais para sua aprovação. Assista ao vídeo e utilize o quiz de fixação para validar seu conhecimento."}
+                      {activeContent?.description || "Nesta aula exploramos os conceitos fundamentais para sua aprovação. Assista ao vídeo para registrar seu tempo de estudo."}
                     </p>
                   </div>
                 </div>
@@ -180,7 +236,7 @@ export default function ClassroomPage() {
                  <div className="space-y-8">
                     <div className="flex items-center justify-between">
                       <h3 className="font-black text-xl text-primary italic">Avaliação de Fixação</h3>
-                      <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase px-3 py-1">ESTILO ENEM</Badge>
+                      <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase px-3 py-1">REDE ATIVA</Badge>
                     </div>
                     
                     {activeContent?.type === 'quiz' && activeContent.description ? (
@@ -215,8 +271,8 @@ export default function ClassroomPage() {
                     ) : (
                       <div className="py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5">
                         <BrainCircuit className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-                        <p className="font-black text-primary italic">Nenhum quiz publicado</p>
-                        <p className="text-xs font-medium text-muted-foreground mt-2">O mentor ainda não liberou a avaliação para este módulo.</p>
+                        <p className="font-black text-primary italic">Quiz em Curadoria</p>
+                        <p className="text-xs font-medium text-muted-foreground mt-2">O mentor está revisando as questões deste módulo.</p>
                       </div>
                     )}
                  </div>
@@ -227,15 +283,15 @@ export default function ClassroomPage() {
                   <div className="flex items-center gap-4 p-6 bg-red-50 rounded-[2rem] border-2 border-red-100">
                     <div className="h-12 w-12 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg"><Video className="h-6 w-6 text-white animate-pulse" /></div>
                     <div>
-                      <h3 className="font-black text-lg text-red-900 italic leading-none">Canal de Dúvidas</h3>
-                      <p className="text-[9px] font-bold text-red-600 uppercase tracking-widest mt-1">Interação Direta com o Mentor</p>
+                      <h3 className="font-black text-lg text-red-900 italic leading-none">Canal Master</h3>
+                      <p className="text-[9px] font-bold text-red-600 uppercase tracking-widest mt-1">Sincronizado com Youtube Live</p>
                     </div>
                   </div>
                   
                   <Card className="bg-muted/10 rounded-[2rem] border-none shadow-inner p-6 flex flex-col items-center justify-center text-center opacity-40">
                     <AlertCircle className="h-12 w-12 mb-4" />
                     <p className="font-black italic">Chat de Live Ativado</p>
-                    <p className="text-xs font-medium mt-2">Esta aba conecta você diretamente ao Master Control durante as transmissões oficiais.</p>
+                    <p className="text-xs font-medium mt-2">Disponível apenas durante transmissões oficiais.</p>
                   </Card>
                 </div>
               </TabsContent>
@@ -246,7 +302,7 @@ export default function ClassroomPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                       { title: "Documentação Oficial", type: "PDF" },
-                      { title: "Mapa Mental da Unidade", type: "IMAGE" }
+                      { title: "Mapa Mental", type: "IMAGE" }
                     ].map((mat, i) => (
                       <a key={i} href="#" className="flex items-center gap-5 bg-white hover:bg-primary hover:text-white p-5 rounded-[1.5rem] shadow-lg transition-all group border border-muted/20">
                         <div className="h-12 w-12 rounded-2xl bg-muted group-hover:bg-white/20 flex items-center justify-center transition-colors">
@@ -267,7 +323,7 @@ export default function ClassroomPage() {
 
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6 min-h-0">
           <Card className="bg-primary text-white shadow-2xl p-6 rounded-[2.5rem] border-none overflow-hidden relative shrink-0">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Estrutura da Trilha</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Unidades da Trilha</h2>
             <div className="space-y-2 max-h-[200px] overflow-y-auto scrollbar-hide">
               {modules.map((module, idx) => (
                 <button 
@@ -284,7 +340,7 @@ export default function ClassroomPage() {
           </Card>
 
           <Card className="bg-white shadow-2xl p-6 rounded-[2.5rem] flex-1 flex flex-col min-h-0 border">
-             <h2 className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mb-6 px-2">Roteiro de Estudos</h2>
+             <h2 className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mb-6 px-2">Conteúdo Programático</h2>
              <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-3 scrollbar-thin">
               {contents[activeModuleId || ""]?.map(content => (
                   <button 
