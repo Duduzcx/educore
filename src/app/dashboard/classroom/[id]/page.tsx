@@ -25,7 +25,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 
-// Script do YouTube IFrame API
 let apiLoaded = false;
 
 export default function ClassroomPage() {
@@ -49,13 +48,11 @@ export default function ClassroomPage() {
   const progressInterval = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // REGRA INDUSTRIAL: 80% de visualização marca como concluído automaticamente
   const updateServerProgress = useCallback(async (percentage: number) => {
     if (!user || !activeContentId) return;
     
     const completed = percentage >= 80;
     
-    // Atualiza progresso no banco via Upsert
     await supabase.from('user_progress').upsert({
       user_id: user.id,
       trail_id: trailId,
@@ -75,8 +72,7 @@ export default function ClassroomPage() {
   }, [user, activeContentId, trailId, isCompleted, toast]);
 
   const onPlayerStateChange = (event: any) => {
-    // 1 = PLAYING
-    if (event.data === 1) {
+    if (event.data === 1) { // PLAYING
       progressInterval.current = setInterval(() => {
         if (playerRef.current && playerRef.current.getDuration) {
           const currentTime = playerRef.current.getCurrentTime();
@@ -171,7 +167,6 @@ export default function ClassroomPage() {
 
   return (
     <div className="app-container animate-in fade-in duration-500 space-y-6">
-      
       <header className="bg-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <button onClick={() => router.back()} className="rounded-full h-10 w-10 hover:bg-primary/5 flex items-center justify-center transition-colors">
@@ -196,7 +191,6 @@ export default function ClassroomPage() {
 
       <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
         <div className="col-span-12 lg:col-span-8 flex flex-col bg-white rounded-[2rem] shadow-xl overflow-hidden border relative">
-          
           <div className="w-full aspect-video bg-slate-950 shrink-0">
             <div id="youtube-player" className="w-full h-full" />
           </div>
@@ -290,7 +284,6 @@ export default function ClassroomPage() {
                       <p className="text-[9px] font-bold text-red-600 uppercase tracking-widest mt-1">Sincronizado com Youtube Live</p>
                     </div>
                   </div>
-                  
                   <Card className="bg-muted/10 rounded-[2rem] border-none shadow-inner p-6 flex flex-col items-center justify-center text-center opacity-40">
                     <AlertCircle className="h-12 w-12 mb-4" />
                     <p className="font-black italic">Chat de Live Ativado</p>
@@ -365,7 +358,6 @@ export default function ClassroomPage() {
              </div>
           </Card>
         </div>
-
       </div>
     </div>
   );

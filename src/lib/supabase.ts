@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Proteção robusta para o Build-Time no Netlify: 
-// O Next.js tenta validar rotas de API durante o build. Se as variáveis não existirem,
-// usamos placeholders para não quebrar a compilação.
+// Fallbacks seguros para evitar erros durante o build-time no Netlify
+// O Next.js tenta validar rotas durante o build. Se as variáveis não existirem, usamos placeholders.
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 

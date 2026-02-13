@@ -28,18 +28,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading: true
   });
 
+  const fetchProfile = async (userId: string, role?: string) => {
+    const isTeacher = role === 'teacher' || role === 'admin';
+    const table = isTeacher ? 'teachers' : 'profiles';
+    const { data: profile } = await supabase.from(table)
+      .select('id, name, email, institution, course, is_financial_aid_eligible')
+      .eq('id', userId)
+      .maybeSingle();
+    return profile;
+  };
+
   useEffect(() => {
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Busca o perfil imediatamente após recuperar a sessão para centralizar dados
-        const isTeacher = session.user.user_metadata?.role === 'teacher' || session.user.user_metadata?.role === 'admin';
-        const table = isTeacher ? 'teachers' : 'profiles';
-        const { data: profile } = await supabase.from(table)
-          .select('id, name, email, institution, course, is_financial_aid_eligible')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        
+        const profile = await fetchProfile(session.user.id, session.user.user_metadata?.role);
         setState({ session, user: session.user, profile, loading: false });
       } else {
         setState(prev => ({ ...prev, loading: false }));
@@ -50,13 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_IN' && session) {
-        const isTeacher = session.user.user_metadata?.role === 'teacher' || session.user.user_metadata?.role === 'admin';
-        const table = isTeacher ? 'teachers' : 'profiles';
-        const { data: profile } = await supabase.from(table)
-          .select('id, name, email, institution, course, is_financial_aid_eligible')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        
+        const profile = await fetchProfile(session.user.id, session.user.user_metadata?.role);
         setState({ session, user: session.user, profile, loading: false });
       } else if (event === 'SIGNED_OUT') {
         setState({ session: null, user: null, profile: null, loading: false });

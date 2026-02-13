@@ -2,17 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MonitorPlay, PlusCircle, Video, Calendar, Clock, Loader2, Trash2, Radio } from "lucide-react";
+import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 
 export default function ManageLivePage() {
   const { user } = useAuth();
@@ -49,7 +47,7 @@ export default function ManageLivePage() {
 
   const handleCreateLive = async () => {
     if (!formData.title || !formData.date || !formData.time || !user) {
-      toast({ title: "Dados Incompletos", variant: "destructive" });
+      toast({ title: "Dados Incompletos", description: "Data e horário são obrigatórios.", variant: "destructive" });
       return;
     }
 
@@ -67,12 +65,12 @@ export default function ManageLivePage() {
     });
 
     if (!error) {
-      toast({ title: "Live Agendada!" });
+      toast({ title: "Live Agendada!", description: "A transmissão já está na agenda dos alunos." });
       setIsCreateOpen(false);
       setFormData({ title: "", description: "", date: "", time: "", youtube_id: "" });
       fetchLives();
     } else {
-      toast({ title: "Erro ao agendar", variant: "destructive" });
+      toast({ title: "Erro ao agendar", description: error.message, variant: "destructive" });
     }
     setIsSubmitting(false);
   };
@@ -90,13 +88,13 @@ export default function ManageLivePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-primary italic leading-none">Studio Core</h1>
-          <p className="text-muted-foreground font-medium">Controle suas transmissões.</p>
+          <p className="text-muted-foreground font-medium">Controle suas transmissões e aulas em tempo real.</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
-              <PlusCircle className="h-6 w-6" /> Agendar Aula
+              <PlusCircle className="h-6 w-6" /> Agendar Aula Master
             </button>
           </DialogTrigger>
           <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-lg border-none shadow-2xl">
@@ -105,8 +103,8 @@ export default function ManageLivePage() {
             </DialogHeader>
             <div className="grid gap-6 py-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Título</Label>
-                <Input placeholder="Ex: Revisão" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
+                <Input placeholder="Ex: Revisão de Véspera - Humanas" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -119,13 +117,13 @@ export default function ManageLivePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">YouTube ID</Label>
+                <Label className="text-[10px] font-black uppercase opacity-40">ID do YouTube</Label>
                 <Input placeholder="rfscVS0vtbw" value={formData.youtube_id} onChange={(e) => setFormData({...formData, youtube_id: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-medium" />
               </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCreateLive} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl">
-                {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar na Agenda"}
+                {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar na Agenda Oficial"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -136,6 +134,12 @@ export default function ManageLivePage() {
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-accent" />
+            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Sincronizando Agenda...</p>
+          </div>
+        ) : lives.length === 0 ? (
+          <div className="py-20 text-center border-4 border-dashed rounded-[3rem] bg-white/50 opacity-40">
+            <Calendar className="h-12 w-12 mx-auto mb-4" />
+            <p className="font-black italic">Nenhuma live agendada.</p>
           </div>
         ) : (
           lives.map((live) => (
@@ -146,9 +150,9 @@ export default function ManageLivePage() {
                     <span className="text-[10px] font-black uppercase opacity-60">{new Date(live.start_time).toLocaleDateString('pt-BR', { month: 'short' })}</span>
                     <span className="text-3xl font-black italic">{new Date(live.start_time).getDate()}</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-hidden">
                     <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {new Date(live.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    <CardTitle className="text-2xl font-black text-primary italic leading-none">{live.title}</CardTitle>
+                    <CardTitle className="text-2xl font-black text-primary italic leading-none truncate">{live.title}</CardTitle>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 w-full md:w-auto">

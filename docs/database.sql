@@ -1,44 +1,36 @@
--- SCRIPT SQL INDUSTRIAL EDUCORE
--- Execute este script no SQL Editor do Supabase para habilitar todas as funções.
+-- SCRIPT DE INFRAESTRUTURA EDUCORE | ESTADO INDUSTRIAL
+-- Execute este script no SQL Editor do seu Supabase.
 
--- 1. TABELA DE PROCESSO (Vigilante de Vídeo 80%)
-CREATE TABLE IF NOT EXISTS user_progress (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  trail_id UUID NOT NULL,
-  content_id UUID NOT NULL,
-  percentage INTEGER DEFAULT 0,
-  is_completed BOOLEAN DEFAULT false,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+-- 1. TABELA DE PROGRESSO (VIGILANTE DE VÍDEO)
+CREATE TABLE IF NOT EXISTS public.user_progress (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    trail_id UUID REFERENCES public.learning_trails(id) ON DELETE CASCADE,
+    content_id UUID REFERENCES public.learning_contents(id) ON DELETE CASCADE,
+    percentage INTEGER DEFAULT 0,
+    is_completed BOOLEAN DEFAULT FALSE,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, content_id)
 );
 
--- Index para performance de busca de progresso
-CREATE INDEX IF NOT EXISTS idx_user_progress_lookup ON user_progress(user_id, trail_id);
+-- 2. AJUSTES NA TABELA DE LIVES (AGENDAMENTO OBRIGATÓRIO)
+-- Se a coluna start_time não existir ou for apenas data, vamos garantir que suporte timestamp.
+ALTER TABLE public.lives 
+ALTER COLUMN start_time TYPE TIMESTAMP WITH TIME ZONE;
 
--- 2. AJUSTE TABELA DE LIVES (Agendamento Industrial)
-DO $$ 
-BEGIN 
-  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='lives' AND column_name='start_time') THEN
-    ALTER TABLE lives ADD COLUMN start_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now();
-  END IF;
-END $$;
+-- 3. POLÍTICAS RLS (MODO DEMO - ACESSO TOTAL)
+-- Nota: Em produção, estas regras devem ser mais restritivas.
+ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to progress" ON public.user_progress FOR ALL USING (true) WITH CHECK (true);
 
--- 3. POLÍTICAS DE ACESSO (RLS) - MODO APRESENTAÇÃO
-ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Acesso Total Demo" ON user_progress FOR ALL USING (true);
+ALTER TABLE public.learning_trails ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to trails" ON public.learning_trails FOR ALL USING (true) WITH CHECK (true);
 
--- 4. GARANTIR TABELA DE CHAT
-CREATE TABLE IF NOT EXISTS chat_messages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  sender_id TEXT NOT NULL,
-  receiver_id TEXT NOT NULL,
-  message TEXT NOT NULL,
-  file_url TEXT,
-  file_name TEXT,
-  file_type TEXT,
-  is_read BOOLEAN DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+ALTER TABLE public.learning_modules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to modules" ON public.learning_modules FOR ALL USING (true) WITH CHECK (true);
 
-ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Acesso Total Chat" ON chat_messages FOR ALL USING (true);
+ALTER TABLE public.learning_contents ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to contents" ON public.learning_contents FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to lives" ON public.lives FOR ALL USING (true) WITH CHECK (true);
