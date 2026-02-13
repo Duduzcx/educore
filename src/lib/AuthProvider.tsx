@@ -32,10 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Busca o perfil imediatamente após recuperar a sessão
+        // Busca o perfil imediatamente após recuperar a sessão para centralizar dados
         const isTeacher = session.user.user_metadata?.role === 'teacher' || session.user.user_metadata?.role === 'admin';
         const table = isTeacher ? 'teachers' : 'profiles';
-        const { data: profile } = await supabase.from(table).select('id, name, email, institution, course, is_financial_aid_eligible').eq('id', session.user.id).maybeSingle();
+        const { data: profile } = await supabase.from(table)
+          .select('id, name, email, institution, course, is_financial_aid_eligible')
+          .eq('id', session.user.id)
+          .maybeSingle();
         
         setState({ session, user: session.user, profile, loading: false });
       } else {
@@ -49,7 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_IN' && session) {
         const isTeacher = session.user.user_metadata?.role === 'teacher' || session.user.user_metadata?.role === 'admin';
         const table = isTeacher ? 'teachers' : 'profiles';
-        const { data: profile } = await supabase.from(table).select('id, name, email, institution, course, is_financial_aid_eligible').eq('id', session.user.id).maybeSingle();
+        const { data: profile } = await supabase.from(table)
+          .select('id, name, email, institution, course, is_financial_aid_eligible')
+          .eq('id', session.user.id)
+          .maybeSingle();
         
         setState({ session, user: session.user, profile, loading: false });
       } else if (event === 'SIGNED_OUT') {

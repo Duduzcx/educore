@@ -43,7 +43,7 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
     min-height: 100vh;
-    /* Reset de scroll global para permitir rolagem do navegador em páginas longas */
+    /* Reset de scroll global para permitir rolagem natural em páginas longas */
     overflow-y: auto !important;
   }
 }

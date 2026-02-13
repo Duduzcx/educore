@@ -47,7 +47,7 @@ export default function DashboardHome() {
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
   useEffect(() => {
-    // Busca de avisos simulada
+    // Busca de avisos simulada para reduzir TBT
     setLoadingAnnouncements(true);
     setTimeout(() => {
         setAnnouncements([
@@ -60,6 +60,7 @@ export default function DashboardHome() {
     const fetchLibraryItems = async () => {
       setLoadingLibrary(true);
       try {
+        // Seleção cirúrgica de campos para otimizar Payload
         const { data, error } = await supabase
           .from('library_items')
           .select('id, title, description, category')
@@ -152,6 +153,7 @@ export default function DashboardHome() {
                               height={150} 
                               className="object-cover" 
                               priority={idx < 2}
+                              data-ai-hint="educational cover"
                             />
                         </div>
                         <div className='flex-1 space-y-1.5 overflow-hidden'>

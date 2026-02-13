@@ -19,9 +19,7 @@ import {
   Loader2,
   Video,
   CheckCircle2,
-  AlertCircle,
-  History,
-  Timer
+  AlertCircle
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthProvider";
@@ -51,12 +49,13 @@ export default function ClassroomPage() {
   const progressInterval = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // REGRA INDUSTRIAL: 80% de visualização marca como concluído automaticamente
   const updateServerProgress = useCallback(async (percentage: number) => {
     if (!user || !activeContentId) return;
     
-    // Regra industrial: Concluído com 80%
     const completed = percentage >= 80;
     
+    // Atualiza progresso no banco via Upsert
     await supabase.from('user_progress').upsert({
       user_id: user.id,
       trail_id: trailId,
@@ -68,7 +67,10 @@ export default function ClassroomPage() {
 
     if (completed && !isCompleted) {
       setIsCompleted(true);
-      toast({ title: "Módulo Concluído!", description: "Parabéns por chegar aos 80% desta aula." });
+      toast({ 
+        title: "Vigilante EduCore: Módulo Concluído!", 
+        description: "Você atingiu 80% de visualização e seu progresso foi salvo." 
+      });
     }
   }, [user, activeContentId, trailId, isCompleted, toast]);
 
@@ -79,11 +81,13 @@ export default function ClassroomPage() {
         if (playerRef.current && playerRef.current.getDuration) {
           const currentTime = playerRef.current.getCurrentTime();
           const duration = playerRef.current.getDuration();
-          const percent = (currentTime / duration) * 100;
-          setVideoProgress(percent);
-          updateServerProgress(percent);
+          if (duration > 0) {
+            const percent = (currentTime / duration) * 100;
+            setVideoProgress(percent);
+            updateServerProgress(percent);
+          }
         }
-      }, 5000); // Check a cada 5 segundos
+      }, 5000); 
     } else {
       clearInterval(progressInterval.current);
     }
@@ -97,10 +101,6 @@ export default function ClassroomPage() {
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
       apiLoaded = true;
     }
-
-    (window as any).onYouTubeIframeAPIReady = () => {
-      console.log("YouTube API Ready");
-    };
   }, []);
 
   useEffect(() => {
@@ -108,16 +108,16 @@ export default function ClassroomPage() {
       if (!user || !trailId) return;
       setLoading(true);
       try {
-        const { data: trailData } = await supabase.from('learning_trails').select('*').eq('id', trailId).single();
+        const { data: trailData } = await supabase.from('learning_trails').select('id, title').eq('id', trailId).single();
         setTrail(trailData);
 
-        const { data: modulesData } = await supabase.from('learning_modules').select('*').eq('trail_id', trailId).order('order_index', { ascending: true });
+        const { data: modulesData } = await supabase.from('learning_modules').select('id, title, order_index').eq('trail_id', trailId).order('order_index', { ascending: true });
         setModules(modulesData || []);
 
         if (modulesData && modulesData.length > 0) {
           setActiveModuleId(modulesData[0].id);
           const mIds = modulesData.map(m => m.id);
-          const { data: contentsData } = await supabase.from('learning_contents').select('*').in('module_id', mIds).order('created_at', { ascending: true });
+          const { data: contentsData } = await supabase.from('learning_contents').select('id, module_id, title, type, url, description').in('module_id', mIds).order('created_at', { ascending: true });
           
           const grouped: Record<string, any[]> = {};
           contentsData?.forEach(c => {
@@ -144,12 +144,15 @@ export default function ClassroomPage() {
 
   useEffect(() => {
     if (activeContent?.type === 'video' && (window as any).YT) {
-      if (playerRef.current) playerRef.current.destroy();
+      if (playerRef.current) {
+        try { playerRef.current.destroy(); } catch (e) {}
+      }
       
       const vidId = activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1] : activeContent.url;
       
       playerRef.current = new (window as any).YT.Player('youtube-player', {
         videoId: vidId,
+        playerVars: { 'autoplay': 0, 'modestbranding': 1, 'rel': 0 },
         events: {
           'onStateChange': onPlayerStateChange
         }
@@ -182,7 +185,7 @@ export default function ClassroomPage() {
         <div className="flex items-center gap-4 w-full max-w-xs ml-auto">
           <div className="flex-1">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">Progresso Aula</span>
+              <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">Vigilante de Vídeo (80%)</span>
               <span className="text-[10px] font-black text-accent italic">{Math.round(videoProgress)}%</span>
             </div>
             <Progress value={videoProgress} className="h-1.5 bg-muted rounded-full" />
