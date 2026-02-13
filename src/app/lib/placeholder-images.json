@@ -1,0 +1,35 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "trail-math",
+      "description": "Mathematics learning trail cover",
+      "imageUrl": "https://picsum.photos/seed/math/600/400",
+      "imageHint": "mathematics education"
+    },
+    {
+      "id": "trail-physics",
+      "description": "Physics learning trail cover",
+      "imageUrl": "https://picsum.photos/seed/physics/600/400",
+      "imageHint": "physics experiment"
+    },
+    {
+      "id": "trail-tech",
+      "description": "Technology and AI trail cover",
+      "imageUrl": "https://picsum.photos/seed/tech/600/400",
+      "imageHint": "technology education"
+    },
+    {
+      "id": "trail-biology",
+      "description": "Biology learning trail cover",
+      "imageUrl": "https://picsum.photos/seed/bio/600/400",
+      "imageHint": "biology nature"
+    },
+    {
+      "id": "video-poster",
+      "description": "Default video placeholder",
+      "imageUrl": "https://picsum.photos/seed/video/800/450",
+      "imageHint": "video tutorial"
+    }
+  ]
+}

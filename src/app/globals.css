@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -41,9 +42,9 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Scroll Nativo Restaurado para leitura de páginas longas */
+    /* Prevenção de CLS: define um overflow padrão sem forçar scroll-lock onde não deve */
     overflow-x: hidden;
-    overflow-y: auto !important;
+    min-height: 100vh;
   }
 }
 
@@ -66,16 +67,23 @@
   background: hsl(var(--accent) / 0.4);
 }
 
-/* Classes para manter o layout de App em páginas fixas */
+/* Classes para Apps Fixos (Chat, Classroom) */
 .app-container {
-  height: calc(100vh - 120px);
+  height: calc(100vh - 8rem); /* Ajuste dinâmico para header do dashboard */
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 .scrollable-content {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Redução de Unused CSS Animation */
+.animate-in {
+  animation-fill-mode: forwards;
 }

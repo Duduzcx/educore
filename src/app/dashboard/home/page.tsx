@@ -20,7 +20,6 @@ import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider"; 
 import { supabase } from "@/lib/supabase"; 
 
-// Tipagens
 interface LibraryItem {
   id: string;
   title: string;
@@ -35,7 +34,6 @@ interface Announcement {
   priority: 'low' | 'medium' | 'high';
 }
 
-// Mapeamento de estilos para os avisos
 const priorityStyles = {
   low: { icon: Info, color: 'text-slate-500', bgColor: 'bg-slate-100' },
   medium: { icon: Megaphone, color: 'text-amber-600', bgColor: 'bg-amber-100' },
@@ -46,13 +44,10 @@ export default function DashboardHome() {
   const { user, loading: isUserLoading } = useAuth();
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
-  
-  // Estado para os avisos (simulando dados recebidos)
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
   useEffect(() => {
-    // Simula a busca de avisos
     setLoadingAnnouncements(true);
     setTimeout(() => {
         setAnnouncements([
@@ -62,7 +57,6 @@ export default function DashboardHome() {
         setLoadingAnnouncements(false);
     }, 800);
 
-    // Busca de itens da biblioteca (lógica existente)
     const fetchLibraryItems = async () => {
       setLoadingLibrary(true);
       try {
@@ -105,7 +99,6 @@ export default function DashboardHome() {
          </div>
       </section>
 
-      {/* Seção do Mural de Avisos */}
       <div>
         <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2 mb-4">
           <Megaphone className="h-5 w-5 text-accent" /> Mural de Avisos
@@ -148,11 +141,19 @@ export default function DashboardHome() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {libraryItems.length > 0 ? (
-                  libraryItems.map((item) => (
+                  libraryItems.map((item, idx) => (
                     <Link key={item.id} href="/dashboard/library" className="group block">
                       <Card className="border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-[2rem] flex items-center gap-5 p-5">
                           <div className='w-20 h-20 shrink-0 relative rounded-2xl overflow-hidden shadow-md'>
-                              <Image src={`https://picsum.photos/seed/${item.id}/150/150`} alt={item.title} width={150} height={150} className="object-cover" data-ai-hint="educational cover" />
+                              <Image 
+                                src={`https://picsum.photos/seed/${item.id}/150/150`} 
+                                alt={item.title} 
+                                width={150} 
+                                height={150} 
+                                className="object-cover" 
+                                data-ai-hint="educational cover"
+                                priority={idx < 2}
+                              />
                           </div>
                           <div className='flex-1 space-y-1.5 overflow-hidden'>
                               <Badge variant='secondary' className='font-black text-[7px] uppercase tracking-widest bg-accent/10 text-accent border-none'>{item.category}</Badge>
