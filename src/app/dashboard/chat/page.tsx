@@ -23,10 +23,10 @@ export default function ChatListPage() {
       if (!user) return;
       setLoading(true);
       
-      // OTIMIZAÇÃO: Busca paralela e limites para performance
+      // Otimização: Seleção apenas dos campos necessários para o card
       const [profilesRes, teachersRes] = await Promise.all([
-        supabase.from('profiles').select('*').limit(50),
-        supabase.from('teachers').select('*').limit(50)
+        supabase.from('profiles').select('id, name, course, institution').limit(50),
+        supabase.from('teachers').select('id, name, subjects').limit(50)
       ]);
       
       setStudents(profilesRes.data || []);
@@ -43,7 +43,6 @@ export default function ChatListPage() {
 
   const filteredContacts = allContacts.filter(c => 
     c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.expertise?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 

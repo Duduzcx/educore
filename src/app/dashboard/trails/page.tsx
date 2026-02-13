@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -58,12 +57,11 @@ const EXAMPLE_TRAILS = [
 ];
 
 export default function LearningTrailsPage() {
-  const { user } = useAuth();
+  const { user, profile: userProfile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [activeAudience, setActiveAudience] = useState("all");
   
-  const [userProfile, setUserProfile] = useState<any>(null);
   const [dbTrails, setDbTrails] = useState<any[]>([]);
   const [allProgress, setAllProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,17 +72,14 @@ export default function LearningTrailsPage() {
       setLoading(true);
       
       try {
-        // Busca perfil no Supabase
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setUserProfile(profile);
+        // Otimização: Select apenas dos campos necessários
+        const [trailsRes, progressRes] = await Promise.all([
+          supabase.from('learning_trails').select('id, title, category, description, status, image_url, teacher_id, teacher_name').eq('status', 'active'),
+          supabase.from('user_progress').select('trail_id, percentage').eq('user_id', user.id)
+        ]);
 
-        // Busca trilhas ativas
-        const { data: trails } = await supabase.from('learning_trails').select('*').eq('status', 'active');
-        setDbTrails(trails || []);
-
-        // Busca progresso do usuário
-        const { data: progress } = await supabase.from('user_progress').select('*').eq('user_id', user.id);
-        setAllProgress(progress || []);
+        setDbTrails(trailsRes.data || []);
+        setAllProgress(progressRes.data || []);
       } catch (err) {
         console.error("Erro ao carregar trilhas do Supabase:", err);
       } finally {
@@ -198,6 +193,7 @@ export default function LearningTrailsPage() {
                         alt={trail.title} 
                         fill 
                         className="object-cover transition-transform duration-1000 group-hover/card:scale-110"
+                        priority={index < 3}
                       />
                       <div className="absolute top-4 left-4 flex flex-col gap-2">
                         <div className="flex gap-2">

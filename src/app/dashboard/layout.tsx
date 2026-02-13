@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
@@ -58,25 +57,14 @@ NavMenu.displayName = "NavMenu";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading: isUserLoading } = useAuth();
+  const { user, profile, loading: isUserLoading, signOut } = useAuth();
   
   const isTeacher = useMemo(() => 
     user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin'
   , [user?.user_metadata?.role]);
   
-  const [profile, setProfile] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    const fetchProfile = async () => {
-      const table = isTeacher ? 'teachers' : 'profiles';
-      const { data } = await supabase.from(table).select('name').eq('id', user.id).maybeSingle();
-      if (data) setProfile(data);
-    };
-    fetchProfile();
-  }, [user?.id, isTeacher]);
 
   useEffect(() => {
     if (!isUserLoading && !user) router.replace("/login");
@@ -91,10 +79,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const navItems = useMemo(() => isTeacher ? teacherItems : studentItems, [isTeacher]);
 
-  const handleSignOut = async () => {
+  const handleSignOutClick = async () => {
     setIsSignOutLoading(true);
-    await supabase.auth.signOut();
-    router.replace('/login');
+    await signOut();
   };
 
   if (isUserLoading) return (
@@ -131,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarFooter className="p-4 border-t border-white/5">
            <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleSignOut} disabled={isSignOutLoading} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl transition-colors">
+              <SidebarMenuButton onClick={handleSignOutClick} disabled={isSignOutLoading} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl transition-colors">
                 {isSignOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 <span className="font-bold text-xs">Sair</span>
               </SidebarMenuButton>

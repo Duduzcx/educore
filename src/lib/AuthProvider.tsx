@@ -7,6 +7,7 @@ import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: any | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -14,23 +15,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
+  profile: null,
   loading: true,
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{user: User | null, session: Session | null, loading: boolean}>({
+  const [state, setState] = useState<{user: User | null, session: Session | null, profile: any | null, loading: boolean}>({
     user: null,
     session: null,
+    profile: null,
     loading: true
   });
 
   useEffect(() => {
-    // TURBO: Recuperação de sessão prioritária
     const initializeAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        setState({ session, user: session.user, loading: false });
+        // Busca o perfil imediatamente após recuperar a sessão
+        const isTeacher = session.user.user_metadata?.role === 'teacher' || session.user.user_metadata?.role === 'admin';
+        const table = isTeacher ? 'teachers' : 'profiles';
+        const { data: profile } = await supabase.from(table).select('id, name, email, institution, course, is_financial_aid_eligible').eq('id', session.user.id).maybeSingle();
+        
+        setState({ session, user: session.user, profile, loading: false });
       } else {
         setState(prev => ({ ...prev, loading: false }));
       }
@@ -38,18 +45,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
-      // TURBO: Evita re-renders se os dados forem idênticos (previne o "agarrar")
-      setState(prev => {
-        if (prev.user?.id === session?.user?.id && prev.session?.access_token === session?.access_token && !prev.loading) {
-          return prev;
-        }
-        return {
-          session,
-          user: session?.user ?? null,
-          loading: false
-        };
-      });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+      if (event === 'SIGNED_IN' && session) {
+        const isTeacher = session.user.user_metadata?.role === 'teacher' || session.user.user_metadata?.role === 'admin';
+        const table = isTeacher ? 'teachers' : 'profiles';
+        const { data: profile } = await supabase.from(table).select('id, name, email, institution, course, is_financial_aid_eligible').eq('id', session.user.id).maybeSingle();
+        
+        setState({ session, user: session.user, profile, loading: false });
+      } else if (event === 'SIGNED_OUT') {
+        setState({ session: null, user: null, profile: null, loading: false });
+      } else {
+        setState(prev => ({ ...prev, session, user: session?.user ?? null, loading: false }));
+      }
     });
 
     return () => {
@@ -65,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const contextValue = useMemo(() => ({
     ...state,
     signOut
-  }), [state.user?.id, state.session?.access_token, state.loading]);
+  }), [state.user?.id, state.session?.access_token, state.profile, state.loading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

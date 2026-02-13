@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -41,7 +40,7 @@ const priorityStyles = {
 };
 
 export default function DashboardHome() {
-  const { user, loading: isUserLoading } = useAuth();
+  const { user, profile, loading: isUserLoading } = useAuth();
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -49,17 +48,19 @@ export default function DashboardHome() {
 
   useEffect(() => {
     setLoadingAnnouncements(true);
+    // Simulação de avisos (poderia vir de uma tabela 'announcements')
     setTimeout(() => {
         setAnnouncements([
              { id: 2, title: 'Manutenção Programada', message: 'A plataforma passará por uma manutenção rápida na próxima sexta-feira às 23h.', priority: 'medium' },
              { id: 1, title: 'Boas-vindas à Plataforma EduCore!', message: 'Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.', priority: 'low' },
         ]);
         setLoadingAnnouncements(false);
-    }, 800);
+    }, 400);
 
     const fetchLibraryItems = async () => {
       setLoadingLibrary(true);
       try {
+        // Otimização: Select de campos específicos
         const { data, error } = await supabase.from('library_items').select('id, title, description, category').limit(4);
         if (!error) setLibraryItems(data as LibraryItem[]);
       } catch (err) {
@@ -80,7 +81,7 @@ export default function DashboardHome() {
     );
   }
 
-  const userName = user?.user_metadata?.full_name?.split(' ')[0] || 'Estudante';
+  const userName = profile?.name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Estudante';
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in duration-700">
