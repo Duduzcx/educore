@@ -43,10 +43,51 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
+
+// TODO: Refatorar para usar o Firebase
+// A lógica de busca de materiais da biblioteca foi removida e substituída por dados mocados.
 
 const categories = ["Todos", "Matemática", "Física", "Tecnologia", "Linguagens", "História", "Saúde"];
 const types = ["Todos", "PDF", "Video", "E-book", "Artigo"];
+
+const mockResources = [
+  {
+    id: '1',
+    title: 'Guia Definitivo de Redação para o ENEM',
+    description: 'Um guia completo com técnicas e exemplos para você alcançar a nota 1000 na redação do ENEM.',
+    category: 'Linguagens',
+    type: 'PDF',
+    url: '#',
+    image_url: 'https://picsum.photos/seed/lib1/400/250'
+  },
+  {
+    id: '2',
+    title: 'Videoaula: Cinemática Essencial para Vestibulares',
+    description: 'Entenda os conceitos de velocidade, aceleração e movimento uniforme de forma clara e objetiva.',
+    category: 'Física',
+    type: 'Video',
+    url: '#',
+    image_url: 'https://picsum.photos/seed/lib2/400/250'
+  },
+  {
+    id: '3',
+    title: 'E-book de Biologia Celular',
+    description: 'Mergulhe no mundo das células, suas organelas e funções. Material rico em ilustrações.',
+    category: 'Saúde',
+    type: 'E-book',
+    url: '#',
+    image_url: 'https://picsum.photos/seed/lib3/400/250'
+  },
+    {
+    id: '4',
+    title: 'Artigo: A Revolução Digital e seus Impactos',
+    description: 'Análise sobre como a tecnologia está moldando a sociedade e o mercado de trabalho.',
+    category: 'Tecnologia',
+    type: 'Artigo',
+    url: '#',
+    image_url: 'https://picsum.photos/seed/lib4/400/250'
+  }
+];
 
 export default function LibraryPage() {
   const { user } = useAuth();
@@ -54,24 +95,9 @@ export default function LibraryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("Todos");
   const [activeType, setActiveType] = useState("Todos");
-  const [resources, setResources] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [resources, setResources] = useState<any[]>(mockResources);
+  const [loading, setLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchResources() {
-      if (!user) return;
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('library_items')
-        .select('*');
-      
-      if (error) console.error(error);
-      else setResources(data || []);
-      setLoading(false);
-    }
-    fetchResources();
-  }, [user]);
 
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -84,7 +110,8 @@ export default function LibraryPage() {
     setIsDownloading(resource.id);
     toast({ title: "Processando download...", description: `Aguarde enquanto preparamos ${resource.title}` });
     setTimeout(() => {
-      window.open(resource.url, '_blank');
+      // Simula a abertura do link, já que a URL é um placeholder
+      toast({ title: "Download iniciado!", description: `O arquivo ${resource.title} deve começar a ser baixado.` });
       setIsDownloading(null);
     }, 1000);
   };

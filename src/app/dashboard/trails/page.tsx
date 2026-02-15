@@ -31,13 +31,48 @@ import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
+
+// TODO: Refatorar para usar o Firebase.
+// A lógica de busca de trilhas e progresso do usuário foi mocada.
 
 const TRAIL_CATEGORIES = ["Todos", "Matemática", "Tecnologia", "Linguagens", "Física", "História"];
 const AUDIENCE_FILTERS = [
   { id: "all", label: "Toda a Comunidade" },
   { id: "etec", label: "Perfil ETEC" },
   { id: "uni", label: "Perfil Vestibular" }
+];
+
+const MOCK_DB_TRAILS = [
+  {
+    id: "ia-gen-1",
+    title: "IA Generativa: Do Zero ao Avançado",
+    category: "Tecnologia",
+    description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho.",
+    modules_count: 8,
+    teacher_id: "prof-ia-1",
+    teacher_name: "Prof. Ada Lovelace",
+    status: "active",
+    image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
+    targetAudience: "both",
+    is_new: true,
+  },
+  {
+    id: "math-enem-1",
+    title: "Matemática ENEM: Foco em Aprovação",
+    category: "Matemática",
+    description: "Revisão intensiva dos temas com maior recorrência no exame nacional.",
+    modules_count: 12,
+    teacher_id: "prof-math-1",
+    teacher_name: "Prof. Bhaskara",
+    status: "active",
+    image_url: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800",
+    targetAudience: "etec",
+    is_fundamental: true,
+  }
+];
+
+const MOCK_USER_PROGRESS = [
+    { trail_id: "math-enem-1", percentage: 75 },
 ];
 
 const EXAMPLE_TRAILS = [
@@ -67,24 +102,14 @@ export default function LearningTrailsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchData() {
+    function fetchData() {
       if (!user) return;
       setLoading(true);
-      
-      try {
-        // Otimização: Select apenas dos campos necessários
-        const [trailsRes, progressRes] = await Promise.all([
-          supabase.from('learning_trails').select('id, title, category, description, status, image_url, teacher_id, teacher_name').eq('status', 'active'),
-          supabase.from('user_progress').select('trail_id, percentage').eq('user_id', user.id)
-        ]);
-
-        setDbTrails(trailsRes.data || []);
-        setAllProgress(progressRes.data || []);
-      } catch (err) {
-        console.error("Erro ao carregar trilhas do Supabase:", err);
-      } finally {
+      setTimeout(() => {
+        setDbTrails(MOCK_DB_TRAILS);
+        setAllProgress(MOCK_USER_PROGRESS);
         setLoading(false);
-      }
+      }, 1000);
     }
     fetchData();
   }, [user]);

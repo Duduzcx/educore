@@ -23,7 +23,7 @@ interface Announcement {
 const initialAnnouncements: Announcement[] = [
   {
     id: 1,
-    title: 'Boas-vindas à Plataforma EduCore!',
+    title: 'Boas-vindas à Plataforma Compromisso!',
     message: 'Sejam todos bem-vindos! Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.',
     priority: 'low',
     createdAt: new Date().toLocaleDateString('pt-BR'),

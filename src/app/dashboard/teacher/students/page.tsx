@@ -9,9 +9,64 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, AlertCircle, UserCircle, Send, Filter, ShieldCheck, Clock, Download, Loader2, FlaskConical } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+
+// TODO: Refatorar para usar o Firebase.
+// A lógica de busca e seeding de alunos foi mocada.
+
+const mockStudents = [
+  {
+    id: "demo-s-1",
+    name: "Arthur Pendragon",
+    email: "arthur@exemplo.com",
+    profile_type: "etec",
+    institution: "ETEC Jorge Street",
+    course: "Mecatrônica",
+    last_access: new Date().toISOString(),
+    is_financial_aid_eligible: true
+  },
+  {
+    id: "demo-s-2",
+    name: "Beatriz Oliveira",
+    email: "beatriz@exemplo.com",
+    profile_type: "uni",
+    institution: "FATEC São Paulo",
+    course: "ADS",
+    last_access: new Date(Date.now() - 864000000).toISOString(), // 10 dias atrás (Risco)
+    is_financial_aid_eligible: false
+  },
+  {
+    id: "demo-s-3",
+    name: "Carlos Eduardo",
+    email: "carlos@exemplo.com",
+    profile_type: "etec",
+    institution: "ETEC Lauro Gomes",
+    course: "Informática",
+    last_access: new Date().toISOString(),
+    is_financial_aid_eligible: true
+  },
+  {
+    id: "demo-s-4",
+    name: "Diana Prince",
+    email: "diana@exemplo.com",
+    profile_type: "uni",
+    institution: "USP",
+    course: "Direito",
+    last_access: new Date(Date.now() - 172800000).toISOString(),
+    is_financial_aid_eligible: false
+  },
+  {
+    id: "demo-s-5",
+    name: "Eduardo Silva",
+    email: "edu@exemplo.com",
+    profile_type: "etec",
+    institution: "ETEC Getúlio Vargas",
+    course: "Design",
+    last_access: new Date(Date.now() - 1209600000).toISOString(), // 14 dias atrás (Risco)
+    is_financial_aid_eligible: true
+  }
+];
 
 export default function TeacherStudentsPage() {
   const { user } = useAuth();
@@ -22,83 +77,27 @@ export default function TeacherStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
 
-  const fetchStudents = async () => {
-    if (!user) return;
+  const fetchStudents = () => {
     setLoading(true);
-    const { data, error } = await supabase.from('profiles').select('*');
-    if (!error) setStudents(data || []);
-    setLoading(false);
+    setTimeout(() => {
+        setStudents(mockStudents);
+        setLoading(false);
+    }, 800);
   };
 
   useEffect(() => {
-    fetchStudents();
+    if(user) fetchStudents();
   }, [user]);
 
-  const handleSeedStudents = async () => {
+  const handleSeedStudents = () => {
     setIsSeeding(true);
-    const demoStudents = [
-      {
-        id: "demo-s-1",
-        name: "Arthur Pendragon",
-        email: "arthur@exemplo.com",
-        profile_type: "etec",
-        institution: "ETEC Jorge Street",
-        course: "Mecatrônica",
-        last_access: new Date().toISOString(),
-        is_financial_aid_eligible: true
-      },
-      {
-        id: "demo-s-2",
-        name: "Beatriz Oliveira",
-        email: "beatriz@exemplo.com",
-        profile_type: "uni",
-        institution: "FATEC São Paulo",
-        course: "ADS",
-        last_access: new Date(Date.now() - 864000000).toISOString(), // 10 dias atrás (Risco)
-        is_financial_aid_eligible: false
-      },
-      {
-        id: "demo-s-3",
-        name: "Carlos Eduardo",
-        email: "carlos@exemplo.com",
-        profile_type: "etec",
-        institution: "ETEC Lauro Gomes",
-        course: "Informática",
-        last_access: new Date().toISOString(),
-        is_financial_aid_eligible: true
-      },
-      {
-        id: "demo-s-4",
-        name: "Diana Prince",
-        email: "diana@exemplo.com",
-        profile_type: "uni",
-        institution: "USP",
-        course: "Direito",
-        last_access: new Date(Date.now() - 172800000).toISOString(),
-        is_financial_aid_eligible: false
-      },
-      {
-        id: "demo-s-5",
-        name: "Eduardo Silva",
-        email: "edu@exemplo.com",
-        profile_type: "etec",
-        institution: "ETEC Getúlio Vargas",
-        course: "Design",
-        last_access: new Date(Date.now() - 1209600000).toISOString(), // 14 dias atrás (Risco)
-        is_financial_aid_eligible: true
-      }
-    ];
-
-    try {
-      const { error } = await supabase.from('profiles').upsert(demoStudents);
-      if (error) throw error;
-      toast({ title: "Rede Populada!", description: "5 estudantes demo adicionados para análise." });
-      fetchStudents();
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro ao semear", description: err.message });
-    } finally {
-      setIsSeeding(false);
-    }
+    console.log("Simulando adição de estudantes demo...");
+    setTimeout(() => {
+        const newStudents = [...students, ...mockStudents.map(s => ({...s, id: `${s.id}-${Date.now()}`}))];
+        setStudents(newStudents);
+        toast({ title: "Rede Populada!", description: "5 estudantes demo adicionados para análise (simulação)." });
+        setIsSeeding(false);
+    }, 1200);
   };
 
   const filteredStudents = students.filter(student => {
@@ -123,7 +122,7 @@ export default function TeacherStudentsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-black text-primary italic leading-none">Meus Alunos</h1>
-          <p className="text-muted-foreground text-sm md:text-base font-medium">Gestão baseada em dados do Supabase.</p>
+          <p className="text-muted-foreground text-sm md:text-base font-medium">Gestão de estudantes da rede.</p>
         </div>
         <Button 
           variant="outline" 

@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -11,6 +10,10 @@ import { Loader2, BookCheck, Target, Award, RotateCw, AlertTriangle } from 'luci
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/lib/AuthProvider';
 
+// TODO: Refatorar para usar o Firebase
+// A lógica de busca de questões e salvamento de respostas foi removida.
+// É preciso criar uma coleção no Firestore para as questões e outra para as respostas dos usuários.
+
 const SIMULATION_SIZE = 4; // Número de questões no simulado
 
 type Question = {
@@ -18,6 +21,8 @@ type Question = {
   question_text: string;
   options: { letter: string; text: string }[];
   correct_answer: string;
+  subject: string;
+  year: number;
 };
 
 type Answer = {
@@ -25,6 +30,61 @@ type Answer = {
   selected: string;
   correct: string;
 };
+
+const mockQuestions: Question[] = [
+  {
+    id: 'q1',
+    question_text: 'Em uma competição de ciências, uma equipe constrói um pequeno robô que se move em linha reta. A função que descreve a posição (P) do robô em metros, em relação ao tempo (t) em segundos, é P(t) = 2t + 3. Qual é a posição do robô após 5 segundos?',
+    options: [
+      { letter: 'a', text: '10 metros' },
+      { letter: 'b', text: '13 metros' },
+      { letter: 'c', text: '8 metros' },
+      { letter: 'd', text: '15 metros' },
+    ],
+    correct_answer: 'b',
+    subject: 'Matemática',
+    year: 2023,
+  },
+  {
+    id: 'q2',
+    question_text: 'Qual das seguintes organelas celulares é responsável pela respiração celular e produção de ATP?',
+    options: [
+      { letter: 'a', text: 'Retículo Endoplasmático' },
+      { letter: 'b', text: 'Complexo de Golgi' },
+      { letter: 'c', text: 'Mitocôndria' },
+      { letter: 'd', text: 'Lisossomo' },
+    ],
+    correct_answer: 'c',
+    subject: 'Biologia',
+    year: 2022,
+  },
+  {
+    id: 'q3',
+    question_text: 'A Lei da Inércia, ou Primeira Lei de Newton, afirma que um corpo em repouso tende a permanecer em repouso, a menos que uma força externa atue sobre ele. Essa afirmação está...',
+    options: [
+      { letter: 'a', text: 'Correta' },
+      { letter: 'b', text: 'Incorreta' },
+      { letter: 'c', text: 'Parcialmente correta' },
+      { letter: 'd', text: 'Relativa' },
+    ],
+    correct_answer: 'a',
+    subject: 'Física',
+    year: 2023,
+  },
+  {
+    id: 'q4',
+    question_text: 'Qual movimento literário brasileiro teve como uma de suas principais características o sentimentalismo e a idealização da natureza?',
+    options: [
+      { letter: 'a', text: 'Barroco' },
+      { letter: 'b', text: 'Arcadismo' },
+      { letter: 'c', text: 'Modernismo' },
+      { letter: 'd', text: 'Romantismo' },
+    ],
+    correct_answer: 'd',
+    subject: 'Linguagens',
+    year: 2021,
+  }
+];
 
 export default function SimuladoPage() {
   const { user } = useAuth();
@@ -35,70 +95,22 @@ export default function SimuladoPage() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchQuestions = useCallback(async () => {
-    if (!user) return;
-
+  const fetchQuestions = useCallback(() => {
     setGameState('loading');
     setError(null);
-
-    try {
-      // 1. Buscar IDs das questões já respondidas pelo usuário
-      const { data: answeredQuestionsData, error: answeredError } = await supabase
-        .from('exam_answers')
-        .select('question_id')
-        .eq('user_id', user.id);
-
-      if (answeredError) throw answeredError;
-
-      const answeredQuestionIds = answeredQuestionsData.map(a => a.question_id);
-
-      // 2. Buscar novas questões, excluindo as já respondidas
-      const { data, error: questionsError } = await supabase
-        .from('exam_questions')
-        .select('*')
-        .not('id', 'in', `(${answeredQuestionIds.join(',')})`)
-        .limit(SIMULATION_SIZE);
-
-      if (questionsError) throw questionsError;
-
-      if (!data || data.length === 0) {
-        setError("Você já respondeu todas as questões disponíveis! Reinicie seu histórico se quiser praticar novamente.");
-        setGameState('error');
-        return;
-      }
-      
-      // Para garantir aleatoriedade no cliente, já que .order('random()') pode ser ineficiente
-      const shuffledData = [...data].sort(() => 0.5 - Math.random());
-
-      setQuestions(shuffledData.slice(0, SIMULATION_SIZE) as Question[]);
+    setTimeout(() => {
+      const shuffledData = [...mockQuestions].sort(() => 0.5 - Math.random());
+      setQuestions(shuffledData.slice(0, SIMULATION_SIZE));
       setCurrentQuestionIndex(0);
       setAnswers([]);
       setSelectedAnswer(null);
       setGameState('active');
-    } catch (e: any) {
-      console.error('Erro detalhado:', e);
-      setError(e.message || "Ocorreu um erro ao carregar o simulado.");
-      setGameState('error');
-    }
-  }, [user]);
+    }, 1000);
+  }, []);
 
-  const saveAnswers = useCallback(async (finalAnswers: Answer[]) => {
-    if (!user) return;
-
-    const recordsToInsert = finalAnswers.map(answer => ({
-        user_id: user.id,
-        question_id: answer.questionId,
-        selected_answer: answer.selected,
-        is_correct: answer.selected === answer.correct
-    }));
-
-    const { error } = await supabase.from('exam_answers').insert(recordsToInsert);
-
-    if (error) {
-        console.error("Erro ao salvar respostas:", error);
-        // Opcional: Adicionar um toast para informar o usuário sobre o erro ao salvar.
-    }
-  }, [user]);
+  const saveAnswers = useCallback((finalAnswers: Answer[]) => {
+    console.log("Simulado finalizado. Respostas (simulação, não salvas):", finalAnswers);
+  }, []);
 
   const handleNextQuestion = () => {
     if (selectedAnswer === null) return;
@@ -116,7 +128,7 @@ export default function SimuladoPage() {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       setGameState('finished');
-      saveAnswers(newAnswers); // Salva as respostas no final
+      saveAnswers(newAnswers);
     }
   };
 

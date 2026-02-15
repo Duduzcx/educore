@@ -9,89 +9,34 @@ import { Users, PlayCircle, TrendingUp, Bell, ArrowRight, Sparkles, Loader2, Ale
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 export default function TeacherHomePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [stats, setStats] = useState({
-    totalStudents: 0,
-    socialSupport: 0,
-    myTrails: 0,
-    atRisk: 0,
-    loading: true
+    totalStudents: 150,
+    socialSupport: 25,
+    myTrails: 12,
+    atRisk: 18,
+    loading: false
   });
-  const [socialAlerts, setSocialAlerts] = useState<any[]>([]);
-  const [recentTrails, setRecentTrails] = useState<any[]>([]);
+  const [socialAlerts, setSocialAlerts] = useState<any[]>([
+      { name: 'Ana Silva', id: '1' },
+      { name: 'Carlos Souza', id: '2' },
+      { name: 'Mariana Lima', id: '3' },
+  ]);
+  const [recentTrails, setRecentTrails] = useState<any[]>([
+      { id: 't1', title: 'Revisão Intensiva de Química Orgânica', status: 'active' },
+      { id: 't2', title: 'Introdução à Filosofia Moderna', status: 'active' },
+      { id: 't3', title: 'Guia de Redação (Rascunho)', status: 'draft' },
+  ]);
   const [diagLoading, setDiagLoading] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      if (!user) return;
-      
-      try {
-        const { count: studentCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
-
-        const { data: socialData, count: socialCount } = await supabase
-          .from('profiles')
-          .select('name, id, is_financial_aid_eligible')
-          .eq('is_financial_aid_eligible', true);
-
-        const { data: trails, count: trailsCount } = await supabase
-          .from('learning_trails')
-          .select('*', { count: 'exact' })
-          .eq('teacher_id', user.id);
-
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const { count: atRiskCount } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .lt('last_access', sevenDaysAgo.toISOString());
-
-        setStats({
-          totalStudents: studentCount || 0,
-          socialSupport: socialCount || 0,
-          myTrails: trailsCount || 0,
-          atRisk: atRiskCount || 0,
-          loading: false
-        });
-        
-        setSocialAlerts(socialData?.slice(0, 3) || []);
-        setRecentTrails(trails || []);
-
-      } catch (error) {
-        console.error("Erro ao carregar dashboard:", error);
-        setStats(prev => ({ ...prev, loading: false }));
-      }
-    }
-    fetchData();
-  }, [user]);
-
-  const runDiagnostic = async () => {
+  const runDiagnostic = () => {
     setDiagLoading(true);
-    try {
-      const { error } = await supabase.from('learning_trails').select('id').limit(1);
-      
-      if (error) {
-        if (error.code === '42P01') {
-          toast({ variant: "destructive", title: "Erro de Diagnóstico", description: "Tabela 'learning_trails' não encontrada no banco." });
-        } else if (error.message.includes('row-level security')) {
-          toast({ variant: "destructive", title: "Erro de Diagnóstico", description: "Políticas RLS bloqueando o acesso. Desative-as no console." });
-        } else {
-          toast({ variant: "destructive", title: "Erro de Conexão", description: error.message });
-        }
-      } else {
-        toast({ title: "Diagnóstico Concluído", description: "Conexão com o banco de dados está 100% operacional!" });
-      }
-    } catch (err) {
-      toast({ variant: "destructive", title: "Erro Fatal", description: "Não foi possível contatar o Supabase." });
-    } finally {
-      setDiagLoading(false);
-    }
+    toast({ title: "Diagnóstico Simulado", description: "A conexão com a plataforma está operacional (simulação)." });
+    setTimeout(() => setDiagLoading(false), 1500);
   };
 
   if (stats.loading) {
@@ -108,7 +53,7 @@ export default function TeacherHomePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black tracking-tight text-primary italic">Painel de Gestão Docente</h1>
-          <p className="text-muted-foreground font-medium">Controle pedagógico em tempo real via Supabase.</p>
+          <p className="text-muted-foreground font-medium">Controle pedagógico em tempo real.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button 

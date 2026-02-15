@@ -24,8 +24,24 @@ import {
   Clock
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+
+// TODO: Refatorar para usar o Firebase Realtime Database ou Firestore.
+// A lógica de chat em tempo real (Supabase channels) foi desativada.
+// As mensagens são mocadas e a interação é simulada no estado local.
+
+const mockLive = {
+    id: 'live1',
+    title: 'Aulão de Véspera - ENEM 2024',
+    youtube_id: 'rfscVS0vtbw' // Exemplo de ID de vídeo do YouTube
+};
+
+const mockMessages = [
+    { id: 'm1', author_name: 'Ana Julia', content: 'Professor, a questão de logaritmo vai cair mesmo?', is_question: true, is_answered: false, created_at: new Date(Date.now() - 60000 * 5).toISOString() },
+    { id: 'm2', author_name: 'Carlos Dias', content: 'Boa noite a todos!', is_question: false, is_answered: false, created_at: new Date(Date.now() - 60000 * 4).toISOString() },
+    { id: 'm3', author_name: 'Beatriz Costa', content: 'Qual a diferença fundamental entre mitose e meiose mesmo? Esqueci.', is_question: true, is_answered: true, created_at: new Date(Date.now() - 60000 * 3).toISOString() },
+    { id: 'm4', author_name: 'PROFESSOR (MENTOR)', content: 'Ótima pergunta, Beatriz. A mitose gera células idênticas para reposição, enquanto a meiose cria gametas com metade dos cromossomos para a reprodução.', is_question: false, is_answered: false, created_at: new Date(Date.now() - 60000 * 2).toISOString() },
+];
 
 export default function TeacherLiveStudioPage() {
   const params = useParams();
@@ -42,77 +58,33 @@ export default function TeacherLiveStudioPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function loadData() {
-      if (!user || !liveId) return;
-      setLoading(true);
-      try {
-        const { data: liveData } = await supabase.from('lives').select('*').eq('id', liveId).single();
-        setLive(liveData);
-
-        const { data: msgs } = await supabase
-          .from('forum_posts')
-          .select('*')
-          .eq('forum_id', liveId)
-          .order('created_at', { ascending: true });
-        setMessages(msgs || []);
-
-        const channel = supabase.channel(`studio_chat_${liveId}`)
-          .on('postgres_changes', { 
-            event: 'INSERT', 
-            schema: 'public', 
-            table: 'forum_posts',
-            filter: `forum_id=eq.${liveId}`
-          }, (payload) => {
-            setMessages(prev => [...prev, payload.new]);
-            if (payload.new.is_question) {
-              toast({ title: "Nova Pergunta!", description: `Estudante: ${payload.new.author_name}`, variant: "default" });
-            }
-          })
-          .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'forum_posts',
-            filter: `forum_id=eq.${liveId}`
-          }, (payload) => {
-            setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
-          })
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
-      } catch (err) {
-        console.error(err);
-      } finally {
+    setLoading(true);
+    setTimeout(() => {
+        setLive(mockLive);
+        setMessages(mockMessages);
         setLoading(false);
-      }
-    }
-    loadData();
-  }, [user, liveId, toast]);
+    }, 1000)
+  }, [liveId]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || !user) return;
 
-    const { error } = await supabase.from('forum_posts').insert({
-      forum_id: liveId,
-      author_id: user.id,
-      author_name: "PROFESSOR (MENTOR)",
-      content: input,
-      is_question: false,
-      created_at: new Date().toISOString()
-    });
-
-    if (!error) setInput("");
+    const newMessage = {
+        id: `msg_${Date.now()}`,
+        author_name: "PROFESSOR (MENTOR)",
+        content: input,
+        is_question: false,
+        is_answered: false,
+        created_at: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, newMessage]);
+    setInput("");
   };
 
-  const markAsAnswered = async (msgId: string) => {
-    const { error } = await supabase
-      .from('forum_posts')
-      .update({ is_answered: true })
-      .eq('id', msgId);
-    
-    if (error) toast({ variant: "destructive", title: "Erro ao atualizar" });
+  const markAsAnswered = (msgId: string) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, is_answered: true } : m));
+    toast({ title: "Dúvida marcada como respondida!" });
   };
 
   const filteredMessages = activeTab === 'all' 

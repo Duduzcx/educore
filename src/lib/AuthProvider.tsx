@@ -1,13 +1,23 @@
+
 'use client';
 
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/lib/supabase'; 
-import { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/app/lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
+import { useRouter } from 'next/navigation';
+
+type Profile = {
+  id: string;
+  name: string;
+  email: string;
+  profile_type: string;
+  [key: string]: any;
+};
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  profile: any | null;
+  profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -21,61 +31,74 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<{user: User | null, session: Session | null, profile: any | null, loading: boolean}>({
-    user: null,
-    session: null,
-    profile: null,
-    loading: true
-  });
-
-  const fetchProfile = async (userId: string, role?: string) => {
-    const isTeacher = role === 'teacher' || role === 'admin';
-    const table = isTeacher ? 'teachers' : 'profiles';
-    const { data: profile } = await supabase.from(table)
-      .select('id, name, email, institution, course, is_financial_aid_eligible')
-      .eq('id', userId)
-      .maybeSingle();
-    return profile;
-  };
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const profile = await fetchProfile(session.user.id, session.user.user_metadata?.role);
-        setState({ session, user: session.user, profile, loading: false });
-      } else {
-        setState(prev => ({ ...prev, loading: false }));
-      }
-    };
-
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
-      if (event === 'SIGNED_IN' && session) {
-        const profile = await fetchProfile(session.user.id, session.user.user_metadata?.role);
-        setState({ session, user: session.user, profile, loading: false });
-      } else if (event === 'SIGNED_OUT') {
-        setState({ session: null, user: null, profile: null, loading: false });
-      } else {
-        setState(prev => ({ ...prev, session, user: session?.user ?? null, loading: false }));
-      }
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      setLoading(false);
     });
 
+    // Fetch initial session
+    const getInitialSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        setLoading(false);
+    };
+
+    getInitialSession();
+
     return () => {
-      subscription.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
   }, []);
 
+  useEffect(() => {
+    if (user) {
+      const fetchProfile = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching profile:', error);
+          setProfile(null);
+        } else {
+          setProfile(data as Profile);
+        }
+      };
+
+      fetchProfile();
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/login';
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    router.push('/login');
   };
 
   const contextValue = useMemo(() => ({
-    ...state,
+    user,
+    session,
+    profile,
+    loading,
     signOut
-  }), [state.user?.id, state.session?.access_token, state.profile, state.loading]);
+  }), [user, session, profile, loading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

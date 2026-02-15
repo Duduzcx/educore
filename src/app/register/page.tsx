@@ -12,7 +12,9 @@ import { GraduationCap, School, User, ArrowRight, CheckCircle2, Loader2, Mail, L
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase"; // Importa o cliente Supabase
+
+// TODO: Refatorar para usar o Firebase Authentication e Firestore.
+// A lógica de criação de usuário e perfil foi mocada.
 
 type Step = 1 | 2 | 3;
 type ProfileType = "etec" | "uni" | "teacher";
@@ -42,76 +44,25 @@ export default function RegisterPage() {
   const prevStep = () => setStep((s) => (s - 1) as Step);
 
   const handleFinish = async () => {
-    if (!formData.email || !formData.password) {
-      toast({ variant: "destructive", title: "Erro", description: "Preencha e-mail e senha." });
+    if (!formData.email || !formData.password || !formData.firstName) {
+      toast({ variant: "destructive", title: "Erro", description: "Preencha pelo menos nome, e-mail e senha." });
       return;
     }
 
     setLoading(true);
-    try {
-      // 1. Criar o usuário no Supabase Auth
-      const fullName = `${formData.firstName} ${formData.lastName}`.trim();
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: { // Esses dados são adicionados à coluna `raw_user_meta_data` do objeto `user` do Auth
-            full_name: fullName,
-            profile_type: profileType,
-          }
-        }
-      });
+    console.log("Dados do formulário para simulação de cadastro:", { profileType, ...formData });
 
-      if (signUpError) throw signUpError;
-
-      // Pega o usuário recém-criado da resposta do signUp
-      const user = data.user;
-      if (!user) throw new Error("Criação de usuário falhou. Nenhum usuário retornado.");
-
-      // 2. Inserir os dados do perfil na tabela apropriada
-      let profileError;
-      if (profileType === "teacher") {
-        const { error } = await supabase.from('teachers').insert({
-          id: user.id, // Chave estrangeira para auth.users.id
-          name: fullName,
-          email: formData.email,
-          subjects: formData.subject,
-          experience: formData.experience,
-          interests: formData.interests,
+    // Simula uma chamada de API para criar a conta
+    setTimeout(() => {
+        toast({
+            title: "Conta criada com sucesso! (Simulação)",
+            description: "Você será redirecionado para o dashboard.",
         });
-        profileError = error;
-      } else {
-        const { error } = await supabase.from('profiles').insert({
-          id: user.id, // Chave estrangeira para auth.users.id
-          name: fullName,
-          email: formData.email,
-          profile_type: profileType,
-          institution: profileType === "etec" ? formData.school : formData.university,
-          course: profileType === "etec" ? formData.course : formData.major,
-          interests: formData.interests,
-        });
-        profileError = error;
-      }
-
-      if (profileError) throw profileError;
-
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Você será redirecionado em breve. Verifique seu e-mail para confirmação.",
-      });
-      
-      // Redireciona para o dashboard. O onAuthStateChange cuidará do estado de login.
-      router.push("/dashboard/home");
-
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Falha no Cadastro",
-        description: error.message || "Não foi possível criar sua conta.",
-      });
-    } finally {
-      setLoading(false);
-    }
+        // Em um app real, o AuthProvider seria atualizado aqui
+        // e o usuário seria redirecionado automaticamente.
+        router.push("/dashboard/home");
+        setLoading(false);
+    }, 1500);
   };
 
   const updateField = (field: string, value: string) => {

@@ -2,7 +2,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Lexend } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/lib/AuthProvider'; // Importa o novo AuthProvider
+import { AuthProvider } from '@/lib/AuthProvider'; 
 import { ClientWrapper } from '@/components/ClientWrapper';
 import './globals.css';
 
@@ -19,7 +19,7 @@ const lexend = Lexend({
 });
 
 export const metadata: Metadata = {
-  title: 'EduCore | Smart Education',
+  title: 'Compromisso | Smart Education',
   description: 'Um portal de educação moderno, acessível e inteligente para gestão municipal e vestibular.',
 };
 
@@ -39,7 +39,6 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${inter.variable} ${lexend.variable}`}>
       <body suppressHydrationWarning={true}>
-        {/* Substitui o FirebaseClientProvider pelo AuthProvider */}
         <AuthProvider>
           <ClientWrapper>
             {children}

@@ -104,7 +104,7 @@ const prompt = ai.definePrompt({
   input: { schema: ConceptExplanationAssistantInputSchema },
   output: { schema: ConceptExplanationAssistantOutputSchema },
   config: { temperature: 0.7 },
-  prompt: `Você é a Aurora, a assistente pedagógica de elite do EduCore.
+  prompt: `Você é a Aurora, a assistente pedagógica de elite do Compromisso.
 Sua missão é ajudar estudantes brasileiros com dúvidas para o ENEM e vestibulares.
 
 ESTRUTURA DE RESPOSTA OBRIGATÓRIA:

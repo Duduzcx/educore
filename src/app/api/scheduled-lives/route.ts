@@ -1,17 +1,18 @@
-import { supabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 
-// Força a rota a ser dinâmica para evitar execução durante o build
+// TODO: Refatorar para usar o Firebase Admin SDK
+// A lógica do Supabase foi removida. É necessário reimplementar os
+// métodos GET e POST usando o Firestore ou Realtime Database.
+
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from('lives')
-      .select('*')
-      .order('start_time', { ascending: true });
-
-    if (error) throw error;
+    // Lógica de busca de lives no Firebase
+    // Exemplo (pseudo-código):
+    // const lives = await firestore.collection('lives').orderBy('start_time').get();
+    // const data = lives.docs.map(doc => doc.data());
+    const data: any[] = []; // Retorno vazio por enquanto
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -29,13 +30,11 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data, error } = await supabase
-      .from('lives')
-      .insert([body])
-      .select();
-
-    if (error) throw error;
-    return NextResponse.json(data[0], { status: 201 });
+    // Lógica de inserção de live no Firebase
+    // Exemplo (pseudo-código):
+    // const newLive = await firestore.collection('lives').add(body);
+    const data = { id: 'mock-id', ...body }; // Retorno mockado por enquanto
+    return NextResponse.json(data, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

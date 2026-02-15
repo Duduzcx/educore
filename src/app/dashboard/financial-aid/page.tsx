@@ -11,7 +11,10 @@ import { ShieldCheck, Sparkles, CheckCircle2, AlertCircle, Wallet2, Users2, Arro
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
+
+// TODO: Refatorar para usar o Firebase
+// A lógica de salvar a elegibilidade do usuário no Supabase foi removida.
+// É preciso reimplementar essa funcionalidade usando o Firestore.
 
 export default function FinancialAidPage() {
   const { user } = useAuth();
@@ -56,18 +59,14 @@ export default function FinancialAidPage() {
     });
 
     if (user) {
-      const { error } = await supabase.from('profiles').update({
-        is_financial_aid_eligible: eligible,
-        last_financial_simulation: new Date().toISOString()
-      }).eq('id', user.id);
-
-      if (error) console.error("Erro ao salvar elegibilidade:", error);
+      // Lógica de salvar elegibilidade removida.
+      console.log("Simulando salvamento de elegibilidade para o usuário:", user.id);
     }
 
     setLoading(false);
     toast({
       title: "Cálculo Concluído",
-      description: "Seu perfil foi atualizado para acompanhamento pedagógico.",
+      description: "Seu perfil foi atualizado para acompanhamento pedagógico (simulação).",
     });
   };
 

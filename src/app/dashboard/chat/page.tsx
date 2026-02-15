@@ -3,14 +3,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, UserCircle, Loader2, Sparkles, Send, Users, BookOpen, School, Bot } from "lucide-react";
+import { Search, Loader2, Bot } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
 
+// TODO: Implementar a busca de usuários e mentores com o Firebase
 export default function ChatListPage() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,15 +21,10 @@ export default function ChatListPage() {
     async function fetchData() {
       if (!user) return;
       setLoading(true);
-      
-      // Busca cirúrgica apenas dos campos necessários
-      const [profilesRes, teachersRes] = await Promise.all([
-        supabase.from('profiles').select('id, name, course').limit(50),
-        supabase.from('teachers').select('id, name, subjects').limit(50)
-      ]);
-      
-      setStudents(profilesRes.data || []);
-      setTeachers(teachersRes.data || []);
+      // A lógica de busca de dados do Supabase foi removida.
+      // É necessário implementar a busca de usuários e mentores no Firebase.
+      setStudents([]); // Define como vazio por enquanto
+      setTeachers([]); // Define como vazio por enquanto
       setLoading(false);
     }
     fetchData();

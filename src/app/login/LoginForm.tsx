@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Lock, Mail, ChevronRight, Loader2, Sparkles, ShieldCheck, GraduationCap, UserCircle, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/app/lib/supabase";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -31,51 +31,26 @@ export function LoginForm() {
       });
 
       if (error) {
-        // Fluxo de criação automática para contas Demo
-        if (error.message.includes('Invalid login credentials') || error.message.includes('not found')) {
-          const role = email.includes('aluno') ? 'student' : (email.includes('professor') ? 'teacher' : 'admin');
-          const fullName = email.includes('aluno') ? 'Estudante Demo' : (email.includes('professor') ? 'Prof. Marcos Mendes' : 'Coordenação Municipal');
-
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: fullName, role: role } }
-          });
-
-          if (signUpError) throw signUpError;
-
-          // Tentativa resiliente de criar perfil (ignora se a tabela não existir ainda na demo)
-          const userId = signUpData.user?.id;
-          if (userId) {
-            const table = (role === 'teacher' || role === 'admin') ? 'teachers' : 'profiles';
-            try {
-              await supabase.from(table).upsert({
-                id: userId,
-                name: fullName,
-                email: email,
-                last_access: new Date().toISOString()
-              });
-            } catch (dbErr) {
-              console.warn("Tabela não encontrada, mas seguindo com login demo...");
-            }
-          }
-          
-          toast({ title: "Modo Demo Ativado", description: "Entrando no sistema..." });
-          router.push(role === 'teacher' || role === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
-          return;
-        }
         throw error;
       }
 
-      // **FIX:** Força o redirecionamento correto para usuários demo já existentes
-      const roleFromEmail = email.includes('aluno') ? 'student' : (email.includes('professor') ? 'teacher' : 'admin');
-      router.push(roleFromEmail === 'teacher' || roleFromEmail === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
+      if (data.user) {
+        toast({ title: "Login bem-sucedido!", description: "Bem-vindo(a) de volta." });
+        
+        const userRole = data.user.user_metadata?.role;
+
+        if (userRole === 'teacher' || userRole === 'admin') {
+            router.push("/dashboard/teacher/home");
+        } else {
+            router.push("/dashboard/home");
+        }
+      }
 
     } catch (err: any) {
       toast({ 
         variant: "destructive", 
         title: "Erro no Acesso", 
-        description: err.message || "Verifique suas credenciais ou a conexão."
+        description: err.message || "Credenciais inválidas ou erro de conexão."
       });
     } finally {
       setLoading(false);
@@ -84,9 +59,9 @@ export function LoginForm() {
 
   const fillCredentials = (type: 'student' | 'teacher' | 'coordination') => {
     const creds = {
-      student: { email: "aluno@educore.gov.br", password: "admin123" },
-      teacher: { email: "professor@educore.gov.br", password: "admin123" },
-      coordination: { email: "coordenacao@educore.gov.br", password: "admin123" }
+      student: { email: "aluno@compromisso.gov.br", password: "admin123" },
+      teacher: { email: "professor@compromisso.gov.br", password: "admin123" },
+      coordination: { email: "coordenacao@compromisso.gov.br", password: "admin123" }
     };
     setEmail(creds[type].email);
     setPassword(creds[type].password);
@@ -100,7 +75,7 @@ export function LoginForm() {
         </div>
         <div className="space-y-2">
           <h1 className="font-headline text-4xl font-black tracking-tighter text-white drop-shadow-lg">
-            Edu<span className="text-accent">Core</span>
+            Compro<span className="text-accent">misso</span>
           </h1>
           <p className="text-white/70 font-medium flex items-center justify-center gap-2 italic">
             <Sparkles className="h-4 w-4 text-accent animate-pulse" />

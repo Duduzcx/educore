@@ -1,12 +1,21 @@
-# EduCore | Smart Education
+
+# Compromisso | Smart Education
 
 *Tecnologia a serviço da aprovação.*
 
 ---
 
+## ✨ Status Atual (Julho/2024)
+
+O projeto está **funcional e em desenvolvimento ativo**. A migração da estrutura de backend (de Firebase para Supabase) foi concluída com sucesso, e a base da aplicação está estável. As principais funcionalidades de autenticação, gestão de conteúdo e a integração com a IA Aurora estão operacionais.
+
+**Próximos Passos:** Foco na expansão das ferramentas de BI para gestores e na otimização da performance do front-end.
+
+---
+
 ## 🎯 Visão do Projeto
 
-O EduCore é um portal de gestão educacional inteligente, desenhado para municípios e instituições que buscam oferecer educação de alta qualidade em larga escala, com baixo custo operacional e impacto pedagógico real. A plataforma centraliza ferramentas para alunos, professores e gestores, otimizando o aprendizado, o engajamento e a análise de dados.
+O Compromisso é um portal de gestão educacional inteligente, desenhado para municípios e instituições que buscam oferecer educação de alta qualidade em larga escala, com baixo custo operacional e impacto pedagógico real. A plataforma centraliza ferramentas para alunos, professores e gestores, otimizando o aprendizado, o engajamento e a análise de dados.
 
 ---
 
@@ -28,16 +37,12 @@ cd <NOME_DA_PASTA_DO_PROJETO>
 
 ### 3. Configurar Variáveis de Ambiente
 
-Crie um arquivo chamado `.env.local` na raiz do projeto. Ele guardará as chaves de API e configurações dos serviços externos. Preencha com suas credenciais:
+Crie um arquivo chamado `.env.local` na raiz do projeto. Ele guardará as chaves de API e configurações dos serviços externos. Preencha com suas credenciais do Supabase:
 
 ```env
-# Configuração do Firebase
-NEXT_PUBLIC_FIREBASE_API_KEY=SUA_CHAVE_DE_API
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=SEU_DOMINIO.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=SEU_ID_DE_PROJETO
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=SEU_BUCKET.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=SEU_SENDER_ID
-NEXT_PUBLIC_FIREBASE_APP_ID=SEU_APP_ID
+# Configuração do Supabase
+NEXT_PUBLIC_SUPABASE_URL=SUA_URL_DO_PROJETO_SUPABASE
+NEXT_PUBLIC_SUPABASE_ANON_KEY=SUA_CHAVE_ANON_PUBLICA_DO_SUPABASE
 
 # Outras chaves de API (ex: YouTube, etc.)
 YOUTUBE_API_KEY=SUA_CHAVE_DO_YOUTUBE
@@ -95,10 +100,10 @@ A Aurora é a assistente de IA da plataforma, construída com **Google Genkit e 
 
 ## 🛠️ Arquitetura e Tech Stack
 
--   **Framework**: [Next.js](https://nextjs.org/) (com App Router e SSR)
+-   **Framework**: [Next.js](https://nextjs.org/) (App Router, SSR)
 -   **Linguagem**: [TypeScript](https://www.typescriptlang.org/)
--   **Estilização**: [Tailwind CSS](https://tailwindcss.com/)
--   **Backend & DB**: [Firebase](https://firebase.google.com/) (Auth, Firestore, Storage)
+-   **Estilização**: [Tailwind CSS](https://tailwindcss.com/) & [Shadcn UI](https://ui.shadcn.com/)
+-   **Backend & DB**: [Supabase](https://supabase.io/) (Auth, Postgres DB, Storage)
 -   **IA & GenAI**: [Google AI (Genkit & Gemini)](https://firebase.google.com/docs/genkit)
 -   **Deployment**: [Vercel](https://vercel.com/) / [Firebase Hosting](https://firebase.google.com/docs/hosting)
 
@@ -106,9 +111,8 @@ A Aurora é a assistente de IA da plataforma, construída com **Google Genkit e 
 
 ## 💰 Projeção de Custos (Estimativa)
 
-A arquitetura foi planejada para ser altamente escalável e de baixo custo, utilizando a camada gratuita/econômica do Firebase e Google Cloud:
+A arquitetura foi planejada para ser altamente escalável e de baixo custo, utilizando a camada gratuita/econômica do Supabase e Google Cloud:
 
--   **Autenticação**: R$ 0,00 (Até 50k usuários/mês).
--   **Banco de Dados (Firestore)**: ~R$ 20,00/mês para a operação inicial.
+-   **Autenticação & DB (Supabase)**: R$ 0,00 (Plano Gratuito com limites generosos para começar).
 -   **Servidor (Next.js SSR)**: ~R$ 150,00/mês em um provedor como Vercel ou Cloud Run.
 -   **Inteligência Artificial (Gemini Flash)**: ~R$ 50,00/mês para um volume moderado de consultas.

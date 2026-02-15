@@ -8,11 +8,14 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, ChevronLeft, Loader2, MessageSquare, Shield, Paperclip, FileText, Download, Sparkles, Bot, BookOpen } from "lucide-react";
+import { Send, ChevronLeft, Loader2, MessageSquare, Paperclip, Sparkles, Bot, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
+
+// TODO: Refatorar para usar o Firebase
+// A lógica de chat (mensagens, contatos) foi removida e precisa ser 
+// reimplementada com Firestore e possivelmente Realtime Database para o chat em tempo real.
 
 export default function DirectChatPage() {
   const params = useParams();
@@ -33,58 +36,27 @@ export default function DirectChatPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadContact() {
-      if (!contactId || isAurora) {
-        if (isAurora) setContact({ name: "Aurora IA", expertise: "Mentoria Geral & IA" });
-        return;
-      }
-      
-      const { data: teacher } = await supabase.from('teachers').select('id, name, subjects').eq('id', contactId).single();
-      if (teacher) {
-        setContact({ ...teacher, type: 'teacher' });
-      } else {
-        const { data: student } = await supabase.from('profiles').select('id, name, course').eq('id', contactId).single();
-        setContact({ ...student, type: 'student' });
-      }
+    // Lógica de carregar contato foi removida
+    if (isAurora) {
+      setContact({ name: "Aurora IA", expertise: "Mentoria Geral & IA" });
+    } else {
+      setContact({ name: "Carregando...", expertise: ""});
     }
-    loadContact();
+    setIsLoading(false);
   }, [contactId, isAurora]);
 
   useEffect(() => {
-    if (!user || !contactId) return;
-
-    async function loadMessages() {
-      setIsLoading(true);
-      const { data } = await supabase
-        .from('chat_messages')
-        .select('*')
-        .or(`and(sender_id.eq.${user.id},receiver_id.eq.${contactId}),and(sender_id.eq.${contactId},receiver_id.eq.${user.id})`)
-        .order('created_at', { ascending: true });
-      
-      setMessages(data || []);
-      setIsLoading(false);
+    // Lógica de carregar mensagens e inscrição em canal foi removida
+    if (isAurora) {
+        setMessages([
+            { id: '1', sender_id: 'aurora-ai', message: 'Olá! Como posso te ajudar a acelerar seus estudos hoje?', created_at: new Date().toISOString() }
+        ]);
     }
-
-    loadMessages();
-
-    const channel = supabase
-      .channel(`chat_${user.id}_${contactId}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'chat_messages',
-        filter: `receiver_id=eq.${user.id}`
-      }, (payload) => {
-        setMessages(prev => [...prev, payload.new]);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, contactId]);
+    setIsLoading(false);
+  }, [user, contactId, isAurora]);
 
   useEffect(() => {
+    // Scroll para a última mensagem
     if (scrollRef.current) {
       const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
@@ -98,25 +70,16 @@ export default function DirectChatPage() {
     if ((!input.trim() && !selectedFile) || !user || !contactId) return;
 
     const userText = input;
-    const messageData: any = {
-      sender_id: user.id,
-      receiver_id: contactId,
-      message: userText || `Enviou um arquivo: ${selectedFile?.name}`,
-      created_at: new Date().toISOString(),
-      is_read: isAurora 
+    const newUserMessage = {
+        id: new Date().toISOString(),
+        sender_id: user.id,
+        receiver_id: contactId,
+        message: userText,
+        created_at: new Date().toISOString(),
+        is_read: isAurora
     };
 
-    if (selectedFile) {
-      messageData.file_name = selectedFile.name;
-      messageData.file_type = selectedFile.type;
-      messageData.file_url = "https://picsum.photos/seed/file/800/600";
-    }
-
-    const { data: sentMsg, error } = await supabase.from('chat_messages').insert(messageData).select().single();
-    if (!error) {
-      setMessages(prev => [...prev, sentMsg]);
-    }
-    
+    setMessages(prev => [...prev, newUserMessage]);
     setInput("");
     setSelectedFile(null);
 
@@ -128,21 +91,18 @@ export default function DirectChatPage() {
           content: m.message
         }));
 
-        const result = await conceptExplanationAssistant({
-          query: userText,
-          history: history
-        });
+        const result = await conceptExplanationAssistant({ query: userText, history });
 
         if (result && result.response) {
-          const { data: aiMsg } = await supabase.from('chat_messages').insert({
+          const aiResponseMessage = {
+            id: new Date().toISOString() + '-ai',
             sender_id: "aurora-ai",
             receiver_id: user.id,
             message: result.response,
             created_at: new Date().toISOString(),
-            is_read: false
-          }).select().single();
-          
-          if (aiMsg) setMessages(prev => [...prev, aiMsg]);
+            is_read: true
+          };
+          setMessages(prev => [...prev, aiResponseMessage]);
         }
       } catch (err) {
         toast({ title: "Aurora está ocupada", description: "Tente novamente em instantes.", variant: "destructive" });
@@ -154,7 +114,7 @@ export default function DirectChatPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-500 overflow-hidden space-y-4 w-full">
-      <div className="flex items-center justify-between px-2 py-2 shrink-0 bg-white/50 backdrop-blur-md rounded-2xl shadow-sm border border-white/20">
+        <div className="flex items-center justify-between px-2 py-2 shrink-0 bg-white/50 backdrop-blur-md rounded-2xl shadow-sm border border-white/20">
         <div className="flex items-center gap-2 overflow-hidden">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10 shrink-0 hover:bg-primary/5 active:scale-90 transition-all">
             <ChevronLeft className="h-6 w-6 text-primary" />
@@ -210,41 +170,17 @@ export default function DirectChatPage() {
               messages.map((msg, i) => {
                 const isMe = msg.sender_id === user?.id;
                 const isFromAurora = msg.sender_id === "aurora-ai";
-                const isImage = msg.file_type?.startsWith('image/');
                 
                 return (
                   <div key={msg.id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[90%] md:max-w-[75%] space-y-1`}>
-                      {!isMe && (
-                        <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest px-2">{msg.sender_id === "aurora-ai" ? "AURORA IA" : "CONTATO"}</span>
-                      )}
-                      <div className={`px-5 py-3 md:px-6 md:py-4 rounded-[1.5rem] md:rounded-[2rem] text-xs md:text-sm leading-relaxed font-medium shadow-sm border transition-all ${
+                    <div className={`px-5 py-3 md:px-6 md:py-4 rounded-[1.5rem] md:rounded-[2rem] text-xs md:text-sm leading-relaxed font-medium shadow-sm border transition-all max-w-[90%] md:max-w-[75%] ${
                         isMe 
                           ? 'bg-primary text-white rounded-tr-none border-primary/5' 
                           : isFromAurora 
                             ? 'bg-accent/10 text-primary rounded-tl-none border-accent/20'
                             : 'bg-muted/30 text-primary rounded-tl-none border-muted/20'
                       }`}>
-                        {msg.file_url && (
-                          <div className="mb-3 animate-in zoom-in duration-500">
-                            {isImage ? (
-                              <div className="relative rounded-xl overflow-hidden mb-2 border-2 border-white/20"><img src={msg.file_url} alt="Anexo" className="w-full h-auto max-h-64 object-cover" /></div>
-                            ) : (
-                              <div className={`flex items-center gap-3 p-3 rounded-xl ${isMe ? 'bg-white/10' : 'bg-white'} border border-white/10`}>
-                                <FileText className={`h-6 w-6 ${isMe ? 'text-white' : 'text-primary'}`} /><div className="flex-1 min-w-0"><p className="text-[9px] font-black uppercase truncate">{msg.file_name}</p></div>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full shrink-0"><Download className="h-4 w-4" /></Button>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {msg.message}
-                      </div>
-                      <div className={`flex items-center gap-2 px-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                        <p className="text-[7px] font-black uppercase tracking-widest opacity-30">
-                          {new Date(msg.created_at || msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        {isMe && <div className={`h-1 w-1 rounded-full ${msg.is_read ? 'bg-accent' : 'bg-muted-foreground/20'}`} />}
-                      </div>
+                       {msg.message}
                     </div>
                   </div>
                 );
@@ -253,11 +189,7 @@ export default function DirectChatPage() {
             {isAiThinking && (
               <div className="flex justify-start animate-in slide-in-from-bottom-2 duration-300">
                 <div className="flex items-center gap-3 bg-accent/5 px-5 py-3 rounded-[1.5rem] rounded-tl-none border border-accent/10">
-                  <div className="flex gap-1">
-                    <div className="h-1.5 w-1.5 bg-accent rounded-full animate-bounce" />
-                    <div className="h-1.5 w-1.5 bg-accent rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <div className="h-1.5 w-1.5 bg-accent rounded-full animate-bounce [animation-delay:0.4s]" />
-                  </div>
+                  <div className="flex gap-1"><div className="h-1.5 w-1.5 bg-accent rounded-full animate-bounce" /></div>
                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent italic">Aurora analisando...</span>
                 </div>
               </div>
@@ -267,7 +199,7 @@ export default function DirectChatPage() {
 
         <div className="p-4 md:p-6 bg-muted/5 border-t shrink-0">
           <form onSubmit={handleSend} className="flex items-center gap-2 max-w-4xl mx-auto bg-white p-1.5 pl-5 rounded-full shadow-2xl border border-muted/20 focus-within:ring-2 focus-within:ring-accent/30 transition-all duration-300">
-            <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => {
+             <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => {
               const f = e.target.files?.[0];
               if(f) setSelectedFile({name: f.name, type: f.type, size: f.size});
             }} />

@@ -11,9 +11,47 @@ import { Plus, LayoutDashboard, Search, Loader2, AlertCircle, FlaskConical, Data
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+
+// TODO: Refatorar para usar o Firebase.
+// A lógica de criação e busca de trilhas foi mocada.
+
+const mockInitialTrails = [
+    {
+      id: "ia-gen-1",
+      title: "IA Generativa: Do Zero ao Avançado",
+      category: "Tecnologia",
+      description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho.",
+      teacher_id: "teacher-demo",
+      teacher_name: "Professor Demo",
+      status: "active",
+      image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
+      created_at: new Date(Date.now() - 86400000).toISOString()
+    },
+    {
+      id: "math-enem-1",
+      title: "Matemática ENEM: Foco em Aprovação",
+      category: "Matemática",
+      description: "Revisão intensiva dos temas com maior recorrência no exame nacional.",
+      teacher_id: "teacher-demo",
+      teacher_name: "Professor Demo",
+      status: "active",
+      image_url: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?auto=format&fit=crop&q=80&w=800",
+      created_at: new Date(Date.now() - 172800000).toISOString()
+    },
+    {
+      id: "redacao-rascunho-1",
+      title: "Guia de Redação (Rascunho)",
+      category: "Redação",
+      description: "Estruturando a dissertação perfeita.",
+      teacher_id: "teacher-demo",
+      teacher_name: "Professor Demo",
+      status: "draft",
+      image_url: null,
+      created_at: new Date().toISOString()
+    }
+];
 
 export default function TeacherTrailsPage() {
   const { user } = useAuth();
@@ -22,162 +60,61 @@ export default function TeacherTrailsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [trails, setTrails] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorState, setErrorState] = useState<"none" | "missing_table" | "rls_error">("none");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTrail, setNewTrail] = useState({ title: "", category: "", description: "" });
 
-  const fetchTrails = async () => {
-    if (!user) return;
+  const fetchTrails = () => {
     setLoading(true);
-    setErrorState("none");
-    
-    const { data, error } = await supabase
-      .from('learning_trails')
-      .select('id, title, category, description, status, image_url, teacher_id, teacher_name')
-      .eq('teacher_id', user.id)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      if (error.code === '42P01') {
-        setErrorState("missing_table");
-      } else if (error.message.includes('row-level security')) {
-        setErrorState("rls_error");
-      } else {
-        console.error(error);
-      }
-    } else {
-      setTrails(data || []);
-    }
-    setLoading(false);
+    setTimeout(() => {
+        setTrails(mockInitialTrails);
+        setLoading(false);
+    }, 800);
   };
 
   useEffect(() => {
-    fetchTrails();
+    if (user) fetchTrails();
   }, [user]);
 
-  const handleCreateTrail = async () => {
+  const handleCreateTrail = () => {
     if (!newTrail.title || !user) return;
 
     setIsSubmitting(true);
-    try {
-      const { data, error } = await supabase.from('learning_trails').insert({
-        title: newTrail.title,
-        category: newTrail.category || "Geral",
-        description: newTrail.description,
+    const createdTrail = {
+        id: `trail_${Date.now()}`,
+        ...newTrail,
         teacher_id: user.id,
         teacher_name: user.user_metadata?.full_name || "Professor",
         status: "draft",
-        created_at: new Date().toISOString()
-      }).select().single();
+        created_at: new Date().toISOString(),
+        image_url: null
+    };
 
-      if (error) throw error;
-
-      setTrails([data, ...trails]);
-      toast({ title: "Trilha Criada em Rascunho!" });
-      setIsCreateDialogOpen(false);
-      setNewTrail({ title: "", category: "", description: "" });
-    } catch (err: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Erro ao salvar", 
-        description: err.message
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setTimeout(() => {
+        setTrails(prev => [createdTrail, ...prev]);
+        toast({ title: "Trilha Criada em Rascunho! (Simulação)" });
+        setIsCreateDialogOpen(false);
+        setNewTrail({ title: "", category: "", description: "" });
+        setIsSubmitting(false);
+    }, 1000);
   };
 
   const handleGenerateTopics = () => {
-    // Lógica para chamar a IA generativa será implementada aqui.
     toast({ title: "Funcionalidade em desenvolvimento", description: "Em breve, a IA irá sugerir tópicos para você." });
   };
 
-  const handleSeedTrails = async () => {
-    if (!user) return;
+  const handleSeedTrails = () => {
     setIsSubmitting(true);
-    
-    try {
-      const { data: trailsData, error: trailsError } = await supabase.from('learning_trails').insert([
-        {
-          title: "IA Generativa: Do Zero ao Avançado",
-          category: "Tecnologia",
-          description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho.",
-          teacher_id: user.id,
-          teacher_name: user.user_metadata?.full_name || "Professor Demo",
-          status: "active",
-          image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
-          created_at: new Date().toISOString()
-        },
-        {
-          title: "Matemática ENEM: Foco em Aprovação",
-          category: "Matemática",
-          description: "Revisão intensiva dos temas com maior recorrência no exame nacional.",
-          teacher_id: user.id,
-          teacher_name: user.user_metadata?.full_name || "Professor Demo",
-          status: "active",
-          image_url: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?auto=format&fit=crop&q=80&w=800",
-          created_at: new Date().toISOString()
-        }
-      ]).select();
-
-      if (trailsError) throw trailsError;
-
-      for (const trail of trailsData || []) {
-        const { data: moduleData, error: moduleError } = await supabase.from('learning_modules').insert({
-          trail_id: trail.id,
-          title: "Unidade 1: Fundamentos e Visão Geral",
-          order_index: 0,
-          created_at: new Date().toISOString()
-        }).select().single();
-
-        if (moduleError || !moduleData) continue;
-
-        await supabase.from('learning_contents').insert([
-          {
-            module_id: moduleData.id,
-            title: "Aula 01 - Introdução e Boas-vindas",
-            type: "video",
-            url: "y6U-XRymBlU",
-            description: "Nesta aula inaugural, o mentor apresenta o roteiro da trilha e os principais conceitos abordados.",
-            created_at: new Date().toISOString()
-          },
-          {
-            module_id: moduleData.id,
-            title: "Material de Apoio: Guia do Estudante",
-            type: "text",
-            description: "Este guia contém os pontos chaves discutidos na aula em vídeo. Recomendamos a leitura atenta.",
-            created_at: new Date().toISOString()
-          }
-        ]);
-      }
-      
-      toast({ 
-        title: "Estrutura Digital Gerada!", 
-        description: "Trilhas ativas, módulos e aulas completas foram adicionados ao seu perfil." 
-      });
-      fetchTrails();
-    } catch (err: any) {
-      console.error(err);
-      toast({ 
-        variant: "destructive", 
-        title: "Erro no Processamento", 
-        description: "Verifique seu banco de dados." 
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    setTimeout(() => {
+        toast({ 
+            title: "Estrutura Digital Gerada! (Simulação)", 
+            description: "Trilhas, módulos e aulas foram adicionados para demonstração." 
+        });
+        // Adiciona as trilhas mock novamente com IDs diferentes para evitar conflitos de chave
+        const newSeed = mockInitialTrails.map(t => ({...t, id: `${t.id}-${Date.now()}`}))
+        setTrails(prev => [...newSeed, ...prev]);
+        setIsSubmitting(false);
+    }, 1500);
   };
-
-  if (errorState === "missing_table") {
-    return (
-      <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-white rounded-[2rem] shadow-xl border-2 border-dashed border-accent/20">
-        <AlertCircle className="h-12 w-12 text-accent mb-4 animate-pulse" />
-        <h2 className="text-2xl font-black text-primary italic">Configuração Pendente</h2>
-        <p className="text-muted-foreground mt-2 max-w-md font-medium">A tabela learning_trails não foi encontrada no banco de dados.</p>
-        <Button variant="outline" className="mt-6" onClick={() => window.location.reload()}>Tentar Novamente</Button>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-10 animate-in fade-in duration-500 pb-20">

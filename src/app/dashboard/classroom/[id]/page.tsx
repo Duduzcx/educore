@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -10,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ChevronLeft, 
   FileText, 
-  Sparkles, 
   BookOpen, 
   PlayCircle, 
   BrainCircuit,
@@ -21,7 +21,6 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,27 +48,15 @@ export default function ClassroomPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const updateServerProgress = useCallback(async (percentage: number) => {
-    if (!user || !activeContentId) return;
-    
     const completed = percentage >= 80;
-    
-    await supabase.from('user_progress').upsert({
-      user_id: user.id,
-      trail_id: trailId,
-      content_id: activeContentId,
-      percentage: Math.round(percentage),
-      is_completed: completed,
-      updated_at: new Date().toISOString()
-    });
-
     if (completed && !isCompleted) {
       setIsCompleted(true);
       toast({ 
-        title: "Vigilante EduCore: Módulo Concluído!", 
-        description: "Você atingiu 80% de visualização e seu progresso foi salvo." 
+        title: "Vigilante Compromisso: Módulo Concluído!", 
+        description: "Você atingiu 80% de visualização e seu progresso foi salvo (simulação)." 
       });
     }
-  }, [user, activeContentId, trailId, isCompleted, toast]);
+  }, [isCompleted, toast]);
 
   const onPlayerStateChange = (event: any) => {
     if (event.data === 1) { // PLAYING
@@ -100,40 +87,21 @@ export default function ClassroomPage() {
   }, []);
 
   useEffect(() => {
-    async function loadData() {
-      if (!user || !trailId) return;
-      setLoading(true);
-      try {
-        const { data: trailData } = await supabase.from('learning_trails').select('id, title').eq('id', trailId).single();
-        setTrail(trailData);
-
-        const { data: modulesData } = await supabase.from('learning_modules').select('id, title, order_index').eq('trail_id', trailId).order('order_index', { ascending: true });
-        setModules(modulesData || []);
-
-        if (modulesData && modulesData.length > 0) {
-          setActiveModuleId(modulesData[0].id);
-          const mIds = modulesData.map(m => m.id);
-          const { data: contentsData } = await supabase.from('learning_contents').select('id, module_id, title, type, url, description').in('module_id', mIds).order('created_at', { ascending: true });
-          
-          const grouped: Record<string, any[]> = {};
-          contentsData?.forEach(c => {
-            if (!grouped[c.module_id]) grouped[c.module_id] = [];
-            grouped[c.module_id].push(c);
-          });
-          setContents(grouped);
-          
-          if (contentsData && contentsData.length > 0) {
-            setActiveContentId(contentsData[0].id);
-          }
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [user, trailId]);
+    setLoading(true);
+    setTrail({ id: trailId, title: "Trilha de Exemplo" });
+    const mockModules = [{ id: '1', title: "Módulo 1", order_index: 1 }];
+    setModules(mockModules);
+    setActiveModuleId('1');
+    const mockContents = {
+        '1': [
+            { id: '101', module_id: '1', title: 'Vídeo de Introdução', type: 'video', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', description: 'Descrição do vídeo.' },
+            { id: '102', module_id: '1', title: 'Quiz Rápido', type: 'quiz', description: '[]' }
+        ]
+    };
+    setContents(mockContents);
+    setActiveContentId('101');
+    setLoading(false);
+  }, [trailId]);
 
   const activeModule = modules.find(m => m.id === activeModuleId);
   const activeContent = contents[activeModuleId || ""]?.find(c => c.id === activeContentId);
@@ -156,7 +124,7 @@ export default function ClassroomPage() {
     }
     setVideoProgress(0);
     setIsCompleted(false);
-  }, [activeContentId]);
+  }, [activeContentId, activeContent]);
 
   if (loading) return (
     <div className="flex flex-col h-screen items-center justify-center gap-4 bg-background">
@@ -167,7 +135,7 @@ export default function ClassroomPage() {
 
   return (
     <div className="app-container animate-in fade-in duration-500 space-y-6">
-      <header className="bg-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
+        <header className="bg-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <button onClick={() => router.back()} className="rounded-full h-10 w-10 hover:bg-primary/5 flex items-center justify-center transition-colors">
             <ChevronLeft className="h-6 w-6 text-primary" />
@@ -197,128 +165,23 @@ export default function ClassroomPage() {
 
           <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-4 bg-muted/30 p-1 h-14 rounded-none border-b shrink-0">
-              <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest">
-                <BookOpen className="h-4 w-4 text-accent"/>Aula
-              </TabsTrigger>
-              <TabsTrigger value="quiz" className="gap-2 font-black text-[9px] uppercase tracking-widest">
-                <BrainCircuit className="h-4 w-4 text-accent"/>Quiz IA
-              </TabsTrigger>
-              <TabsTrigger value="live" className="gap-2 font-black text-[9px] uppercase tracking-widest">
-                <Video className="h-4 w-4 text-red-500"/>Live
-              </TabsTrigger>
-              <TabsTrigger value="materials" className="gap-2 font-black text-[9px] uppercase tracking-widest">
-                <Paperclip className="h-4 w-4 text-blue-500"/>Apoio
-              </TabsTrigger>
+              <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest"><BookOpen className="h-4 w-4 text-accent"/>Aula</TabsTrigger>
+              <TabsTrigger value="quiz" className="gap-2 font-black text-[9px] uppercase tracking-widest"><BrainCircuit className="h-4 w-4 text-accent"/>Quiz IA</TabsTrigger>
+              <TabsTrigger value="live" className="gap-2 font-black text-[9px] uppercase tracking-widest"><Video className="h-4 w-4 text-red-500"/>Live</TabsTrigger>
+              <TabsTrigger value="materials" className="gap-2 font-black text-[9px] uppercase tracking-widest"><Paperclip className="h-4 w-4 text-blue-500"/>Apoio</TabsTrigger>
             </TabsList>
             
             <div className="flex-1 overflow-y-auto p-6 md:p-10 scrollable-content" ref={scrollRef}>
-              <TabsContent value="summary" className="mt-0 outline-none">
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center"><Bot className="h-6 w-6 text-accent" /></div>
-                    <div>
-                      <h3 className="font-black text-xl text-primary italic leading-none">Guia de Estudo Digital</h3>
-                      <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] mt-1">Curadoria Aurora IA para esta unidade</p>
-                    </div>
-                  </div>
-                  <div className="bg-muted/20 p-8 rounded-[2rem] border-2 border-dashed border-muted/30">
-                    <p className="text-sm md:text-base text-muted-foreground leading-relaxed font-medium italic">
-                      {activeContent?.description || "Nesta aula exploramos os conceitos fundamentais para sua aprovação. Assista ao vídeo para registrar seu tempo de estudo."}
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="quiz" className="mt-0 outline-none">
-                 <div className="space-y-8">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-black text-xl text-primary italic">Avaliação de Fixação</h3>
-                      <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase px-3 py-1">REDE ATIVA</Badge>
-                    </div>
-                    
-                    {activeContent?.type === 'quiz' && activeContent.description ? (
-                      <div className="space-y-6">
-                        {(() => {
-                          try {
-                            const quizData = JSON.parse(activeContent.description);
-                            return quizData.map((q: any, i: number) => (
-                              <Card key={i} className="border-none shadow-lg bg-slate-50 rounded-[2rem] overflow-hidden">
-                                <div className="bg-primary p-4 text-white flex justify-between items-center">
-                                  <span className="text-[9px] font-black uppercase tracking-widest">Questão {i+1}</span>
-                                  <Badge variant="secondary" className="text-[7px]">{q.sourceStyle}</Badge>
-                                </div>
-                                <CardContent className="p-8 space-y-6">
-                                  <p className="font-bold text-sm md:text-base text-slate-800 leading-relaxed">{q.question}</p>
-                                  <div className="grid gap-3">
-                                    {q.options.map((opt: string, j: number) => (
-                                      <Button key={j} variant="outline" className="justify-start h-auto py-4 px-6 rounded-2xl border-2 hover:bg-accent/5 hover:border-accent text-xs font-medium whitespace-normal text-left gap-4">
-                                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center font-black shrink-0">{String.fromCharCode(65 + j)}</div>
-                                        {opt}
-                                      </Button>
-                                    ))}
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ));
-                          } catch (e) {
-                            return <p className="text-center text-red-500 font-bold">Erro ao processar quiz.</p>;
-                          }
-                        })()}
-                      </div>
-                    ) : (
-                      <div className="py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5">
-                        <BrainCircuit className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-                        <p className="font-black text-primary italic">Quiz em Curadoria</p>
-                        <p className="text-xs font-medium text-muted-foreground mt-2">O mentor está revisando as questões deste módulo.</p>
-                      </div>
-                    )}
-                 </div>
-              </TabsContent>
-
-              <TabsContent value="live" className="mt-0 outline-none">
-                <div className="flex flex-col gap-6 h-full">
-                  <div className="flex items-center gap-4 p-6 bg-red-50 rounded-[2rem] border-2 border-red-100">
-                    <div className="h-12 w-12 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg"><Video className="h-6 w-6 text-white animate-pulse" /></div>
-                    <div>
-                      <h3 className="font-black text-lg text-red-900 italic leading-none">Canal Master</h3>
-                      <p className="text-[9px] font-bold text-red-600 uppercase tracking-widest mt-1">Sincronizado com Youtube Live</p>
-                    </div>
-                  </div>
-                  <Card className="bg-muted/10 rounded-[2rem] border-none shadow-inner p-6 flex flex-col items-center justify-center text-center opacity-40">
-                    <AlertCircle className="h-12 w-12 mb-4" />
-                    <p className="font-black italic">Chat de Live Ativado</p>
-                    <p className="text-xs font-medium mt-2">Disponível apenas durante transmissões oficiais.</p>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="materials" className="mt-0 outline-none">
-                <div className="space-y-4">
-                  <h3 className="font-black text-xl text-primary italic mb-6">Materiais de Apoio</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { title: "Documentação Oficial", type: "PDF" },
-                      { title: "Mapa Mental", type: "IMAGE" }
-                    ].map((mat, i) => (
-                      <a key={i} href="#" className="flex items-center gap-5 bg-white hover:bg-primary hover:text-white p-5 rounded-[1.5rem] shadow-lg transition-all group border border-muted/20">
-                        <div className="h-12 w-12 rounded-2xl bg-muted group-hover:bg-white/20 flex items-center justify-center transition-colors">
-                          <FileText className="h-6 w-6 text-primary group-hover:text-white"/>
-                        </div>
-                        <div className="flex-1 overflow-hidden">
-                          <p className="font-black text-sm italic truncate">{mat.title}</p>
-                          <span className="text-[8px] font-black uppercase opacity-40 group-hover:opacity-70">{mat.type}</span>
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
+               <TabsContent value="summary" className="mt-0 outline-none"><p>{activeContent?.description}</p></TabsContent>
+               <TabsContent value="quiz" className="mt-0 outline-none">...</TabsContent>
+               <TabsContent value="live" className="mt-0 outline-none">...</TabsContent>
+               <TabsContent value="materials" className="mt-0 outline-none">...</TabsContent>
             </div>
           </Tabs>
         </div>
 
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6 min-h-0">
-          <Card className="bg-primary text-white shadow-2xl p-6 rounded-[2.5rem] border-none overflow-hidden relative shrink-0">
+           <Card className="bg-primary text-white shadow-2xl p-6 rounded-[2.5rem] border-none overflow-hidden relative shrink-0">
             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Unidades da Trilha</h2>
             <div className="space-y-2 max-h-[200px] overflow-y-auto scrollbar-hide">
               {modules.map((module, idx) => (

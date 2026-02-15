@@ -7,10 +7,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+
+// TODO: Refatorar para usar o Firebase.
+// A lógica de agendamento de lives foi mocada.
+
+const mockInitialLives = [
+    {
+        id: 'live1',
+        title: 'Revisão de Véspera - Humanas',
+        description: 'Uma revisão completa dos tópicos mais importantes de história, geografia e filosofia.',
+        start_time: new Date(Date.now() + 86400000 * 2).toISOString(), // Em 2 dias
+        youtube_id: 'rfscVS0vtbw',
+        teacher_id: 'teacher1',
+        teacher_name: 'Mentor',
+        status: 'scheduled'
+    },
+    {
+        id: 'live2',
+        title: 'Aulão de Matemática Básica',
+        description: 'Vamos passar pelas operações fundamentais e resolver problemas clássicos do ENEM.',
+        start_time: new Date(Date.now() + 86400000 * 5).toISOString(), // Em 5 dias
+        youtube_id: 'rfscVS0vtbw',
+        teacher_id: 'teacher1',
+        teacher_name: 'Mentor',
+        status: 'scheduled'
+    }
+];
 
 export default function ManageLivePage() {
   const { user } = useAuth();
@@ -28,59 +53,52 @@ export default function ManageLivePage() {
     youtube_id: ""
   });
 
-  const fetchLives = async () => {
-    if (!user) return;
+  const fetchLives = () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('lives')
-      .select('id, title, description, start_time, youtube_id')
-      .eq('teacher_id', user.id)
-      .order('start_time', { ascending: true });
-    
-    if (!error) setLives(data || []);
-    setLoading(false);
+    setTimeout(() => {
+        setLives(mockInitialLives);
+        setLoading(false);
+    }, 800);
   };
 
   useEffect(() => {
-    fetchLives();
+    if (user) {
+        fetchLives();
+    }
   }, [user]);
 
-  const handleCreateLive = async () => {
+  const handleCreateLive = () => {
     if (!formData.title || !formData.date || !formData.time || !user) {
-      toast({ title: "Dados Incompletos", description: "Data e horário são obrigatórios.", variant: "destructive" });
+      toast({ title: "Dados Incompletos", description: "Título, data e horário são obrigatórios.", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
     const start_time = new Date(`${formData.date}T${formData.time}`).toISOString();
 
-    const { error } = await supabase.from('lives').insert({
-      title: formData.title,
-      description: formData.description,
-      youtube_id: formData.youtube_id || "rfscVS0vtbw",
-      start_time,
-      teacher_id: user.id,
-      teacher_name: user.user_metadata?.full_name || "Mentor",
-      status: "scheduled"
-    });
-
-    if (!error) {
-      toast({ title: "Live Agendada!", description: "A transmissão já está na agenda dos alunos." });
-      setIsCreateOpen(false);
-      setFormData({ title: "", description: "", date: "", time: "", youtube_id: "" });
-      fetchLives();
-    } else {
-      toast({ title: "Erro ao agendar", description: error.message, variant: "destructive" });
-    }
-    setIsSubmitting(false);
+    const newLive = {
+        id: `live_${Date.now()}`,
+        title: formData.title,
+        description: formData.description,
+        youtube_id: formData.youtube_id || "rfscVS0vtbw",
+        start_time,
+        teacher_id: user.id,
+        teacher_name: user.user_metadata?.full_name || "Mentor",
+        status: "scheduled"
+    };
+    
+    setTimeout(() => {
+        setLives(prev => [newLive, ...prev].sort((a,b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime()));
+        toast({ title: "Live Agendada!", description: "A transmissão já está na agenda dos alunos." });
+        setIsCreateOpen(false);
+        setFormData({ title: "", description: "", date: "", time: "", youtube_id: "" });
+        setIsSubmitting(false);
+    }, 1000);
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('lives').delete().eq('id', id);
-    if (!error) {
-      toast({ title: "Live removida" });
-      fetchLives();
-    }
+  const handleDelete = (id: string) => {
+    setLives(prev => prev.filter(live => live.id !== id));
+    toast({ title: "Live removida" });
   };
 
   return (

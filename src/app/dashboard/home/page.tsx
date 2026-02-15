@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,7 +18,6 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider"; 
-import { supabase } from "@/lib/supabase"; 
 
 interface LibraryItem {
   id: string;
@@ -47,32 +47,25 @@ export default function DashboardHome() {
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
 
   useEffect(() => {
-    // Busca de avisos simulada para reduzir TBT
     setLoadingAnnouncements(true);
     setTimeout(() => {
         setAnnouncements([
              { id: 2, title: 'Manutenção Programada', message: 'A plataforma passará por uma manutenção rápida na próxima sexta-feira às 23h.', priority: 'medium' },
-             { id: 1, title: 'Boas-vindas à Plataforma EduCore!', message: 'Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.', priority: 'low' },
+             { id: 1, title: 'Boas-vindas à Plataforma Compromisso!', message: 'Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.', priority: 'low' },
         ]);
         setLoadingAnnouncements(false);
     }, 400);
 
-    const fetchLibraryItems = async () => {
-      setLoadingLibrary(true);
-      try {
-        // Seleção cirúrgica de campos para otimizar Payload
-        const { data, error } = await supabase
-          .from('library_items')
-          .select('id, title, description, category')
-          .limit(4);
-        if (!error) setLibraryItems(data as LibraryItem[]);
-      } catch (err) {
-        console.error("Erro ao buscar itens da biblioteca:", err);
-      } finally {
+    setLoadingLibrary(true);
+    setTimeout(() => {
+        setLibraryItems([
+            { id: '1', title: 'Guia Completo de Redação', description: 'Aprenda a estruturar sua redação para a nota máxima.', category: 'Linguagens' },
+            { id: '2', title: 'Fórmulas de Física Essenciais', description: 'Todas as fórmulas que você precisa saber para o ENEM.', category: 'Física' },
+            { id: '3', title: 'Revoluções e seus Impactos', description: 'Um resumo sobre as principais revoluções da história.', category: 'História' },
+            { id: '4', title: 'Guia de Funções Matemáticas', description: 'Domine as funções de primeiro e segundo grau.', category: 'Matemática' }
+        ]);
         setLoadingLibrary(false);
-      }
-    };
-    fetchLibraryItems();
+    }, 500);
   }, []);
 
   if (isUserLoading) {
@@ -176,7 +169,7 @@ export default function DashboardHome() {
                 <div className="flex items-center gap-4">
                   <div className="h-14 w-14 rounded-3xl bg-white/10 flex items-center justify-center shadow-lg"><ShieldCheck className="h-8 w-8 text-accent" /></div>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Rede Educore</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Rede Compromisso</p>
                     <p className="text-xl font-black italic">Status: Operacional</p>
                   </div>
                 </div>

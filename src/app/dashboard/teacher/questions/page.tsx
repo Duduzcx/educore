@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, FilePlus, CheckCircle, ListChecks } from 'lucide-react';
+
+// TODO: Refatorar para usar o Firebase.
+// A lógica de salvamento de questões foi mocada. É preciso criar uma coleção no Firestore
+// para armazenar as questões do banco de forma estruturada.
 
 type ParsedQuestion = {
     tempId: string;
@@ -38,7 +41,7 @@ const parseExamText = (rawText: string): { questions: ParsedQuestion[], errors: 
         const endIdx = (i + 1 < questionMarkers.length) ? questionMarkers[i + 1].index : rawText.length;
         let block = rawText.substring(startIdx!, endIdx);
 
-        const altMarkers = Array.from(block.matchAll(/^([A-E])(?:\)|\.)?\s/gm)).map(m => ({ letter: m[1], index: m.index }));
+        const altMarkers = Array.from(block.matchAll(/^[A-E](?:\)|\.)?\s/gm)).map(m => ({ letter: m[1], index: m.index }));
 
         if (altMarkers.length >= 4) {
             try {
@@ -47,7 +50,7 @@ const parseExamText = (rawText: string): { questions: ParsedQuestion[], errors: 
                 const question_text = block.substring(enunciadoStart, enunciadoEnd).trim();
 
                 const options = altMarkers.map((alt, j) => {
-                    const optStart = alt.index + alt.letter.length + 1;
+                    const optStart = alt.index! + alt.letter.length + 1;
                     const optEnd = (j + 1 < altMarkers.length) ? altMarkers[j + 1].index : block.length;
                     return { letter: alt.letter, text: block.substring(optStart, optEnd).trim() };
                 });
@@ -89,22 +92,14 @@ export default function QuestionBankPage() {
         }, 500);
     };
     
-    const handleSaveAll = async () => {
+    const handleSaveAll = () => {
         setIsSaving(true);
-        const { error } = await supabase.from('learning_contents').insert(
-            extractedQuestions.map(q => ({
-                title: `Questão ${q.question_number_in_source}`,
-                type: 'quiz',
-                description: JSON.stringify([q])
-            }))
-        );
-        if (!error) {
-            toast({ title: "Questões Importadas!" });
+        console.log("Simulando salvamento das questões:", extractedQuestions);
+        setTimeout(() => {
+            toast({ title: "Questões Importadas! (Simulação)" });
             setView('finished');
-        } else {
-            toast({ title: "Erro ao salvar", variant: "destructive" });
-        }
-        setIsSaving(false);
+            setIsSaving(false);
+        }, 1200);
     };
 
     return (

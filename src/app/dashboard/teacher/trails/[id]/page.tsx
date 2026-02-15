@@ -26,12 +26,35 @@ import {
   Info
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateQuiz, type QuizGeneratorOutput } from "@/ai/flows/quiz-generator";
 import Link from "next/link";
+
+// TODO: Refatorar para usar o Firebase.
+// A lógica de gerenciamento de trilhas (módulos, conteúdos) foi mocada.
+
+const mockTrail = {
+    id: 'trail1',
+    title: 'Guia Definitivo de Redação',
+    status: 'draft'
+};
+
+const mockModules = [
+    { id: 'mod1', trail_id: 'trail1', title: 'Estrutura da Dissertação', order_index: 0 },
+    { id: 'mod2', trail_id: 'trail1', title: 'Competências do ENEM', order_index: 1 }
+];
+
+const mockContents = {
+    mod1: [
+        { id: 'cont1', module_id: 'mod1', title: 'Introdução à Redação Nota 1000', type: 'video', url: 'https://youtube.com/watch?v=example', description: '...' },
+        { id: 'cont2', module_id: 'mod1', title: 'Desenvolvendo Argumentos Sólidos', type: 'pdf', url: '...', description: '...' },
+    ],
+    mod2: [
+        { id: 'cont3', module_id: 'mod2', title: 'Análise da Competência IV', type: 'video', url: '...', description: '...' }
+    ]
+};
 
 export default function TrailManagementPage() {
   const params = useParams();
@@ -63,109 +86,67 @@ export default function TrailManagementPage() {
   const [aiQuizData, setAiQuizData] = useState<QuizGeneratorOutput | null>(null);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
 
-  const loadData = useCallback(async () => {
-    if (!user || !trailId) return;
-    
+  const loadData = useCallback(() => {
     setLoading(true);
-    try {
-      const [trailRes, modulesRes] = await Promise.all([
-        supabase.from('learning_trails').select('id, title, status').eq('id', trailId).single(),
-        supabase.from('learning_modules').select('id, title, order_index').eq('trail_id', trailId).order('order_index', { ascending: true })
-      ]);
-
-      if (trailRes.data) setTrail(trailRes.data);
-      const modulesData = modulesRes.data || [];
-      setModules(modulesData);
-
-      if (modulesData.length > 0) {
-        const moduleIds = modulesData.map(m => m.id);
-        const { data: contentsData } = await supabase
-          .from('learning_contents')
-          .select('id, module_id, title, type, url, description')
-          .in('module_id', moduleIds)
-          .order('created_at', { ascending: true });
-        
-        const groupedContents: Record<string, any[]> = {};
-        contentsData?.forEach(content => {
-          if (!groupedContents[content.module_id]) groupedContents[content.module_id] = [];
-          groupedContents[content.module_id].push(content);
-        });
-        setContents(groupedContents);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar dados:", err);
-    } finally {
+    setTimeout(() => {
+      setTrail(mockTrail);
+      setModules(mockModules);
+      setContents(mockContents);
       setLoading(false);
-    }
-  }, [user, trailId]);
+    }, 800);
+  }, [trailId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const handlePublish = async () => {
-    if (!trailId || !user) return;
+  const handlePublish = () => {
     setIsPublishing(true);
-    
-    const { error } = await supabase
-      .from('learning_trails')
-      .update({ status: 'active' })
-      .eq('id', trailId);
-
-    if (!error) {
-      toast({ title: "Trilha Publicada!" });
-      loadData();
-    } else {
-      toast({ title: "Falha na Publicação", variant: "destructive" });
-    }
-    setIsPublishing(false);
+    setTimeout(() => {
+        setTrail((prev: any) => ({ ...prev, status: 'active' }));
+        toast({ title: "Trilha Publicada! (Simulação)" });
+        setIsPublishing(false);
+    }, 1000);
   };
 
-  const handleAddModule = async () => {
-    if (!moduleForm.title.trim() || !user) return;
+  const handleAddModule = () => {
+    if (!moduleForm.title.trim()) return;
     setIsSubmitting(true);
-    try {
-      const { error } = await supabase.from('learning_modules').insert({
+    const newModule = {
+        id: `mod_${Date.now()}`,
         trail_id: trailId,
         title: moduleForm.title,
-        order_index: modules.length,
-        created_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      toast({ title: "Capítulo Criado!" });
-      setModuleForm({ title: "" });
-      setIsModuleDialogOpen(false);
-      loadData(); 
-    } catch (err) {
-      toast({ title: "Erro ao criar capítulo", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+        order_index: modules.length
+    };
+    setTimeout(() => {
+        setModules(prev => [...prev, newModule]);
+        setContents(prev => ({...prev, [newModule.id]: []}));
+        toast({ title: "Capítulo Criado! (Simulação)" });
+        setModuleForm({ title: "" });
+        setIsModuleDialogOpen(false);
+        setIsSubmitting(false);
+    }, 500);
   };
 
-  const handleAddContent = async () => {
-    if (!activeModuleId || !contentForm.title || !user) return;
+  const handleAddContent = () => {
+    if (!activeModuleId || !contentForm.title) return;
     setIsSubmitting(true);
-    try {
-      const { error } = await supabase.from('learning_contents').insert({
+    const newContent = {
+        id: `cont_${Date.now()}`,
         module_id: activeModuleId,
-        title: contentForm.title,
-        type: contentForm.type,
-        url: contentForm.url,
-        description: contentForm.description,
-        created_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      toast({ title: "Aula Anexada!" });
-      setContentForm({ title: "", type: "video", url: "", description: "" });
-      setIsContentDialogOpen(false);
-      setActiveModuleId(null);
-      loadData(); 
-    } catch (err) {
-      toast({ title: "Erro ao anexar aula", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+        ...contentForm
+    };
+    setTimeout(() => {
+        setContents(prev => ({
+            ...prev,
+            [activeModuleId]: [...(prev[activeModuleId] || []), newContent]
+        }));
+        toast({ title: "Aula Anexada! (Simulação)" });
+        setContentForm({ title: "", type: "video", url: "", description: "" });
+        setIsContentDialogOpen(false);
+        setActiveModuleId(null);
+        setIsSubmitting(false);
+    }, 500);
   };
 
   const handleGenerateAiQuiz = async (modId: string, modTitle: string) => {
@@ -189,42 +170,41 @@ export default function TrailManagementPage() {
     }
   };
 
-  const handleSaveAiQuiz = async () => {
-    if (!activeModuleId || !aiQuizData || !user) return;
+  const handleSaveAiQuiz = () => {
+    if (!activeModuleId || !aiQuizData) return;
     setIsSubmitting(true);
-    try {
-      const { error } = await supabase.from('learning_contents').insert({
+    const newQuiz = {
+        id: `quiz_${Date.now()}`,
         module_id: activeModuleId,
         title: "Quiz IA: " + modules.find(m => m.id === activeModuleId)?.title,
         type: "quiz",
-        description: JSON.stringify(aiQuizData.questions),
-        created_at: new Date().toISOString()
-      });
-      if (error) throw error;
-      toast({ title: "Avaliação IA Publicada!" });
-      setIsAiQuizDialogOpen(false);
-      loadData();
-    } catch (err) {
-      toast({ title: "Erro ao salvar quiz", variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+        description: JSON.stringify(aiQuizData.questions)
+    };
+    setTimeout(() => {
+        setContents(prev => ({
+            ...prev,
+            [activeModuleId]: [...(prev[activeModuleId] || []), newQuiz]
+        }));
+        toast({ title: "Avaliação IA Publicada! (Simulação)" });
+        setIsAiQuizDialogOpen(false);
+        setIsSubmitting(false);
+    }, 500);
   };
 
-  const handleDeleteModule = async (id: string) => {
-    const { error } = await supabase.from('learning_modules').delete().eq('id', id);
-    if (!error) {
-      toast({ title: "Capítulo removido" });
-      loadData();
-    }
+  const handleDeleteModule = (id: string) => {
+    setModules(prev => prev.filter(m => m.id !== id));
+    toast({ title: "Capítulo removido" });
   };
 
-  const handleDeleteContent = async (id: string) => {
-    const { error } = await supabase.from('learning_contents').delete().eq('id', id);
-    if (!error) {
-      toast({ title: "Aula removida" });
-      loadData();
-    }
+  const handleDeleteContent = (id: string) => {
+    setContents(prev => {
+        const newContents = {...prev};
+        for(const modId in newContents) {
+            newContents[modId] = newContents[modId].filter(c => c.id !== id);
+        }
+        return newContents;
+    });
+    toast({ title: "Aula removida" });
   };
 
   if (loading) return (

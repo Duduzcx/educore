@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
@@ -8,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState, useMemo, memo } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
-import { supabase } from "@/lib/supabase"; 
 
 const studentItems = [
   { icon: Home, label: "Página Inicial", href: "/dashboard/home" },
@@ -102,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <BookOpen className="h-5 w-5" />
             </div>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="font-headline text-lg font-black text-white italic">EduCore</span>
+              <span className="font-headline text-lg font-black text-white italic">Compromisso</span>
               <span className="text-[8px] text-white/40 uppercase tracking-widest font-black">Smart Education</span>
             </div>
           </div>
