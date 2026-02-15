@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, ChevronRight, Loader2, Sparkles, UserCircle, Users, GraduationCap, AlertCircle } from "lucide-react";
+import { Shield, ChevronRight, Loader2, Sparkles, UserCircle, Users, GraduationCap, AlertCircle, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/app/lib/supabase";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Link from "next/link";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,7 @@ export function LoginForm() {
     if (!email || !password) return;
     
     if (!isSupabaseConfigured) {
-      setAuthError("Configuração Pendente: As chaves do Supabase não foram encontradas no ambiente (Netlify/Local).");
+      setAuthError("Configuração Pendente: As chaves do Supabase não foram encontradas no ambiente.");
       return;
     }
 
@@ -40,7 +41,7 @@ export function LoginForm() {
 
       if (error) {
         if (error.message === "Invalid login credentials") {
-          setAuthError("E-mail ou senha incorretos. Certifique-se de que criou este usuário no painel do Supabase.");
+          setAuthError("E-mail ou senha incorretos. Certifique-se de que criou sua conta.");
         } else {
           setAuthError(error.message);
         }
@@ -93,10 +94,10 @@ export function LoginForm() {
         </div>
       </div>
 
-      <Card className="border-none shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-2xl bg-white/95 animate-in zoom-in-95 duration-700">
+      <Card className="border-none shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-2xl bg-white/95 animate-in zoom-in-95 duration-700 rounded-[2.5rem]">
         <CardHeader className="space-y-1 pb-6 pt-8 text-center bg-primary/5 border-b border-dashed">
-          <CardTitle className="text-2xl font-bold text-primary italic">Acesso Restrito</CardTitle>
-          <CardDescription className="font-medium text-muted-foreground">Utilize suas credenciais do curso</CardDescription>
+          <CardTitle className="text-2xl font-black text-primary italic">Acesso Restrito</CardTitle>
+          <CardDescription className="font-medium text-muted-foreground italic">Bem-vindo(a) de volta ao Compromisso.</CardDescription>
         </CardHeader>
         <CardContent className="px-8 pt-8 space-y-6">
           {authError && (
@@ -112,26 +113,37 @@ export function LoginForm() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl" placeholder="seu@email.com" required />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="seu@email.com" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl" placeholder="••••••••" required />
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
+                <Link href="#" className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline">Esqueceu?</Link>
+              </div>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="••••••••" required />
             </div>
             <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black h-14 text-base shadow-xl rounded-2xl transition-all">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
             </Button>
           </form>
 
+          <div className="flex flex-col gap-4 pt-4">
+            <Button asChild variant="outline" className="h-12 rounded-xl border-dashed border-primary/20 hover:bg-primary/5 text-primary font-black uppercase text-[10px] gap-2 tracking-widest">
+              <Link href="/register">
+                <UserPlus className="h-4 w-4" /> Não tem conta? Cadastre-se
+              </Link>
+            </Button>
+          </div>
+
           <div className="pt-6 space-y-4 border-t border-dashed">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/40">
               <Users className="h-3 w-3" /> Acesso Rápido (Demo)
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" onClick={() => fillCredentials('student')} className="h-12 rounded-xl text-blue-700 font-black gap-2 text-[10px] justify-start px-4">
+              <Button variant="outline" onClick={() => fillCredentials('student')} className="h-12 rounded-xl text-blue-700 font-black gap-2 text-[10px] justify-start px-4 border-blue-100">
                 <GraduationCap className="h-4 w-4" /> ALUNO
               </Button>
-              <Button variant="outline" onClick={() => fillCredentials('teacher')} className="h-12 rounded-xl text-orange-700 font-black gap-2 text-[10px] justify-start px-4">
+              <Button variant="outline" onClick={() => fillCredentials('teacher')} className="h-12 rounded-xl text-orange-700 font-black gap-2 text-[10px] justify-start px-4 border-orange-100">
                 <UserCircle className="h-4 w-4" /> MENTOR
               </Button>
             </div>
