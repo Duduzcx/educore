@@ -6,27 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, ChevronRight, Loader2, Sparkles, UserCircle, Users, GraduationCap } from "lucide-react";
+import { Shield, ChevronRight, Loader2, Sparkles, UserCircle, Users, GraduationCap, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/app/lib/supabase";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError(null);
+    
     if (!email || !password) return;
     
     if (!isSupabaseConfigured) {
-      toast({ 
-        variant: "destructive", 
-        title: "Sistema Desconectado", 
-        description: "As chaves do Supabase não foram configuradas no ambiente (Netlify/Local)."
-      });
+      setAuthError("Configuração Pendente: As chaves do Supabase não foram encontradas no ambiente (Netlify/Local).");
       return;
     }
 
@@ -38,14 +38,20 @@ export function LoginForm() {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message === "Invalid login credentials") {
+          setAuthError("E-mail ou senha incorretos. Certifique-se de que criou este usuário no painel do Supabase.");
+        } else {
+          setAuthError(error.message);
+        }
+        throw error;
+      }
 
       if (data.user) {
         toast({ title: "Login bem-sucedido!", description: "Bem-vindo(a) ao Compromisso." });
         
         const userRole = data.user.user_metadata?.role || 'student';
 
-        // Redirecionamento inteligente baseado no papel
         if (userRole === 'teacher' || userRole === 'admin') {
             router.push("/dashboard/teacher/home");
         } else {
@@ -55,11 +61,6 @@ export function LoginForm() {
 
     } catch (err: any) {
       console.error("Erro Login:", err);
-      toast({ 
-        variant: "destructive", 
-        title: "Erro no Acesso", 
-        description: err.message || "Credenciais inválidas ou erro de conexão."
-      });
     } finally {
       setLoading(false);
     }
@@ -72,6 +73,7 @@ export function LoginForm() {
     };
     setEmail(creds[type].email);
     setPassword(creds[type].password);
+    setAuthError(null);
   };
 
   return (
@@ -97,6 +99,16 @@ export function LoginForm() {
           <CardDescription className="font-medium text-muted-foreground">Utilize suas credenciais do curso</CardDescription>
         </CardHeader>
         <CardContent className="px-8 pt-8 space-y-6">
+          {authError && (
+            <Alert variant="destructive" className="bg-red-50 border-red-200">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Erro de Acesso</AlertTitle>
+              <AlertDescription className="text-xs font-medium">
+                {authError}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
