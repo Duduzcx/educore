@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +9,7 @@ import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recha
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/app/lib/supabase";
 
 export default function TeacherHomePage() {
   const { user } = useAuth();
@@ -33,10 +33,33 @@ export default function TeacherHomePage() {
   ]);
   const [diagLoading, setDiagLoading] = useState(false);
 
-  const runDiagnostic = () => {
+  const runDiagnostic = async () => {
     setDiagLoading(true);
-    toast({ title: "Diagnóstico Simulado", description: "A conexão com a plataforma está operacional (simulação)." });
-    setTimeout(() => setDiagLoading(false), 1500);
+    try {
+      // Verifica se as chaves existem
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
+        throw new Error("Variáveis de ambiente não configuradas no Netlify.");
+      }
+
+      // Tenta uma consulta simples para validar a conexão
+      const { error } = await supabase.from('profiles').select('id').limit(1);
+      
+      if (error) throw error;
+
+      toast({ 
+        title: "Diagnóstico Compromisso", 
+        description: "Conexão com Supabase: OPERACIONAL ✅" 
+      });
+    } catch (err: any) {
+      console.error("Erro no diagnóstico:", err);
+      toast({ 
+        title: "Falha na Conexão", 
+        description: "Erro ao conectar ao Supabase. Verifique as chaves API no painel do Netlify.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setDiagLoading(false);
+    }
   };
 
   if (stats.loading) {

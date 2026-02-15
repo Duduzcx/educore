@@ -1,4 +1,3 @@
-
 import type { Metadata, Viewport } from 'next';
 import { Inter, Lexend } from 'next/font/google';
 import { Toaster } from '@/components/ui/toaster';

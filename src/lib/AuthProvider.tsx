@@ -1,4 +1,3 @@
-
 'use client';
 
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
@@ -42,16 +41,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      setLoading(false);
+      
+      if (event === 'SIGNED_OUT') {
+        setProfile(null);
+      }
     });
 
-    // Fetch initial session
     const getInitialSession = async () => {
+      try {
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
+        setUser(session?.user ?? null);
+      } catch (e) {
+        console.error("Erro ao obter sessão inicial:", e);
+      } finally {
         setLoading(false);
+      }
     };
 
     getInitialSession();
@@ -64,17 +69,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user) {
       const fetchProfile = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error fetching profile:', error);
-          setProfile(null);
-        } else {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) throw error;
           setProfile(data as Profile);
+        } catch (error) {
+          console.error('Erro ao buscar perfil do Compromisso:', error);
+          setProfile(null);
         }
       };
 
