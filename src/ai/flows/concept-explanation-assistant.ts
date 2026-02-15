@@ -1,44 +1,35 @@
-
 'use server';
 
 /**
  * @fileOverview Aurora - Assistente Pedagógica e Administrativa Ativa.
  * 
  * - conceptExplanationAssistant - Função principal (Server Action).
- * - Conectada ao Gemini 1.5 Flash e API do ENEM Oficial.
+ * - Conectada ao Gemini 1.5 Flash.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai, googleAIPlugin } from '@/ai/genkit';
 import { z } from 'genkit';
 
 // --- DEFINIÇÃO DE FERRAMENTAS (TOOLS) ---
 
-const enemLookup = ai.defineTool(
+const searchEducationalContent = ai.defineTool(
   {
-    name: 'enemLookup',
-    description: 'Busca questões reais do ENEM na base oficial para ilustrar temas.',
+    name: 'searchEducationalContent',
+    description: 'Busca temas educacionais e questões de exemplo para ilustrar o aprendizado.',
     inputSchema: z.object({
-      query: z.string().describe('O tema da questão (ex: "segunda lei de newton").'),
+      topic: z.string().describe('O tema da busca (ex: "segunda lei de newton").'),
     }),
     outputSchema: z.array(z.object({
-      question: z.string(),
-      year: z.number(),
-      answer: z.string(),
+      title: z.string(),
+      description: z.string(),
     })),
   },
   async (input) => {
-    try {
-      const response = await fetch(`https://api.enem.dev/v1/questions?q=${encodeURIComponent(input.query)}&limit=2`);
-      if (!response.ok) return [];
-      const data = await response.json();
-      return (data || []).map((item: any) => ({
-        question: item.context || item.title,
-        year: item.year || 2023,
-        answer: item.correctAnswer || "A",
-      }));
-    } catch (e) {
-      return [];
-    }
+    // Mock industrial para evitar dependência de APIs externas instáveis em demo
+    return [
+      { title: `Conceito de ${input.topic}`, description: `O estudo de ${input.topic} é fundamental para o ENEM e vestibulares.` },
+      { title: `Questão Clássica`, description: `Como ${input.topic} se aplica em problemas do cotidiano?` }
+    ];
   }
 );
 
@@ -99,34 +90,28 @@ export async function conceptExplanationAssistant(input: ConceptExplanationAssis
 
 const prompt = ai.definePrompt({
   name: 'conceptExplanationAssistantPrompt',
-  model: 'googleai/gemini-1.5-flash',
-  tools: [enemLookup, youtubeSearch],
+  model: googleAIPlugin.model('gemini-1.5-flash'),
+  tools: [searchEducationalContent, youtubeSearch],
   input: { schema: ConceptExplanationAssistantInputSchema },
   output: { schema: ConceptExplanationAssistantOutputSchema },
   config: { temperature: 0.7 },
-  prompt: `Você é a Aurora, a assistente pedagógica de elite do Compromisso.
+  system: `Você é a Aurora, a assistente pedagógica de elite do curso Compromisso.
 Sua missão é ajudar estudantes brasileiros com dúvidas para o ENEM e vestibulares.
 
 ESTRUTURA DE RESPOSTA OBRIGATÓRIA:
 1. Explicação: Explique o conceito de forma simples, mas com rigor acadêmico.
-2. Exemplo Real: SEMPRE cite uma questão real do ENEM relacionada usando a ferramenta enemLookup se possível.
-3. Apoio Visual: Ofereça um vídeo complementar usando youtubeSearch se o tema for complexo.
-
-{{#if context}}
-CONTEXTO DA AULA ATUAL:
-{{{context}}}
-{{/if}}
+2. Exemplo Real: Cite um exemplo ou aplicação prática.
+3. Apoio Visual: Ofereça um vídeo complementar se o tema for complexo.
 
 REGRAS:
 - Use Português Brasileiro profissional e empático.
-- Se o usuário perguntar algo não acadêmico, direcione-o gentilmente de volta aos estudos.
-
-Histórico:
-{{#each history}}
-{{role}}: {{content}}
-{{/each}}
-
-Pergunta: {{{query}}}`,
+- SEMPRE retorne sua resposta dentro de um objeto JSON com a chave "response".
+- Se o usuário perguntar algo não acadêmico, direcione-o gentilmente de volta aos estudos.`,
+  prompt: `Pergunta: {{{query}}}
+{{#if context}}Contexto: {{{context}}}{{/if}}
+{{#if history}}Histórico:
+{{#each history}}{{{role}}}: {{{content}}}
+{{/each}}{{/if}}`,
 });
 
 const conceptExplanationAssistantFlow = ai.defineFlow(

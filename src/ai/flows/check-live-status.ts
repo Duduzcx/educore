@@ -1,24 +1,26 @@
+'use server';
 
-import { defineFlow } from '@genkit-ai/flow';
-import * as z from 'zod';
-import { firebase } from '@genkit-ai/firebase'; // CORREÇÃO: Nome do pacote e import ajustado
+/**
+ * @fileOverview Verificador de status de lives no YouTube.
+ */
 
-// Instale a biblioteca da API do Google: npm install googleapis
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { google } from 'googleapis';
 
-export const checkLiveStatusFlow = defineFlow(
+const CheckLiveStatusInputSchema = z.object({ videoId: z.string() });
+const CheckLiveStatusOutputSchema = z.object({ isLive: z.boolean() });
+
+export const checkLiveStatusFlow = ai.defineFlow(
   {
     name: 'checkLiveStatus',
-    inputSchema: z.object({ videoId: z.string() }),
-    outputSchema: z.object({ isLive: z.boolean() }),
-    // A autenticação do Firebase será gerenciada pela configuração do Genkit
+    inputSchema: CheckLiveStatusInputSchema,
+    outputSchema: CheckLiveStatusOutputSchema,
   },
   async ({ videoId }) => {
     const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
     if (!YOUTUBE_API_KEY) {
-      console.error('Chave da API do YouTube não encontrada.');
-      // Lançar um erro pode ser mais apropriado em um fluxo de produção
       throw new Error('YOUTUBE_API_KEY não está configurada.');
     }
 
@@ -41,8 +43,7 @@ export const checkLiveStatusFlow = defineFlow(
       return { isLive };
 
     } catch (error) {
-      console.error('Erro ao verificar status da live no YouTube:', error);
-      // Repassar o erro para que o fluxo falhe e possa ser tratado
+      console.error('Erro ao verificar status da live:', error);
       throw new Error('Falha ao consultar a API do YouTube.');
     }
   }
