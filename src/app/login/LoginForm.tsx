@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react";
@@ -7,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Lock, Mail, ChevronRight, Loader2, Sparkles, ShieldCheck, GraduationCap, UserCircle, Users } from "lucide-react";
+import { Shield, ChevronRight, Loader2, Sparkles, UserCircle, Users, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/app/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/app/lib/supabase";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -22,6 +21,15 @@ export function LoginForm() {
     e.preventDefault();
     if (!email || !password) return;
     
+    if (!isSupabaseConfigured) {
+      toast({ 
+        variant: "destructive", 
+        title: "Sistema Desconectado", 
+        description: "As chaves do Supabase não foram configuradas no ambiente (Netlify/Local)."
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -30,15 +38,14 @@ export function LoginForm() {
         password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data.user) {
-        toast({ title: "Login bem-sucedido!", description: "Bem-vindo(a) de volta." });
+        toast({ title: "Login bem-sucedido!", description: "Bem-vindo(a) ao Compromisso." });
         
-        const userRole = data.user.user_metadata?.role;
+        const userRole = data.user.user_metadata?.role || 'student';
 
+        // Redirecionamento inteligente baseado no papel
         if (userRole === 'teacher' || userRole === 'admin') {
             router.push("/dashboard/teacher/home");
         } else {
@@ -47,6 +54,7 @@ export function LoginForm() {
       }
 
     } catch (err: any) {
+      console.error("Erro Login:", err);
       toast({ 
         variant: "destructive", 
         title: "Erro no Acesso", 
@@ -57,11 +65,10 @@ export function LoginForm() {
     }
   };
 
-  const fillCredentials = (type: 'student' | 'teacher' | 'coordination') => {
+  const fillCredentials = (type: 'student' | 'teacher') => {
     const creds = {
-      student: { email: "aluno@compromisso.gov.br", password: "admin123" },
-      teacher: { email: "professor@compromisso.gov.br", password: "admin123" },
-      coordination: { email: "coordenacao@compromisso.gov.br", password: "admin123" }
+      student: { email: "aluno@compromisso.com.br", password: "aluno123" },
+      teacher: { email: "professor@compromisso.com.br", password: "professor123" }
     };
     setEmail(creds[type].email);
     setPassword(creds[type].password);
@@ -87,33 +94,33 @@ export function LoginForm() {
       <Card className="border-none shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-2xl bg-white/95 animate-in zoom-in-95 duration-700">
         <CardHeader className="space-y-1 pb-6 pt-8 text-center bg-primary/5 border-b border-dashed">
           <CardTitle className="text-2xl font-bold text-primary italic">Acesso Restrito</CardTitle>
-          <CardDescription className="font-medium text-muted-foreground">Utilize suas credenciais institucionais</CardDescription>
+          <CardDescription className="font-medium text-muted-foreground">Utilize suas credenciais do curso</CardDescription>
         </CardHeader>
         <CardContent className="px-8 pt-8 space-y-6">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl" required />
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl" placeholder="seu@email.com" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl" required />
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl" placeholder="••••••••" required />
             </div>
             <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black h-14 text-base shadow-xl rounded-2xl transition-all">
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
             </Button>
           </form>
 
-          <div className="pt-6 space-y-4">
+          <div className="pt-6 space-y-4 border-t border-dashed">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/40">
-              <Users className="h-3 w-3" /> Acesso Rápido (Demo Mode)
+              <Users className="h-3 w-3" /> Acesso Rápido (Demo)
             </div>
-            <div className="grid grid-cols-1 gap-3">
-              <Button variant="outline" onClick={() => fillCredentials('student')} className="h-12 rounded-xl text-blue-700 font-black gap-3 text-xs justify-start px-6">
-                <GraduationCap className="h-4 w-4" /> Entrar como Aluno
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" onClick={() => fillCredentials('student')} className="h-12 rounded-xl text-blue-700 font-black gap-2 text-[10px] justify-start px-4">
+                <GraduationCap className="h-4 w-4" /> ALUNO
               </Button>
-              <Button variant="outline" onClick={() => fillCredentials('teacher')} className="h-12 rounded-xl text-orange-700 font-black gap-3 text-xs justify-start px-6">
-                <UserCircle className="h-4 w-4" /> Entrar como Professor
+              <Button variant="outline" onClick={() => fillCredentials('teacher')} className="h-12 rounded-xl text-orange-700 font-black gap-2 text-[10px] justify-start px-4">
+                <UserCircle className="h-4 w-4" /> MENTOR
               </Button>
             </div>
           </div>

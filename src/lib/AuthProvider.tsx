@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/app/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/app/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
@@ -10,6 +10,7 @@ type Profile = {
   name: string;
   email: string;
   profile_type: string;
+  role?: string;
   [key: string]: any;
 };
 
@@ -37,29 +38,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (event === 'SIGNED_OUT') {
-        setProfile(null);
-      }
-    });
+    if (!isSupabaseConfigured) {
+      console.warn("Supabase não configurado. Verifique as variáveis de ambiente.");
+      setLoading(false);
+      return;
+    }
 
     const getInitialSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
-        setUser(session?.user ?? null);
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
       } catch (e) {
         console.error("Erro ao obter sessão inicial:", e);
       } finally {
-        setLoading(false);
+        // Não encerramos o loading aqui se houver um usuário, 
+        // pois precisamos buscar o profile primeiro.
+        if (!session?.user) {
+          setLoading(false);
+        }
       }
     };
 
     getInitialSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (event === 'SIGNED_OUT') {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
 
     return () => {
       authListener?.subscription.unsubscribe();
@@ -67,8 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      const fetchProfile = async () => {
+    const fetchProfile = async () => {
+      if (user) {
         try {
           const { data, error } = await supabase
             .from('profiles')
@@ -76,17 +87,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .eq('id', user.id)
             .single();
           
-          if (error) throw error;
-          setProfile(data as Profile);
+          if (!error && data) {
+            setProfile(data as Profile);
+          } else {
+            // Se não houver profile, mas houver metadata no user, usamos isso
+            setProfile({
+              id: user.id,
+              name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+              email: user.email || '',
+              profile_type: user.user_metadata?.role || 'student'
+            });
+          }
         } catch (error) {
           console.error('Erro ao buscar perfil do Compromisso:', error);
-          setProfile(null);
+        } finally {
+          setLoading(false);
         }
-      };
+      } else {
+        setProfile(null);
+      }
+    };
 
+    if (user) {
       fetchProfile();
-    } else {
-      setProfile(null);
     }
   }, [user]);
 

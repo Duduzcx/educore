@@ -1,36 +1,61 @@
--- SCRIPT DE INFRAESTRUTURA EDUCORE | ESTADO INDUSTRIAL
--- Execute este script no SQL Editor do seu Supabase.
+-- SCRIPT DE CONFIGURAÇÃO COMPROMISSO | SUPABASE
+-- Execute este script no SQL Editor do seu projeto Supabase.
 
--- 1. TABELA DE PROGRESSO (VIGILANTE DE VÍDEO)
-CREATE TABLE IF NOT EXISTS public.user_progress (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    trail_id UUID REFERENCES public.learning_trails(id) ON DELETE CASCADE,
-    content_id UUID REFERENCES public.learning_contents(id) ON DELETE CASCADE,
-    percentage INTEGER DEFAULT 0,
-    is_completed BOOLEAN DEFAULT FALSE,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    UNIQUE(user_id, content_id)
+-- 1. Tabela de Perfis (Alunos e Professores)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
+  name TEXT,
+  email TEXT,
+  profile_type TEXT DEFAULT 'etec', -- 'etec', 'uni', 'teacher'
+  institution TEXT,
+  course TEXT,
+  is_financial_aid_eligible BOOLEAN DEFAULT FALSE,
+  last_access TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. AJUSTES NA TABELA DE LIVES (AGENDAMENTO OBRIGATÓRIO)
--- Se a coluna start_time não existir ou for apenas data, vamos garantir que suporte timestamp.
-ALTER TABLE public.lives 
-ALTER COLUMN start_time TYPE TIMESTAMP WITH TIME ZONE;
+-- 2. Tabela de Transmissões ao Vivo
+CREATE TABLE IF NOT EXISTS lives (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  teacher_id UUID REFERENCES profiles(id),
+  teacher_name TEXT,
+  youtube_id TEXT,
+  start_time TIMESTAMPTZ NOT NULL,
+  status TEXT DEFAULT 'scheduled', -- 'scheduled', 'live', 'finished'
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 3. POLÍTICAS RLS (MODO DEMO - ACESSO TOTAL)
--- Nota: Em produção, estas regras devem ser mais restritivas.
-ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all access to progress" ON public.user_progress FOR ALL USING (true) WITH CHECK (true);
+-- 3. Tabela de Progresso de Vídeo (Regra de 80%)
+CREATE TABLE IF NOT EXISTS video_progress (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE,
+  content_id TEXT NOT NULL,
+  watched_seconds FLOAT DEFAULT 0,
+  total_seconds FLOAT DEFAULT 0,
+  completed BOOLEAN DEFAULT FALSE,
+  last_ping TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, content_id)
+);
 
-ALTER TABLE public.learning_trails ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all access to trails" ON public.learning_trails FOR ALL USING (true) WITH CHECK (true);
+-- 4. Tabela de Quizzes
+CREATE TABLE IF NOT EXISTS quizzes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  module_id TEXT,
+  title TEXT,
+  questions JSONB, -- Armazena o array de questões gerado pela IA
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-ALTER TABLE public.learning_modules ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all access to modules" ON public.learning_modules FOR ALL USING (true) WITH CHECK (true);
+-- Habilitar RLS (Segurança)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lives ENABLE ROW LEVEL SECURITY;
+ALTER TABLE video_progress ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE public.learning_contents ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all access to contents" ON public.learning_contents FOR ALL USING (true) WITH CHECK (true);
-
-ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all access to lives" ON public.lives FOR ALL USING (true) WITH CHECK (true);
+-- Políticas de Acesso
+CREATE POLICY "Perfis visíveis por todos os autenticados" ON profiles FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Usuários podem editar seu próprio perfil" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Lives visíveis por todos" ON lives FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Progresso individual" ON video_progress FOR ALL TO authenticated USING (auth.uid() = user_id);
