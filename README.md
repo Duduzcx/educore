@@ -1,4 +1,4 @@
-
+g
 # Compromisso | Smart Education
 
 *Tecnologia a serviço da aprovação.*
