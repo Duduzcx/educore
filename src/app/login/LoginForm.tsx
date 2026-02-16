@@ -44,7 +44,7 @@ export function LoginForm() {
         setLoading(false);
         console.error("Erro de Autenticação:", error.message);
         if (error.message.includes("Invalid login credentials")) {
-          setAuthError("E-mail ou senha incorretos. Certifique-se de que as contas demo foram criadas no seu painel do Supabase.");
+          setAuthError("E-mail ou senha incorretos. Verifique se as contas demo foram criadas no Supabase.");
         } else {
           setAuthError(error.message);
         }
@@ -56,10 +56,9 @@ export function LoginForm() {
         toast({ title: "Login bem-sucedido!", description: "Sintonizando seu portal..." });
         const userRole = data.user.user_metadata?.role || 'student';
         
-        // Pequeno delay para garantir que o overlay de redirecionamento seja visto
         setTimeout(() => {
           router.push(userRole === 'teacher' || userRole === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
-        }, 500);
+        }, 100);
       }
 
     } catch (err: any) {
@@ -71,7 +70,7 @@ export function LoginForm() {
   const fillCredentials = (type: 'student' | 'teacher') => {
     const creds = {
       student: { email: "aluno@compromisso.com.br", password: "123456789" },
-      teacher: { email: "mentor@compromisso.com.br", password: "123456789" }
+      teacher: { email: "professor@educore.gov.br", password: "123456789" }
     };
     setEmail(creds[type].email);
     setPassword(creds[type].password);
@@ -80,16 +79,15 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 z-10 relative">
-      {/* OVERLAY DE REDIRECIONAMENTO */}
       {isRedirecting && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-primary text-white animate-in fade-in duration-500 rounded-[2.5rem]">
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-primary text-white animate-in fade-in duration-300">
           <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-accent text-accent-foreground shadow-2xl mb-6 animate-bounce">
             <BookOpen className="h-12 w-12" />
           </div>
           <h2 className="text-2xl font-black italic tracking-tighter mb-2">Compromisso</h2>
           <div className="flex items-center gap-3">
             <Loader2 className="h-4 w-4 animate-spin text-accent" />
-            <p className="text-xs font-black uppercase tracking-[0.3em] opacity-60">Sincronizando Ambiente...</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Sintonizando Ambiente...</p>
           </div>
         </div>
       )}
@@ -119,9 +117,7 @@ export function LoginForm() {
             <Alert variant="destructive" className="bg-red-50 border-red-200 animate-in shake-1">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Falha no Acesso</AlertTitle>
-              <AlertDescription className="text-xs font-medium">
-                {authError}
-              </AlertDescription>
+              <AlertDescription className="text-xs font-medium">{authError}</AlertDescription>
             </Alert>
           )}
 
@@ -144,9 +140,7 @@ export function LoginForm() {
 
           <div className="flex flex-col gap-4 pt-2">
             <Button asChild variant="outline" className="h-12 rounded-xl border-dashed border-primary/20 hover:bg-primary/5 text-primary font-black uppercase text-[10px] gap-2 tracking-widest">
-              <Link href="/register">
-                <UserPlus className="h-4 w-4" /> Não tem conta? Criar Agora
-              </Link>
+              <Link href="/register"><UserPlus className="h-4 w-4" /> Não tem conta? Criar Agora</Link>
             </Button>
           </div>
 
