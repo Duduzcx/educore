@@ -43,7 +43,7 @@ export function LoginForm() {
       if (error) {
         console.error("Erro de Autenticação:", error.message);
         if (error.message.includes("Invalid login credentials")) {
-          setAuthError("E-mail ou senha incorretos. Se acabou de se cadastrar, verifique se confirmou seu e-mail (se a opção estiver ativa no Supabase).");
+          setAuthError("E-mail ou senha incorretos. Certifique-se de que criou a conta no painel do Supabase com as credenciais corretas.");
         } else {
           setAuthError(error.message);
         }
@@ -65,7 +65,7 @@ export function LoginForm() {
 
   const fillCredentials = (type: 'student' | 'teacher') => {
     const creds = {
-      student: { email: "aluno@compromisso.com.br", password: "aluno123" },
+      student: { email: "aluno@compromisso.com.br", password: "123456789" },
       teacher: { email: "professor@compromisso.com.br", password: "professor123" }
     };
     setEmail(creds[type].email);

@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Fallback seguro para evitar erro de URL inválida durante o build estático
+// Fallback seguro para evitar erro de URL inválida durante o build estático do Next.js
 const finalUrl = supabaseUrl && supabaseUrl.startsWith('http') 
   ? supabaseUrl 
   : 'https://placeholder-project.supabase.co';
