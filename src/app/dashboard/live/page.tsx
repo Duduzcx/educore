@@ -97,7 +97,7 @@ export default function LiveClassesPage() {
           <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-12 text-center opacity-50">
             <MonitorPlay className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <p className="font-black italic text-lg text-primary">Nenhuma aula agendada no momento.</p>
-            <p className="text-sm font-medium mt-1">Fique atento ao mural de avisos para novas datas!</p>
+            <p className="text-sm font-medium mt-1">Fique atento ao mural de avisos para novas das!</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4">
