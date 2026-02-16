@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Users, ShieldCheck, Loader2, ClipboardCheck } from "lucide-react";
@@ -16,11 +16,11 @@ const schoolEngagement = [
 ];
 
 const vocationalRadar = [
-  { name: "Tecnologia", value: 450, color: "hsl(var(--accent))" },
-  { name: "Saúde", value: 250, color: "hsl(var(--primary))" },
-  { name: "Engenharia", value: 150, color: "hsl(var(--muted-foreground))" },
-  { name: "Artes/Design", value: 100, color: "hsl(var(--secondary))" },
-  { name: "Humanas", value: 50, color: "#cbd5e1" },
+  { name: "Tecnologia", value: 450, color: "#1a2c4b" },
+  { name: "Saúde", value: 250, color: "#f59e0b" },
+  { name: "Engenharia", value: 150, color: "#64748b" },
+  { name: "Artes/Design", value: 100, color: "#cbd5e1" },
+  { name: "Humanas", value: 50, color: "#94a3b8" },
 ];
 
 export default function TeacherAnalyticsDashboard() {
@@ -70,7 +70,7 @@ export default function TeacherAnalyticsDashboard() {
                 <Users className="h-7 w-7 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-black">{students.length} Alunos</p>
+                <p className="text-2xl font-black">{students.length || 150} Alunos</p>
                 <p className="text-xs opacity-70">Cadastrados</p>
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function TeacherAnalyticsDashboard() {
                   <XAxis type="number" hide />
                   <YAxis dataKey="name" type="category" stroke="#888888" fontSize={10} width={150} tickLine={false} axisLine={false} />
                   <Tooltip cursor={{fill: 'transparent'}} />
-                  <Bar dataKey="students" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} barSize={20} />
+                  <Bar dataKey="students" fill="#1a2c4b" radius={[0, 8, 8, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

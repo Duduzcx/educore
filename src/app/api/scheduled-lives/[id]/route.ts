@@ -19,10 +19,10 @@ const getMockLive = (id: string) => ({
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     
     if (id === 'not-found') {
         return NextResponse.json({ error: 'Transmissão não encontrada.' }, { status: 404 });
@@ -37,10 +37,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const body = await request.json();
     const existingLive = getMockLive(id);
     const updatedLive = { ...existingLive, ...body };
@@ -52,10 +52,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     return new Response(null, { status: 204 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

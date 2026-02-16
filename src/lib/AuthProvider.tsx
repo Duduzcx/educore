@@ -39,7 +39,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      console.warn("Supabase não configurado. Verifique as variáveis de ambiente.");
       setLoading(false);
       return;
     }
@@ -52,11 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         console.error("Erro ao obter sessão inicial:", e);
       } finally {
-        // Não encerramos o loading aqui se houver um usuário, 
-        // pois precisamos buscar o profile primeiro.
-        if (!session?.user) {
-          setLoading(false);
-        }
+        if (!user) setLoading(false);
       }
     };
 
@@ -69,13 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_OUT') {
         setProfile(null);
         setLoading(false);
+        router.replace('/login');
       }
     });
 
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -90,12 +86,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!error && data) {
             setProfile(data as Profile);
           } else {
-            // Se não houver profile, mas houver metadata no user, usamos isso
+            // Fallback para metadados se a tabela profiles falhar ou estiver vazia
             setProfile({
               id: user.id,
               name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
               email: user.email || '',
-              profile_type: user.user_metadata?.role || 'student'
+              profile_type: user.user_metadata?.role || 'student',
+              role: user.user_metadata?.role || 'student'
             });
           }
         } catch (error) {
@@ -105,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         setProfile(null);
+        setLoading(false);
       }
     };
 
@@ -114,11 +112,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
-    router.push('/login');
+    setLoading(false);
+    router.replace('/login');
   };
 
   const contextValue = useMemo(() => ({

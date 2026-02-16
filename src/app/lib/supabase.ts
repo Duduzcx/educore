@@ -17,8 +17,8 @@ const finalKey = supabaseAnonKey || 'placeholder-key';
 export const isSupabaseConfigured = !!(
   supabaseUrl && 
   supabaseAnonKey && 
-  !supabaseUrl.includes('placeholder') &&
-  supabaseUrl.startsWith('http')
+  supabaseUrl.startsWith('http') &&
+  !supabaseUrl.includes('placeholder-project')
 );
 
 if (!isSupabaseConfigured && typeof window !== 'undefined') {

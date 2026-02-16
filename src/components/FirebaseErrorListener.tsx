@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * COMPONENTE DESATIVADO
- * Removido para evitar erros de build após a migração para Supabase.
+ * COMPONENTE NEUTRALIZADO
+ * A aplicação agora utiliza Supabase e tratamento de erros nativo.
  */
 export function FirebaseErrorListener() {
   return null;
