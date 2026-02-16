@@ -70,7 +70,7 @@ export function LoginForm() {
   const fillCredentials = (type: 'student' | 'teacher') => {
     const creds = {
       student: { email: "aluno@compromisso.com.br", password: "123456789" },
-      teacher: { email: "professor@educore.gov.br", password: "123456789" }
+      teacher: { email: "mentor@compromisso.com.br", password: "123456789" }
     };
     setEmail(creds[type].email);
     setPassword(creds[type].password);
