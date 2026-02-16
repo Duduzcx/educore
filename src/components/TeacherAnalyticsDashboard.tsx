@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -37,7 +38,7 @@ export default function TeacherAnalyticsDashboard() {
         const { data: studentsData } = await supabase.from('profiles').select('*');
         setStudents(studentsData || []);
       } catch (e) {
-        console.error("Erro ao buscar dados de analytics");
+        console.error("Erro ao buscar dados de analytics no Supabase");
       } finally {
         setLoading(false);
       }

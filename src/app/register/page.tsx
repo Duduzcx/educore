@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -7,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { GraduationCap, School, User, ArrowRight, CheckCircle2, Loader2, Mail, Lock, Sparkles, ChevronLeft } from "lucide-react";
+import { GraduationCap, School, User, ArrowRight, CheckCircle2, Loader2, Mail, Lock, Sparkles, ChevronLeft, UserPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
-import { supabase } from "@/app/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/app/lib/supabase";
 
 type Step = 1 | 2 | 3;
 type ProfileType = "etec" | "uni" | "teacher";
@@ -46,13 +47,18 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!isSupabaseConfigured) {
+      toast({ variant: "destructive", title: "Erro de Configuração", description: "O sistema não está conectado ao banco de dados Supabase." });
+      return;
+    }
+
     setLoading(true);
 
     try {
       const fullName = `${formData.firstName} ${formData.lastName}`.trim();
       const role = profileType === 'teacher' ? 'teacher' : 'student';
 
-      // 1. Criar Auth User
+      // 1. Criar Auth User no Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -64,10 +70,13 @@ export default function RegisterPage() {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        console.error("Erro Supabase Auth:", authError.message);
+        throw authError;
+      }
 
       if (authData.user) {
-        // 2. Criar Perfil na Tabela profiles
+        // 2. Criar registro na tabela 'profiles'
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
@@ -82,24 +91,24 @@ export default function RegisterPage() {
           }]);
 
         if (profileError) {
-          console.error("Erro ao criar perfil:", profileError);
-          // O usuário foi criado mas o perfil falhou - orientar o usuário
+          console.error("Erro ao criar perfil na tabela:", profileError.message);
           toast({ 
-            title: "Conta criada com ressalvas", 
-            description: "Seu acesso foi criado, mas houve um erro ao salvar detalhes do perfil. Você pode editá-los no dashboard.",
+            title: "Conta criada com observação", 
+            description: "Seu acesso foi criado, mas houve um erro ao salvar dados extras. Você pode completar seu perfil no dashboard.",
             variant: "destructive"
           });
         } else {
-          toast({ title: "Bem-vindo ao Compromisso!", description: "Sua conta foi criada com sucesso." });
+          toast({ title: "Bem-vindo ao Compromisso!", description: "Sua jornada de estudos começa agora." });
         }
 
+        // Redireciona
         router.push(role === 'teacher' ? "/dashboard/teacher/home" : "/dashboard/home");
       }
     } catch (err: any) {
-      console.error("Erro no cadastro:", err);
+      console.error("Erro geral no cadastro:", err);
       toast({ 
         title: "Falha no Cadastro", 
-        description: err.message || "Ocorreu um erro ao criar sua conta. Tente novamente.", 
+        description: err.message || "Tente um e-mail diferente ou verifique sua conexão.", 
         variant: "destructive" 
       });
     } finally {
@@ -119,10 +128,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">
         <div className="space-y-2 text-center">
           <h1 className="text-4xl font-black tracking-tight text-primary flex items-center justify-center gap-3 italic">
-            Faça parte do Compromisso
+            Cadastro Compromisso
             <Sparkles className="h-8 w-8 text-accent" />
           </h1>
-          <p className="text-muted-foreground text-lg font-medium italic">Tecnologia a serviço da sua aprovação.</p>
+          <p className="text-muted-foreground text-lg font-medium italic">Tecnologia para impulsionar seu aprendizado.</p>
         </div>
 
         <div className="space-y-4">
@@ -139,9 +148,9 @@ export default function RegisterPage() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground text-sm font-black shadow-lg">
                 {step}
               </span>
-              {step === 1 && "Informações de Acesso"}
-              {step === 2 && "Quem é você?"}
-              {step === 3 && "Finalize seu Perfil"}
+              {step === 1 && "Crie seu Acesso"}
+              {step === 2 && "Sua Identidade"}
+              {step === 3 && "Dados Acadêmicos"}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-8 min-h-[420px]">
@@ -165,7 +174,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
+                  <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha de Acesso</Label>
                   <div className="relative group">
                     <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={formData.password} onChange={(e) => updateField("password", e.target.value)} className="pl-11 h-12 bg-white/50 rounded-xl" />
@@ -182,9 +191,9 @@ export default function RegisterPage() {
                   className="grid grid-cols-1 md:grid-cols-3 gap-6"
                 >
                   {[
-                    { id: "etec", label: "Aluno ETEC", icon: School, desc: "Ensino Técnico" },
-                    { id: "uni", label: "Vestibulando", icon: GraduationCap, desc: "Ensino Superior" },
-                    { id: "teacher", label: "Mentor", icon: User, desc: "Corpo Docente" }
+                    { id: "etec", label: "Aluno ETEC", icon: School, desc: "Técnico" },
+                    { id: "uni", label: "Vestibulando", icon: GraduationCap, desc: "Superior" },
+                    { id: "teacher", label: "Mentor", icon: User, desc: "Docente" }
                   ].map((p) => (
                     <div key={p.id}>
                       <Label
@@ -211,42 +220,42 @@ export default function RegisterPage() {
                 {profileType === "etec" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="school" className="font-bold text-primary/60">Sua Unidade ETEC</Label>
+                      <Label htmlFor="school" className="font-bold text-primary/60">Unidade ETEC</Label>
                       <Input id="school" placeholder="Ex: ETEC Jorge Street" value={formData.school} onChange={(e) => updateField("school", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="course" className="font-bold text-primary/60">Curso Técnico</Label>
-                      <Input id="course" placeholder="Ex: Desenvolvimento de Sistemas" value={formData.course} onChange={(e) => updateField("course", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
+                      <Label htmlFor="course" className="font-bold text-primary/60">Curso</Label>
+                      <Input id="course" placeholder="Ex: Administração" value={formData.course} onChange={(e) => updateField("course", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                     </div>
                   </div>
                 )}
                 {profileType === "uni" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="university" className="font-bold text-primary/60">Instituição de Interesse</Label>
-                      <Input id="university" placeholder="Ex: USP, FATEC, Mackenzie" value={formData.university} onChange={(e) => updateField("university", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
+                      <Label htmlFor="university" className="font-bold text-primary/60">Instituição Desejada</Label>
+                      <Input id="university" placeholder="Ex: USP ou FATEC" value={formData.university} onChange={(e) => updateField("university", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="major" className="font-bold text-primary/60">Curso Desejado</Label>
-                      <Input id="major" placeholder="Ex: Engenharia Mecânica" value={formData.major} onChange={(e) => updateField("major", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
+                      <Label htmlFor="major" className="font-bold text-primary/60">Carreira</Label>
+                      <Input id="major" placeholder="Ex: Direito" value={formData.major} onChange={(e) => updateField("major", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                     </div>
                   </div>
                 )}
                 {profileType === "teacher" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="subject" className="font-bold text-primary/60">Disciplinas que Leciona</Label>
-                      <Input id="subject" placeholder="Ex: Matemática, Física" value={formData.subject} onChange={(e) => updateField("subject", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
+                      <Label htmlFor="subject" className="font-bold text-primary/60">Área de Atuação</Label>
+                      <Input id="subject" placeholder="Ex: Exatas ou Linguagens" value={formData.subject} onChange={(e) => updateField("subject", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="exp" className="font-bold text-primary/60">Anos de Experiência</Label>
+                      <Label htmlFor="exp" className="font-bold text-primary/60">Anos de Docência</Label>
                       <Input id="exp" type="number" placeholder="0" value={formData.experience} onChange={(e) => updateField("experience", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                     </div>
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="interests" className="font-bold text-primary/60">Seus Interesses Principais</Label>
-                  <Input id="interests" placeholder="Ex: IA, Redação, Astronomia" value={formData.interests} onChange={(e) => updateField("interests", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
+                  <Label htmlFor="interests" className="font-bold text-primary/60">Interesses Principais</Label>
+                  <Input id="interests" placeholder="Ex: Matemática, Redação" value={formData.interests} onChange={(e) => updateField("interests", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                 </div>
               </div>
             )}
@@ -258,7 +267,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="px-6 font-black text-primary/60 hover:text-primary transition-all rounded-xl"
             >
-              {step === 1 ? "Voltar ao Login" : "Voltar"}
+              {step === 1 ? "Voltar ao Login" : "Passo Anterior"}
             </Button>
             {step < 3 ? (
               <Button onClick={nextStep} className="bg-primary text-primary-foreground px-10 font-black rounded-xl group shadow-xl transition-all">
@@ -267,7 +276,7 @@ export default function RegisterPage() {
               </Button>
             ) : (
               <Button onClick={handleFinish} disabled={loading} className="bg-accent text-accent-foreground px-10 font-black rounded-xl shadow-xl shadow-accent/20 group transition-all">
-                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" /> }
+                {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" /> }
                 Finalizar Cadastro
               </Button>
             )}
@@ -275,7 +284,7 @@ export default function RegisterPage() {
         </Card>
 
         <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          Ao se cadastrar, você concorda com nossos <span className="text-primary underline cursor-pointer">Termos de Uso</span>.
+          O Compromisso respeita a sua privacidade. Seus dados estão seguros.
         </p>
       </div>
     </div>

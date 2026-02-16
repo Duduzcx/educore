@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -27,7 +28,7 @@ export function LoginForm() {
     if (!email || !password) return;
     
     if (!isSupabaseConfigured) {
-      setAuthError("Configuração Pendente: As chaves do Supabase não foram encontradas no ambiente.");
+      setAuthError("Configuração Pendente: As chaves do Supabase não foram encontradas no ambiente do Netlify.");
       return;
     }
 
@@ -40,28 +41,23 @@ export function LoginForm() {
       });
 
       if (error) {
-        if (error.message === "Invalid login credentials") {
-          setAuthError("E-mail ou senha incorretos. Certifique-se de que criou sua conta.");
+        console.error("Erro de Autenticação:", error.message);
+        if (error.message.includes("Invalid login credentials")) {
+          setAuthError("E-mail ou senha incorretos. Se acabou de se cadastrar, verifique se confirmou seu e-mail (se a opção estiver ativa no Supabase).");
         } else {
           setAuthError(error.message);
         }
-        throw error;
+        return;
       }
 
       if (data.user) {
         toast({ title: "Login bem-sucedido!", description: "Bem-vindo(a) ao Compromisso." });
-        
         const userRole = data.user.user_metadata?.role || 'student';
-
-        if (userRole === 'teacher' || userRole === 'admin') {
-            router.push("/dashboard/teacher/home");
-        } else {
-            router.push("/dashboard/home");
-        }
+        router.push(userRole === 'teacher' || userRole === 'admin' ? "/dashboard/teacher/home" : "/dashboard/home");
       }
 
     } catch (err: any) {
-      console.error("Erro Login:", err);
+      setAuthError("Erro inesperado na conexão. Verifique sua internet.");
     } finally {
       setLoading(false);
     }
@@ -94,16 +90,16 @@ export function LoginForm() {
         </div>
       </div>
 
-      <Card className="border-none shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-2xl bg-white/95 animate-in zoom-in-95 duration-700 rounded-[2.5rem]">
+      <Card className="border-none shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-2xl bg-white/95 rounded-[2.5rem]">
         <CardHeader className="space-y-1 pb-6 pt-8 text-center bg-primary/5 border-b border-dashed">
           <CardTitle className="text-2xl font-black text-primary italic">Acesso Restrito</CardTitle>
-          <CardDescription className="font-medium text-muted-foreground italic">Bem-vindo(a) de volta ao Compromisso.</CardDescription>
+          <CardDescription className="font-medium text-muted-foreground italic">Entre para continuar seus estudos.</CardDescription>
         </CardHeader>
         <CardContent className="px-8 pt-8 space-y-6">
           {authError && (
-            <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <Alert variant="destructive" className="bg-red-50 border-red-200 animate-in shake-1">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Erro de Acesso</AlertTitle>
+              <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Falha no Acesso</AlertTitle>
               <AlertDescription className="text-xs font-medium">
                 {authError}
               </AlertDescription>
@@ -127,23 +123,23 @@ export function LoginForm() {
             </Button>
           </form>
 
-          <div className="flex flex-col gap-4 pt-4">
+          <div className="flex flex-col gap-4 pt-2">
             <Button asChild variant="outline" className="h-12 rounded-xl border-dashed border-primary/20 hover:bg-primary/5 text-primary font-black uppercase text-[10px] gap-2 tracking-widest">
               <Link href="/register">
-                <UserPlus className="h-4 w-4" /> Não tem conta? Cadastre-se
+                <UserPlus className="h-4 w-4" /> Não tem conta? Criar Agora
               </Link>
             </Button>
           </div>
 
           <div className="pt-6 space-y-4 border-t border-dashed">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary/40">
-              <Users className="h-3 w-3" /> Acesso Rápido (Demo)
+              <Users className="h-3 w-3" /> Contas de Demonstração
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" onClick={() => fillCredentials('student')} className="h-12 rounded-xl text-blue-700 font-black gap-2 text-[10px] justify-start px-4 border-blue-100">
+              <Button variant="outline" onClick={() => fillCredentials('student')} className="h-12 rounded-xl text-blue-700 font-black gap-2 text-[10px] justify-start px-4 border-blue-100 hover:bg-blue-50">
                 <GraduationCap className="h-4 w-4" /> ALUNO
               </Button>
-              <Button variant="outline" onClick={() => fillCredentials('teacher')} className="h-12 rounded-xl text-orange-700 font-black gap-2 text-[10px] justify-start px-4 border-orange-100">
+              <Button variant="outline" onClick={() => fillCredentials('teacher')} className="h-12 rounded-xl text-orange-700 font-black gap-2 text-[10px] justify-start px-4 border-orange-100 hover:bg-orange-50">
                 <UserCircle className="h-4 w-4" /> MENTOR
               </Button>
             </div>

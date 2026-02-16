@@ -2,15 +2,28 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Cliente Supabase com Fallback de Build.
- * Evita erros de URL inválida durante o build no Netlify.
+ * Cliente Supabase com Diagnóstico de Ambiente.
  */
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Garantia de que a URL comece com http para o criador do cliente
-const validUrl = supabaseUrl.startsWith('http') ? supabaseUrl : `https://${supabaseUrl}`;
+export const isSupabaseConfigured = !!(
+  supabaseUrl && 
+  supabaseAnonKey && 
+  !supabaseUrl.includes('placeholder')
+);
 
-export const isSupabaseConfigured = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+if (!isSupabaseConfigured && typeof window !== 'undefined') {
+  console.error("⚠️ SUPABASE NÃO CONFIGURADO: Verifique as variáveis NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no painel do Netlify.");
+}
 
-export const supabase = createClient(validUrl, supabaseAnonKey);
+const finalUrl = supabaseUrl || 'https://placeholder-project.supabase.co';
+const finalKey = supabaseAnonKey || 'placeholder-key';
+
+export const supabase = createClient(finalUrl, finalKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
