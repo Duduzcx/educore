@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Users, Map, School, GraduationCap, ArrowUpRight, BarChart3, Database, ShieldCheck, Sparkles, ClipboardCheck, Loader2 } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend } from "recharts";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/app/lib/supabase";
 
 const schoolEngagement = [
   { name: "ETEC Jorge Street", students: 450, activity: 85 },
@@ -34,11 +34,14 @@ export default function TeacherAnalyticsDashboard() {
     async function fetchData() {
       if (!user) return;
       setLoading(true);
-      const { data: studentsData } = await supabase.from('profiles').select('*');
-      const { data: subsData } = await supabase.from('quiz_submissions').select('*');
-      setStudents(studentsData || []);
-      setSubmissions(subsData || []);
-      setLoading(false);
+      try {
+        const { data: studentsData } = await supabase.from('profiles').select('*');
+        setStudents(studentsData || []);
+      } catch (e) {
+        console.error("Erro ao buscar dados de analytics");
+      } finally {
+        setLoading(false);
+      }
     }
     fetchData();
   }, [user]);
