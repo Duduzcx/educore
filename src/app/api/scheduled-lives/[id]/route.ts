@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 
 /**
@@ -10,12 +9,12 @@ export const dynamic = 'force-dynamic';
 
 const getMockLive = (id: string) => ({
   id: id,
-  title: 'Aula Magna de Revisão ENEM',
+  title: 'Aula Magna de Revisão Compromisso',
   teacher_name: 'Prof. Ana Lúcia',
   start_time: new Date(Date.now() + 3600 * 1000).toISOString(),
   status: 'scheduled',
   cover_url: `https://picsum.photos/seed/${id}/1200/630`,
-  description: 'Uma revisão completa dos tópicos mais importantes para a prova de Ciências Humanas do ENEM.'
+  description: 'Uma revisão completa dos tópicos mais importantes para o curso Compromisso.'
 });
 
 export async function GET(

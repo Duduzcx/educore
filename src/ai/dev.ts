@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Arquivo de desenvolvimento para o Genkit.
  * Removida a dependência do dotenv para evitar erros de build no ambiente serverless.
