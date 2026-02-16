@@ -18,9 +18,12 @@ const getMockLive = (id: string) => ({
   description: 'Uma revisão completa dos tópicos mais importantes para a prova de Ciências Humanas do ENEM.'
 });
 
-export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     
     if (id === 'not-found') {
         return NextResponse.json({ error: 'Transmissão não encontrada.' }, { status: 404 });
@@ -33,9 +36,12 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   }
 }
 
-export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     const body = await request.json();
     const existingLive = getMockLive(id);
     const updatedLive = { ...existingLive, ...body };
@@ -45,9 +51,12 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
   }
 }
 
-export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     return new Response(null, { status: 204 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

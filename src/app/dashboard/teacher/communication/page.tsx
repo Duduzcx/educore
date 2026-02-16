@@ -3,14 +3,13 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bell, PlusCircle, Megaphone, AlertOctagon, Info, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-// Tipagem para um aviso
 interface Announcement {
   id: number;
   title: string;
@@ -19,7 +18,6 @@ interface Announcement {
   createdAt: string;
 }
 
-// Dados de exemplo iniciais
 const initialAnnouncements: Announcement[] = [
   {
     id: 1,
@@ -37,8 +35,9 @@ const initialAnnouncements: Announcement[] = [
   },
 ];
 
-// Mapeamento de prioridades com tipagem estrita para o Badge
-const priorityStyles: Record<'low' | 'medium' | 'high', { variant: "secondary" | "destructive" | "default"; icon: any; label: string }> = {
+type BadgeVariant = "secondary" | "destructive" | "default" | "outline";
+
+const priorityStyles: Record<'low' | 'medium' | 'high', { variant: BadgeVariant; icon: any; label: string }> = {
   low: { variant: 'secondary', icon: Info, label: 'Normal' },
   medium: { variant: 'default', icon: Megaphone, label: 'Importante' },
   high: { variant: 'destructive', icon: AlertOctagon, label: 'Urgente' },
