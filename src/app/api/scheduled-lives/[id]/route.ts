@@ -1,8 +1,9 @@
+
 import { NextResponse } from 'next/server';
 
 /**
- * @fileOverview Rota de Gerenciamento de Lives Individuais.
- * Ajustada para os tipos estritos do Next.js 15 (params como Promise).
+ * Rota de Lives Individuais compatível com Next.js 15.
+ * Params devem ser tratados como uma Promise.
  */
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ const getMockLive = (id: string) => ({
   teacher_name: 'Prof. Ana Lúcia',
   start_time: new Date(Date.now() + 3600 * 1000).toISOString(),
   status: 'scheduled',
-  cover_url: `https://picsum.photos/seed/${id}/1200/630`,
+  youtube_id: 'dQw4w9WgXcQ',
   description: 'Uma revisão completa dos tópicos mais importantes para o curso Compromisso.'
 });
 
@@ -30,33 +31,6 @@ export async function GET(
 
     const mockLive = getMockLive(id);
     return NextResponse.json(mockLive);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function PUT(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await context.params;
-    const body = await request.json();
-    const existingLive = getMockLive(id);
-    const updatedLive = { ...existingLive, ...body };
-    return NextResponse.json(updatedLive);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await context.params;
-    return new Response(null, { status: 204 });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
