@@ -1,4 +1,3 @@
-
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -64,7 +63,13 @@
   },
   "overrides": {
     "react-day-picker": {
-      "react": "$react"
+      "react": "19.0.0"
+    },
+    "react": {
+      "react": "19.0.0"
+    },
+    "react-dom": {
+      "react-dom": "19.0.0"
     }
   },
   "devDependencies": {

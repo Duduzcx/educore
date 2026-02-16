@@ -1,8 +1,7 @@
+-- SCRIPT DE INICIALIZAÇÃO - COMPROMISSO SMART EDUCATION
+-- Cole este script no SQL Editor do Supabase e clique em RUN.
 
--- SCRIPT DE INICIALIZAÇÃO COMPROMISSO
--- RODE ESTE SCRIPT NO SQL EDITOR DO SUPABASE PARA QUE O SISTEMA FUNCIONE
-
--- 1. Criar tabela de perfis (Aluno e Mentor)
+-- 1. Tabela de Perfis
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   name TEXT,
@@ -16,35 +15,23 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Habilitar RLS (Segurança de Nível de Linha)
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-
--- 3. Criar Políticas de Acesso
-CREATE POLICY "Qualquer um pode ler perfis" ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Usuários podem atualizar seu próprio perfil" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Inserção pública para cadastro" ON public.profiles FOR INSERT WITH CHECK (true);
-
--- 4. Tabela de Lives
+-- 2. Tabela de Lives
 CREATE TABLE IF NOT EXISTS public.lives (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  teacher_id UUID REFERENCES auth.users,
-  youtube_id TEXT,
+  teacher_id UUID REFERENCES auth.users ON DELETE SET NULL,
+  youtube_id TEXT NOT NULL,
   start_time TIMESTAMPTZ NOT NULL,
   status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'live', 'finished')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Leitura pública de lives" ON public.lives FOR SELECT USING (true);
-CREATE POLICY "Apenas mentores criam lives" ON public.lives FOR ALL USING (auth.uid() = teacher_id);
-
--- 5. Tabela de Chat de Lives (Realtime)
+-- 3. Tabela de Mensagens do Chat (Realtime)
 CREATE TABLE IF NOT EXISTS public.live_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   live_id UUID REFERENCES public.lives ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users,
+  user_id UUID REFERENCES auth.users ON DELETE SET NULL,
   user_name TEXT,
   content TEXT NOT NULL,
   is_question BOOLEAN DEFAULT FALSE,
@@ -52,10 +39,18 @@ CREATE TABLE IF NOT EXISTS public.live_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.live_messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Mensagens de live visíveis para todos" ON public.live_messages FOR SELECT USING (true);
-CREATE POLICY "Qualquer autenticado envia mensagem" ON public.live_messages FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- 4. Habilitar Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE lives;
+ALTER PUBLICATION supabase_realtime ADD TABLE live_messages;
 
--- 6. Habilitar Realtime nas mensagens
-ALTER PUBLICATION supabase_realtime ADD TABLE public.live_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.lives;
+-- 5. Segurança (RLS - Row Level Security)
+-- Permitir que qualquer usuário autenticado leia os perfis e mensagens
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.live_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Perfis visíveis para todos autenticados" ON public.profiles FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Usuários podem atualizar seus próprios perfis" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Lives visíveis para todos autenticados" ON public.lives FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Mensagens visíveis para todos autenticados" ON public.live_messages FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Qualquer autenticado pode enviar mensagens" ON public.live_messages FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);

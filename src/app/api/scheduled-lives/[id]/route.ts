@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 
 /**
@@ -20,10 +19,10 @@ const getMockLive = (id: string) => ({
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     
     if (id === 'not-found') {
         return NextResponse.json({ error: 'Transmissão não encontrada.' }, { status: 404 });
