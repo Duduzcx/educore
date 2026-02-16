@@ -37,25 +37,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // 1. Efeito para carregar a sessão inicial o mais rápido possível
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setLoading(false);
       return;
     }
 
-    const getInitialSession = async () => {
+    const initAuth = async () => {
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
+        
+        // Se não houver sessão, para o carregamento global imediatamente
+        if (!initialSession) {
+          setLoading(false);
+        }
       } catch (e) {
         console.error("Erro ao obter sessão inicial:", e);
-      } finally {
-        if (!user) setLoading(false);
+        setLoading(false);
       }
     };
 
-    getInitialSession();
+    initAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
       setSession(currentSession);
@@ -66,6 +71,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         router.replace('/login');
       }
+      
+      if (event === 'SIGNED_IN') {
+        // O perfil será carregado pelo outro useEffect
+      }
     });
 
     return () => {
@@ -73,35 +82,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [router]);
 
+  // 2. Efeito para carregar o perfil quando o usuário estiver logado
   useEffect(() => {
     const fetchProfile = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          
-          if (!error && data) {
-            setProfile(data as Profile);
-          } else {
-            // Fallback para metadados se a tabela profiles falhar ou estiver vazia
-            setProfile({
-              id: user.id,
-              name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-              email: user.email || '',
-              profile_type: user.user_metadata?.role || 'student',
-              role: user.user_metadata?.role || 'student'
-            });
-          }
-        } catch (error) {
-          console.error('Erro ao buscar perfil do Compromisso:', error);
-        } finally {
-          setLoading(false);
-        }
-      } else {
+      if (!user) {
         setProfile(null);
+        return;
+      }
+
+      try {
+        // Tenta buscar na tabela profiles
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (!error && data) {
+          setProfile(data as Profile);
+        } else {
+          // Fallback ultra-rápido para metadados se a tabela falhar
+          setProfile({
+            id: user.id,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+            email: user.email || '',
+            profile_type: user.user_metadata?.role || 'student',
+            role: user.user_metadata?.role || 'student'
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar perfil do Compromisso:', error);
+      } finally {
         setLoading(false);
       }
     };

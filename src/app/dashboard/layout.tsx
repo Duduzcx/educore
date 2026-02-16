@@ -1,8 +1,7 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -85,9 +84,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   if (isUserLoading) return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-background gap-4">
-      <Loader2 className="h-12 w-12 animate-spin text-accent" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Sintonizando Identidade...</p>
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-primary gap-6">
+      <div className="relative">
+        <div className="h-24 w-24 rounded-3xl bg-accent flex items-center justify-center shadow-2xl animate-pulse">
+          <BookOpen className="h-12 w-12 text-accent-foreground" />
+        </div>
+        <Sparkles className="absolute -top-4 -right-4 h-8 w-8 text-accent animate-bounce" />
+      </div>
+      <div className="space-y-3 text-center">
+        <h2 className="text-2xl font-black text-white italic tracking-tighter">Compromisso</h2>
+        <div className="flex items-center justify-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin text-accent" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 animate-pulse">Sintonizando Identidade...</p>
+        </div>
+      </div>
     </div>
   );
 
