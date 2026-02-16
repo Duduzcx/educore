@@ -37,8 +37,8 @@ const initialAnnouncements: Announcement[] = [
   },
 ];
 
-// Mapeamento de prioridades para cores e ícones da UI
-const priorityStyles = {
+// Mapeamento de prioridades com tipagem estrita para o Badge
+const priorityStyles: Record<'low' | 'medium' | 'high', { variant: "secondary" | "destructive" | "default"; icon: any; label: string }> = {
   low: { variant: 'secondary', icon: Info, label: 'Normal' },
   medium: { variant: 'default', icon: Megaphone, label: 'Importante' },
   high: { variant: 'destructive', icon: AlertOctagon, label: 'Urgente' },
@@ -55,17 +55,15 @@ export default function CommunicationPage() {
     if (!newTitle.trim() || !newMessage.trim()) return;
 
     setIsCreating(true);
-    // Simula o tempo de criação de um novo aviso
     setTimeout(() => {
       const newAnnouncement: Announcement = {
-        id: Date.now(), // ID único baseado no timestamp
+        id: Date.now(),
         title: newTitle,
         message: newMessage,
         priority: newPriority,
         createdAt: new Date().toLocaleDateString('pt-BR'),
       };
       setAnnouncements([newAnnouncement, ...announcements]);
-      // Limpa os campos do formulário
       setNewTitle('');
       setNewMessage('');
       setNewPriority('low');
@@ -75,7 +73,6 @@ export default function CommunicationPage() {
 
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-      {/* Coluna de Criação */}
       <div className="lg:col-span-1 space-y-6">
         <Card className="bg-white shadow-md rounded-2xl">
           <CardHeader>
@@ -111,7 +108,6 @@ export default function CommunicationPage() {
         </Card>
       </div>
 
-      {/* Coluna de Visualização */}
       <div className="lg:col-span-2 space-y-4">
         <h2 className="text-lg font-bold text-slate-700">Avisos Publicados</h2>
         {announcements.map((ann) => {
@@ -120,8 +116,8 @@ export default function CommunicationPage() {
           return (
             <Card key={ann.id} className="bg-white shadow-sm rounded-xl overflow-hidden">
               <CardContent className="p-5 flex items-start gap-4">
-                 <div className={`mt-1 p-2 bg-${styles.variant === 'destructive' ? 'red' : 'slate'}-100 rounded-full`}>
-                    <Icon className={`h-5 w-5 text-${styles.variant === 'destructive' ? 'red' : 'slate'}-600`} />
+                 <div className={`mt-1 p-2 rounded-full ${ann.priority === 'high' ? 'bg-red-100' : 'bg-slate-100'}`}>
+                    <Icon className={`h-5 w-5 ${ann.priority === 'high' ? 'text-red-600' : 'text-slate-600'}`} />
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-center">
