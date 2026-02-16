@@ -27,10 +27,6 @@ const QuizGeneratorOutputSchema = z.object({
 });
 export type QuizGeneratorOutput = z.infer<typeof QuizGeneratorOutputSchema>;
 
-export async function generateQuiz(input: QuizGeneratorInput): Promise<QuizGeneratorOutput> {
-  return generateQuizFlow(input);
-}
-
 const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   model: 'googleai/gemini-1.5-flash',
@@ -49,14 +45,8 @@ const prompt = ai.definePrompt({
   Contexto: {{{description}}}`,
 });
 
-const generateQuizFlow = ai.defineFlow(
-  {
-    name: 'generateQuizFlow',
-    inputSchema: QuizGeneratorInputSchema,
-    outputSchema: QuizGeneratorOutputSchema,
-  },
-  async input => {
-    const { output } = await prompt(input);
-    return output!;
-  }
-);
+export async function generateQuiz(input: QuizGeneratorInput): Promise<QuizGeneratorOutput> {
+  const { output } = await prompt(input);
+  if (!output) throw new Error("A IA falhou ao gerar o quiz.");
+  return output;
+}
