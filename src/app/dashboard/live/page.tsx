@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,19 +17,24 @@ export default function LiveClassesPage() {
   useEffect(() => {
     async function fetchLives() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('lives')
-        .select(`
-          *,
-          teacher:profiles(name)
-        `)
-        .neq('status', 'finished')
-        .order('start_time', { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from('lives')
+          .select(`
+            *,
+            teacher:profiles(name)
+          `)
+          .neq('status', 'finished')
+          .order('start_time', { ascending: true });
 
-      if (!error && data) {
-        setLives(data);
+        if (!error && data) {
+          setLives(data);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar lives:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     fetchLives();
@@ -107,7 +111,7 @@ export default function LiveClassesPage() {
                     </div>
                     <div>
                       <h3 className="font-black text-primary italic text-lg leading-none">{live.title}</h3>
-                      <p className="text-xs text-muted-foreground font-bold uppercase mt-1">Com {live.teacher?.name}</p>
+                      <p className="text-xs text-muted-foreground font-bold uppercase mt-1">Com {live.teacher?.name || "Mentor"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-8">

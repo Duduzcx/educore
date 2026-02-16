@@ -1,53 +1,52 @@
--- SCRIPT DE INICIALIZAÇÃO INDUSTRIAL - COMPROMISSO SMART EDUCATION
--- Cole este script no SQL Editor do seu Supabase e clique em RUN.
-
--- 1. TABELA DE PERFIS (Sincronizada com o Auth do Supabase)
+-- 1. Tabela de Perfis
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   name TEXT,
   email TEXT,
-  profile_type TEXT CHECK (profile_type IN ('etec', 'uni', 'teacher', 'student')),
+  profile_type TEXT CHECK (profile_type IN ('etec', 'uni', 'teacher')),
   institution TEXT,
   course TEXT,
   interests TEXT,
-  is_financial_aid_eligible BOOLEAN DEFAULT FALSE,
-  last_access TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  is_financial_aid_eligible BOOLEAN DEFAULT false,
+  last_access TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 2. TABELA DE LIVES (Agendamento de aulas)
+-- 2. Tabela de Lives
 CREATE TABLE IF NOT EXISTS public.lives (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  teacher_id UUID REFERENCES public.profiles(id),
   youtube_id TEXT NOT NULL,
-  start_time TIMESTAMPTZ NOT NULL,
+  teacher_id UUID REFERENCES auth.users(id),
+  start_time TIMESTAMP WITH TIME ZONE NOT NULL,
   status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'live', 'finished')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 3. TABELA DE MENSAGENS (Chat em tempo real)
+-- 3. Tabela de Mensagens da Live
 CREATE TABLE IF NOT EXISTS public.live_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   live_id UUID REFERENCES public.lives(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id),
   user_name TEXT,
   content TEXT NOT NULL,
-  is_question BOOLEAN DEFAULT FALSE,
-  is_answered BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  is_question BOOLEAN DEFAULT false,
+  is_answered BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 4. HABILITAR REALTIME
-ALTER PUBLICATION supabase_realtime ADD TABLE lives;
+-- 4. Habilitar Realtime para Chat
 ALTER PUBLICATION supabase_realtime ADD TABLE live_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE lives;
 
--- 5. POLÍTICAS DE SEGURANÇA (RLS) - MODO DEMO ACESSO TOTAL
+-- 5. Segurança (RLS) - Permissões Básicas
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.live_messages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Acesso Público Perfis" ON public.profiles FOR ALL USING (true);
-CREATE POLICY "Acesso Público Lives" ON public.lives FOR ALL USING (true);
-CREATE POLICY "Acesso Público Mensagens" ON public.live_messages FOR ALL USING (true);
+CREATE POLICY "Perfis visíveis para todos" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Usuários editam próprio perfil" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Lives visíveis para todos" ON public.lives FOR SELECT USING (true);
+CREATE POLICY "Mentores gerenciam lives" ON public.lives ALL USING (auth.uid() IN (SELECT id FROM profiles WHERE profile_type = 'teacher'));
+CREATE POLICY "Mensagens visíveis para todos" ON public.live_messages FOR SELECT USING (true);
+CREATE POLICY "Usuários postam mensagens" ON public.live_messages FOR INSERT WITH CHECK (auth.role() = 'authenticated');
