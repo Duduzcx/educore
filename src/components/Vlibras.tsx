@@ -6,6 +6,7 @@ import { useEffect } from "react";
 /**
  * Componente Client-Side para inicialização segura do VLibras.
  * OTIMIZAÇÃO: Usando lazyOnload para não travar o carregamento inicial da página.
+ * CORREÇÃO: Usando data-* attributes para evitar erros de tipagem no TypeScript.
  */
 export function Vlibras() {
   useEffect(() => {
