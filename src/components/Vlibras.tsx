@@ -5,8 +5,7 @@ import { useEffect } from "react";
 
 /**
  * Componente Client-Side para inicialização segura do VLibras.
- * OTIMIZAÇÃO: Usando lazyOnload para não travar o carregamento inicial da página.
- * CORREÇÃO: Usando data-* attributes para evitar erros de tipagem no TypeScript.
+ * OTIMIZAÇÃO: Usando data-attributes para evitar erros de tipagem no TypeScript do Next.js 15.
  */
 export function Vlibras() {
   useEffect(() => {
@@ -16,11 +15,10 @@ export function Vlibras() {
           new (window as any).VLibras.Widget("https://vlibras.gov.br/app");
         }
       } catch (e) {
-        // Falha silenciosa
+        // Falha silenciosa para não quebrar a UI
       }
     };
 
-    // Delay maior para garantir que o portal carregue primeiro
     const timer = setTimeout(initVlibras, 2000);
     return () => clearTimeout(timer);
   }, []);
