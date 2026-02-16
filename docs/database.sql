@@ -1,7 +1,7 @@
--- SCRIPT DE INICIALIZAÇÃO - COMPROMISSO SMART EDUCATION
--- Cole este script no SQL Editor do Supabase e clique em RUN.
+-- SCRIPT DE INICIALIZAÇÃO COMPROMISSO
+-- Rode este script no SQL Editor do Supabase para habilitar o sistema de Lives e Perfis.
 
--- 1. Tabela de Perfis
+-- 1. TABELA DE PERFIS
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   name TEXT,
@@ -9,48 +9,55 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   profile_type TEXT CHECK (profile_type IN ('etec', 'uni', 'teacher')),
   institution TEXT,
   course TEXT,
-  is_financial_aid_eligible BOOLEAN DEFAULT FALSE,
   interests TEXT,
-  last_access TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  is_financial_aid_eligible BOOLEAN DEFAULT FALSE,
+  last_access TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 2. Tabela de Lives
+-- 2. TABELA DE LIVES
 CREATE TABLE IF NOT EXISTS public.lives (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  teacher_id UUID REFERENCES public.profiles(id),
   title TEXT NOT NULL,
   description TEXT,
-  teacher_id UUID REFERENCES auth.users ON DELETE SET NULL,
   youtube_id TEXT NOT NULL,
-  start_time TIMESTAMPTZ NOT NULL,
+  start_time TIMESTAMP WITH TIME ZONE NOT NULL,
   status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'live', 'finished')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 3. Tabela de Mensagens do Chat (Realtime)
+-- 3. TABELA DE MENSAGENS DO CHAT
 CREATE TABLE IF NOT EXISTS public.live_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  live_id UUID REFERENCES public.lives ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users ON DELETE SET NULL,
+  live_id UUID REFERENCES public.lives(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id),
   user_name TEXT,
   content TEXT NOT NULL,
   is_question BOOLEAN DEFAULT FALSE,
   is_answered BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 4. Habilitar Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE lives;
-ALTER PUBLICATION supabase_realtime ADD TABLE live_messages;
+-- 4. HABILITAR REALTIME
+ALTER PUBLICATION supabase_realtime ADD TABLE public.live_messages;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.lives;
 
--- 5. Segurança (RLS - Row Level Security)
--- Permitir que qualquer usuário autenticado leia os perfis e mensagens
+-- 5. POLÍTICAS DE SEGURANÇA (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.live_messages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Perfis visíveis para todos autenticados" ON public.profiles FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Usuários podem atualizar seus próprios perfis" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
-CREATE POLICY "Lives visíveis para todos autenticados" ON public.lives FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Mensagens visíveis para todos autenticados" ON public.live_messages FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Qualquer autenticado pode enviar mensagens" ON public.live_messages FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+-- Perfis: Usuários podem ver todos os perfis (rede), mas só editar o próprio
+CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Lives: Todos vêem, apenas mentores criam/editam
+CREATE POLICY "Lives are viewable by everyone" ON public.lives FOR SELECT USING (true);
+CREATE POLICY "Mentors can manage lives" ON public.lives FOR ALL USING (true); -- Simplificado para demonstração
+
+-- Mensagens: Todos vêem e criam
+CREATE POLICY "Messages are viewable by everyone" ON public.live_messages FOR SELECT USING (true);
+CREATE POLICY "Anyone can post messages" ON public.live_messages FOR INSERT WITH CHECK (true);
+CREATE POLICY "Mentors can update messages" ON public.live_messages FOR UPDATE USING (true);

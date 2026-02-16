@@ -42,7 +42,7 @@ export function LoginForm() {
       if (error) {
         console.error("Erro de Autenticação:", error.message);
         if (error.message.includes("Invalid login credentials")) {
-          setAuthError("E-mail ou senha incorretos. Certifique-se de que criou a conta no painel do Supabase com as credenciais corretas.");
+          setAuthError("E-mail ou senha incorretos. Certifique-se de que as contas demo foram criadas no seu painel do Supabase.");
         } else {
           setAuthError(error.message);
         }

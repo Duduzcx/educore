@@ -19,10 +19,10 @@ const getMockLive = (id: string) => ({
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     
     if (id === 'not-found') {
         return NextResponse.json({ error: 'Transmissão não encontrada.' }, { status: 404 });
