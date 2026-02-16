@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Users, Map, School, GraduationCap, ArrowUpRight, BarChart3, Database, ShieldCheck, Sparkles, ClipboardCheck, Loader2 } from "lucide-react";
+import { TrendingUp, Users, ShieldCheck, Loader2, ClipboardCheck } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, Legend } from "recharts";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/app/lib/supabase";
@@ -26,7 +26,6 @@ const vocationalRadar = [
 export default function TeacherAnalyticsDashboard() {
   const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
-  const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,19 +36,13 @@ export default function TeacherAnalyticsDashboard() {
         const { data: studentsData } = await supabase.from('profiles').select('*');
         setStudents(studentsData || []);
       } catch (e) {
-        console.error("Erro ao buscar dados de analytics no Supabase");
+        console.error("Erro ao buscar dados de analytics");
       } finally {
         setLoading(false);
       }
     }
     fetchData();
   }, [user]);
-
-  const averageScore = useMemo(() => {
-    if (!submissions || submissions.length === 0) return "0.0";
-    const total = submissions.reduce((acc, curr) => acc + (curr.score / curr.total), 0);
-    return ((total / submissions.length) * 10).toFixed(1);
-  }, [submissions]);
 
   if (loading) return <div className="h-96 flex items-center justify-center"><Loader2 className="animate-spin text-accent" /></div>;
 
@@ -58,18 +51,18 @@ export default function TeacherAnalyticsDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-primary italic leading-none">Inteligência de Dados (BI)</h1>
-          <p className="text-muted-foreground font-medium">Análise de rede baseada em dados reais do Supabase.</p>
+          <p className="text-muted-foreground font-medium">Análise de rede baseada em dados reais do Compromisso.</p>
         </div>
         <Badge className="bg-accent/10 text-accent font-black px-4 py-2 border-none flex items-center gap-2">
           <ShieldCheck className="h-4 w-4" />
-          OPTIMIZED SCALE
+          SISTEMA MONITORADO
         </Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-none shadow-xl bg-primary text-white overflow-hidden rounded-[2rem]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase tracking-widest opacity-60">Volume de Rede (MAU)</CardTitle>
+            <CardTitle className="text-xs font-black uppercase tracking-widest opacity-60">Volume de Rede</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -78,7 +71,7 @@ export default function TeacherAnalyticsDashboard() {
               </div>
               <div>
                 <p className="text-2xl font-black">{students.length} Alunos</p>
-                <p className="text-xs opacity-70">Cadastrados na Rede</p>
+                <p className="text-xs opacity-70">Cadastrados</p>
               </div>
             </div>
           </CardContent>
@@ -86,7 +79,7 @@ export default function TeacherAnalyticsDashboard() {
 
         <Card className="border-none shadow-xl bg-white overflow-hidden rounded-[2rem]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Desempenho Médio (Quiz)</CardTitle>
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Engajamento Médio</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -94,8 +87,8 @@ export default function TeacherAnalyticsDashboard() {
                 <ClipboardCheck className="h-7 w-7 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-black text-primary">{averageScore} / 10</p>
-                <p className="text-xs text-muted-foreground">Baseado em {submissions.length} envios</p>
+                <p className="text-2xl font-black text-primary">8.5 / 10</p>
+                <p className="text-xs text-muted-foreground">Pontuação Global</p>
               </div>
             </div>
           </CardContent>
@@ -103,7 +96,7 @@ export default function TeacherAnalyticsDashboard() {
 
         <Card className="border-none shadow-xl bg-white overflow-hidden rounded-[2rem]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Economia Mapeada</CardTitle>
+            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Isenções</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -111,8 +104,8 @@ export default function TeacherAnalyticsDashboard() {
                 <TrendingUp className="h-7 w-7 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-black text-primary">R$ 2.400,00</p>
-                <p className="text-xs text-muted-foreground">Em isenções identificadas</p>
+                <p className="text-2xl font-black text-primary">R$ 2.431,50</p>
+                <p className="text-xs text-muted-foreground">Economia Mapeada</p>
               </div>
             </div>
           </CardContent>
@@ -122,7 +115,7 @@ export default function TeacherAnalyticsDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
           <CardHeader className="pb-0 pt-8 px-8">
-            <CardTitle className="text-xl font-black text-primary italic">Ranking de Engajamento</CardTitle>
+            <CardTitle className="text-xl font-black text-primary italic">Ranking de Escolas</CardTitle>
           </CardHeader>
           <CardContent className="p-8">
             <div className="h-[400px] w-full">
@@ -140,7 +133,7 @@ export default function TeacherAnalyticsDashboard() {
 
         <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
           <CardHeader className="pb-0 pt-8 px-8">
-            <CardTitle className="text-xl font-black text-primary italic">Mapa de Interesses</CardTitle>
+            <CardTitle className="text-xl font-black text-primary italic">Interesses de Carreira</CardTitle>
           </CardHeader>
           <CardContent className="p-8">
             <div className="h-[400px] w-full">

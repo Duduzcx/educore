@@ -22,7 +22,7 @@ export const isSupabaseConfigured = !!(
 );
 
 if (!isSupabaseConfigured && typeof window !== 'undefined') {
-  console.warn("⚠️ SUPABASE EM MODO DEMO: Verifique as variáveis de ambiente NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.");
+  console.warn("⚠️ SUPABASE EM MODO DEMO: Verifique as variáveis de ambiente NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no painel do Netlify.");
 }
 
 export const supabase = createClient(finalUrl, finalKey, {
