@@ -5,7 +5,7 @@
  * Focado em emular o estilo e rigor de vestibulares nacionais (ENEM, FUVEST, etc).
  */
 
-import { ai, googleAIPlugin } from '@/ai/genkit';
+import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const QuestionSchema = z.object({
@@ -33,7 +33,7 @@ export async function generateQuiz(input: QuizGeneratorInput): Promise<QuizGener
 
 const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
-  model: googleAIPlugin.model('gemini-1.5-flash'),
+  model: 'googleai/gemini-1.5-flash',
   input: { schema: QuizGeneratorInputSchema },
   output: { schema: QuizGeneratorOutputSchema },
   config: { temperature: 0.8 },
