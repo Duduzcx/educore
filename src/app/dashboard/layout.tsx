@@ -1,8 +1,8 @@
 
 "use client";
 
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database, Sparkles } from "lucide-react";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
+import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,25 +36,37 @@ const teacherItems = [
 function SwipeHandler({ children }: { children: React.ReactNode }) {
   const { setOpenMobile, isMobile, openMobile } = useSidebar();
   const touchStart = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
   const touchEnd = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Só inicia o gesto se não estiver em um elemento interativo (input, select, etc)
+    const target = e.target as HTMLElement;
+    if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) return;
+    
     touchStart.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     touchEnd.current = e.targetTouches[0].clientX;
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (!isMobile) return;
-    const distance = touchEnd.current - touchStart.current;
-    const isSwipeRight = distance > 70;
-    const isSwipeLeft = distance < -70;
+    
+    const distanceX = touchEnd.current - touchStart.current;
+    const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+    
+    // Evita abrir o menu se o movimento for muito vertical (scroll)
+    if (distanceY > 50) return;
 
-    if (isSwipeRight && !openMobile) {
+    // Swipe para a direita: Abre o menu (apenas se começar perto da borda esquerda)
+    if (distanceX > 80 && !openMobile && touchStart.current < 50) {
       setOpenMobile(true);
-    } else if (isSwipeLeft && openMobile) {
+    } 
+    // Swipe para a esquerda: Fecha o menu
+    else if (distanceX < -80 && openMobile) {
       setOpenMobile(false);
     }
   };
@@ -101,7 +113,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin'
   , [user?.user_metadata?.role]);
   
-  const [unreadCount, setUnreadCount] = useState(0);
   const [isSignOutLoading, setIsSignOutLoading] = useState(false);
 
   useEffect(() => {
@@ -158,7 +169,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarHeader>
         <SidebarContent className="px-3">
           <SidebarGroup>
-            <NavMenu items={navItems} pathname={pathname} unreadCount={unreadCount} />
+            <NavMenu items={navItems} pathname={pathname} unreadCount={0} />
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="p-4 border-t border-white/5">
@@ -189,7 +200,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         
         <SwipeHandler>
-          <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in`}>
+          <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in duration-500`}>
             <div className={isAppPage ? 'app-container' : ''}>
               {children}
             </div>

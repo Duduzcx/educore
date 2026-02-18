@@ -26,7 +26,6 @@ import {
   ChevronRight,
   Zap,
   Star,
-  Flame
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -47,7 +46,6 @@ const MOCK_DB_TRAILS = [
     category: "Tecnologia",
     description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho.",
     modules_count: 8,
-    teacher_id: "prof-ia-1",
     teacher_name: "Prof. Ada Lovelace",
     status: "active",
     image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
@@ -60,7 +58,6 @@ const MOCK_DB_TRAILS = [
     category: "Matemática",
     description: "Revisão intensiva dos temas com maior recorrência no exame nacional.",
     modules_count: 12,
-    teacher_id: "prof-math-1",
     teacher_name: "Prof. Bhaskara",
     status: "active",
     image_url: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800",
@@ -112,7 +109,6 @@ export default function LearningTrailsPage() {
   const [allProgress, setAllProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Identifica se é a conta demo específica
   const isDemoAccount = user?.email === 'aluno@compromisso.com.br';
 
   useEffect(() => {
@@ -121,7 +117,6 @@ export default function LearningTrailsPage() {
       setLoading(true);
       setTimeout(() => {
         setDbTrails(MOCK_DB_TRAILS);
-        // Se for conta demo, mostra progresso. Se for nova conta (cadastro), 0%.
         if (isDemoAccount) {
           setAllProgress([{ trail_id: "math-enem-1", percentage: 75 }]);
         } else {

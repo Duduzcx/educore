@@ -3,19 +3,24 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { 
-  Users, 
   MessageCircle, 
   ChevronLeft, 
   Send,
   Loader2,
   Signal,
-  Sparkles
+  Sparkles,
+  Mic,
+  Video,
+  Camera,
+  MonitorUp,
+  User,
+  MoreVertical
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/app/lib/supabase";
@@ -38,7 +43,7 @@ export default function StudentLivePage() {
     async function loadLiveData() {
       const { data, error } = await supabase
         .from('lives')
-        .select(`*, teacher:profiles(name)`)
+        .select(`*`)
         .eq('id', liveId)
         .single();
 
@@ -121,7 +126,7 @@ export default function StudentLivePage() {
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin h-12 w-12 text-accent" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Sintonizando Canal...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] animate-pulse">Conectando à Sala...</p>
     </div>
   );
 
@@ -134,7 +139,7 @@ export default function StudentLivePage() {
           </Button>
           <div className="min-w-0">
             <h1 className="text-sm md:text-lg font-black text-primary italic leading-none truncate">{live?.title}</h1>
-            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Com: {live?.teacher?.name}</p>
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Sala de Aula Online</p>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -146,27 +151,43 @@ export default function StudentLivePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
         <div className="lg:col-span-8 flex flex-col gap-4 min-h-0 overflow-hidden">
-          <Card className="aspect-video bg-slate-950 rounded-[2rem] overflow-hidden shadow-2xl border-none relative shrink-0">
+          <Card className="flex-1 bg-slate-950 rounded-[2.5rem] overflow-hidden shadow-2xl border-none relative flex items-center justify-center group">
             {live?.status === 'live' ? (
-              <iframe 
-                width="100%" 
-                height="100%" 
-                src={`https://www.youtube.com/embed/${live?.youtube_id}?autoplay=1&modestbranding=1&rel=0`} 
-                frameBorder="0" 
-                allowFullScreen 
-              />
+              <div className="w-full h-full relative">
+                {/* Simulador de Vídeo do Mentor */}
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col items-center justify-center gap-6">
+                   <div className="h-32 w-32 md:h-48 md:w-48 rounded-full bg-accent/10 border-4 border-accent flex items-center justify-center relative shadow-[0_0_50px_rgba(245,158,11,0.2)]">
+                      <User className="h-16 w-16 md:h-24 md:w-24 text-accent" />
+                      <div className="absolute -bottom-2 right-4 h-8 w-8 bg-green-500 rounded-full border-4 border-slate-950 animate-pulse" />
+                   </div>
+                   <div className="text-center space-y-2">
+                      <h3 className="text-xl md:text-3xl font-black text-white italic">{live?.teacher_name || "Mentor da Rede"}</h3>
+                      <Badge className="bg-red-600/20 text-red-500 border-red-600/30 px-4 py-1 font-black uppercase text-[10px]">Transmissão Ativa</Badge>
+                   </div>
+                </div>
+
+                {/* Controles Estilo Meet */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/40 backdrop-blur-xl p-4 rounded-3xl border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-500">
+                   <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white"><Mic className="h-5 w-5" /></Button>
+                   <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white"><Video className="h-5 w-5" /></Button>
+                   <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white"><Camera className="h-5 w-5 rotate-180" /></Button>
+                   <div className="w-px h-8 bg-white/10 mx-2" />
+                   <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white"><MonitorUp className="h-5 w-5" /></Button>
+                   <Button size="icon" variant="ghost" className="h-12 w-12 rounded-2xl bg-white/5 hover:bg-white/10 text-white"><MoreVertical className="h-5 w-5" /></Button>
+                </div>
+              </div>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-white p-10 text-center gap-4">
                 <Signal className="h-16 w-16 text-slate-700 animate-pulse" />
-                <h3 className="text-xl font-black italic uppercase tracking-tighter">Aguardando Início</h3>
-                <p className="text-sm text-slate-400 max-w-xs">Esta transmissão começará em breve. Fique atento ao chat!</p>
+                <h3 className="text-xl font-black italic uppercase tracking-tighter">Aguardando Mentor</h3>
+                <p className="text-sm text-slate-400 max-w-xs font-medium">Esta sala online começará em breve. O chat já está liberado para interações!</p>
               </div>
             )}
           </Card>
           
-          <Card className="flex-1 bg-white rounded-[2rem] shadow-xl p-8 border-none overflow-y-auto hidden md:block">
-            <h2 className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mb-4">Descrição da Aula</h2>
-            <p className="text-sm font-medium italic text-primary/80 leading-relaxed">{live?.description}</p>
+          <Card className="bg-white rounded-[2rem] shadow-xl p-8 border-none hidden md:block shrink-0">
+            <h2 className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mb-4">Informações da Sala</h2>
+            <p className="text-sm font-medium italic text-primary/80 leading-relaxed">{live?.description || "Sem descrição disponível."}</p>
           </Card>
         </div>
 
@@ -174,7 +195,7 @@ export default function StudentLivePage() {
           <div className="p-6 border-b bg-muted/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4 text-accent" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Interação Ao Vivo</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Chat da Sala</span>
             </div>
             <Sparkles className="h-4 w-4 text-accent animate-pulse" />
           </div>
@@ -183,7 +204,7 @@ export default function StudentLivePage() {
             <div className="flex flex-col gap-4 pb-10">
               {messages.length === 0 ? (
                 <div className="py-20 text-center opacity-20">
-                  <p className="font-black italic text-[10px] uppercase">Seja o primeiro a interagir!</p>
+                  <p className="font-black italic text-[10px] uppercase">Diga oi para a turma!</p>
                 </div>
               ) : (
                 messages.map((msg) => (
@@ -209,10 +230,10 @@ export default function StudentLivePage() {
               <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Tirar dúvida ou comentar..."
+                placeholder="Enviar mensagem..."
                 className="flex-1 h-10 bg-transparent border-none text-primary font-medium italic focus-visible:ring-0 px-0 text-xs"
               />
-              <Button type="submit" disabled={!input.trim()} className="h-10 w-10 bg-primary hover:bg-primary/95 rounded-full shrink-0 shadow-lg">
+              <Button type="submit" disabled={!input.trim()} className="h-10 w-10 bg-primary hover:bg-primary/95 rounded-full shrink-0 shadow-lg transition-transform active:scale-90">
                 <Send className="h-4 w-4 text-white" />
               </Button>
             </form>

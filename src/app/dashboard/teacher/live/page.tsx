@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio, AlertCircle } from "lucide-react";
+import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -29,21 +29,25 @@ export default function ManageLivePage() {
     description: "",
     date: "",
     time: "",
-    youtube_id: ""
   });
 
   async function fetchLives() {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from('lives')
-      .select('*')
-      .order('start_time', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('lives')
+        .select('*')
+        .order('start_time', { ascending: false });
 
-    if (!error && data) {
-      setLives(data);
+      if (!error && data) {
+        setLives(data);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar lives:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   useEffect(() => {
@@ -51,41 +55,44 @@ export default function ManageLivePage() {
   }, [user]);
 
   const handleCreateLive = async () => {
-    if (!formData.title || !formData.date || !formData.time || !user || !formData.youtube_id) {
-      toast({ title: "Dados Incompletos", description: "Título, data, horário e ID do YouTube são obrigatórios.", variant: "destructive" });
+    if (!formData.title || !formData.date || !formData.time || !user) {
+      toast({ title: "Dados Incompletos", description: "Título, data e horário são obrigatórios.", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
-    const start_time = new Date(`${formData.date}T${formData.time}`).toISOString();
+    try {
+      const start_time = new Date(`${formData.date}T${formData.time}`).toISOString();
 
-    const { error } = await supabase
-      .from('lives')
-      .insert({
-        title: formData.title,
-        description: formData.description,
-        youtube_id: formData.youtube_id,
-        start_time,
-        teacher_id: user.id,
-        status: "scheduled"
-      });
+      const { error } = await supabase
+        .from('lives')
+        .insert({
+          title: formData.title,
+          description: formData.description,
+          start_time,
+          teacher_id: user.id,
+          teacher_name: user.user_metadata?.full_name || "Mentor da Rede",
+          status: "scheduled"
+        });
 
-    if (error) {
-      toast({ title: "Erro ao agendar", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Live Agendada!", description: "A transmissão já está na agenda oficial." });
+      if (error) throw error;
+
+      toast({ title: "Sala Criada!", description: "A sala online já está na agenda oficial." });
       setIsCreateOpen(false);
-      setFormData({ title: "", description: "", date: "", time: "", youtube_id: "" });
+      setFormData({ title: "", description: "", date: "", time: "" });
       fetchLives();
+    } catch (error: any) {
+      toast({ title: "Erro ao agendar", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('lives').delete().eq('id', id);
     if (!error) {
       setLives(prev => prev.filter(live => live.id !== id));
-      toast({ title: "Live removida" });
+      toast({ title: "Aula removida" });
     }
   };
 
@@ -93,24 +100,24 @@ export default function ManageLivePage() {
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1 px-1">
-          <h1 className="text-3xl font-black text-primary italic leading-none">Studio Core</h1>
-          <p className="text-muted-foreground font-medium italic">Gerencie transmissões da rede em tempo real.</p>
+          <h1 className="text-3xl font-black text-primary italic leading-none">Studio de Transmissão</h1>
+          <p className="text-muted-foreground font-medium italic">Gerencie suas salas de aula online.</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-none outline-none">
-              <PlusCircle className="h-6 w-6" /> Agendar Transmissão
+              <PlusCircle className="h-6 w-6" /> Abrir Nova Sala
             </button>
           </DialogTrigger>
           <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-lg border-none shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-black italic text-primary">Configurar Aula ao Vivo</DialogTitle>
+              <DialogTitle className="text-2xl font-black italic text-primary">Configurar Sala Online</DialogTitle>
             </DialogHeader>
             <div className="grid gap-6 py-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
-                <input placeholder="Ex: Revisão de Véspera - Humanas" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
+                <input placeholder="Ex: Mentoria - Carreira em Tech" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -123,14 +130,13 @@ export default function ManageLivePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">ID do Vídeo YouTube</Label>
-                <input placeholder="Ex: rfscVS0vtbw" value={formData.youtube_id} onChange={(e) => setFormData({...formData, youtube_id: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
-                <p className="text-[8px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Use apenas o código final da URL do vídeo.</p>
+                <Label className="text-[10px] font-black uppercase opacity-40">Descrição</Label>
+                <textarea placeholder="Pauta da aula..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="flex min-h-[100px] w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent resize-none" />
               </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCreateLive} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl transition-all">
-                {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Publicar Aula na Rede"}
+                {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Agendar Sala Online"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -143,7 +149,7 @@ export default function ManageLivePage() {
         ) : lives.length === 0 ? (
           <div className="py-20 text-center border-4 border-dashed rounded-[3rem] bg-white/50 opacity-40">
             <Calendar className="h-12 w-12 mx-auto mb-4" />
-            <p className="font-black italic">Nenhuma live agendada.</p>
+            <p className="font-black italic">Nenhuma aula agendada.</p>
           </div>
         ) : (
           lives.map((live) => (
@@ -168,7 +174,7 @@ export default function ManageLivePage() {
                   </Button>
                   <Button className="flex-1 md:flex-none h-14 px-8 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/10 gap-3 group/btn" asChild>
                     <Link href={`/dashboard/teacher/live/${live.id}`}>
-                      Entrar no Estúdio <Radio className="h-4 w-4 group-hover/btn:animate-pulse" />
+                      Entrar na Sala <Radio className="h-4 w-4 group-hover/btn:animate-pulse" />
                     </Link>
                   </Button>
                 </div>

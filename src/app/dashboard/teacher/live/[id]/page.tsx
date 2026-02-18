@@ -3,13 +3,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { 
-  Users, 
   MessageCircle, 
   Lightbulb, 
   Signal, 
@@ -19,10 +18,13 @@ import {
   CheckCircle2,
   Loader2,
   ShieldCheck,
-  ExternalLink,
-  Radio,
-  Clock,
-  Power
+  Mic,
+  Video,
+  Camera,
+  MonitorUp,
+  Power,
+  User,
+  Settings
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +33,7 @@ import { supabase } from "@/app/lib/supabase";
 export default function TeacherLiveStudioPage() {
   const params = useParams();
   const liveId = params.id as string;
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -71,7 +73,6 @@ export default function TeacherLiveStudioPage() {
 
     loadStudioData();
 
-    // Inscrição em tempo real para o chat
     const channel = supabase
       .channel(`live_studio:${liveId}`)
       .on('postgres_changes', { 
@@ -152,7 +153,7 @@ export default function TeacherLiveStudioPage() {
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-slate-950 gap-4">
       <Loader2 className="animate-spin h-12 w-12 text-red-600" />
-      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Conectando à Control Room...</p>
+      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Conectando ao Studio Master...</p>
     </div>
   );
 
@@ -165,7 +166,7 @@ export default function TeacherLiveStudioPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-black italic tracking-tighter uppercase leading-none">{live?.title}</h1>
-            <p className="text-[10px] font-bold text-slate-500 tracking-[0.3em] mt-1 uppercase">Monitoramento Studio Master</p>
+            <p className="text-[10px] font-bold text-slate-500 tracking-[0.3em] mt-1 uppercase">Control Room - Mentor Mode</p>
           </div>
         </div>
         
@@ -173,15 +174,15 @@ export default function TeacherLiveStudioPage() {
           <Button 
             onClick={toggleLiveStatus} 
             disabled={isUpdating}
-            className={`${live.status === 'live' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} text-white font-black h-12 px-6 rounded-2xl shadow-xl gap-2 transition-all active:scale-95`}
+            className={`${live.status === 'live' ? 'bg-red-600 hover:bg-red-700 shadow-[0_0_20px_rgba(220,38,38,0.4)]' : 'bg-green-600 hover:bg-green-700 shadow-[0_0_20px_rgba(22,163,74,0.4)]'} text-white font-black h-12 px-6 rounded-2xl gap-2 transition-all active:scale-95`}
           >
             {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4" />}
-            {live.status === 'live' ? 'ENCERRAR AULA' : (live.status === 'finished' ? 'REABRIR AULA' : 'INICIAR TRANSMISSÃO')}
+            {live.status === 'live' ? 'ENCERRAR AULA' : (live.status === 'finished' ? 'REATIVAR SALA' : 'ABRIR SALA AGORA')}
           </Button>
 
           <div className="flex items-center gap-6 border-l border-white/10 pl-6">
-            <Badge className={`${live.status === 'live' ? 'bg-red-600 animate-pulse' : 'bg-slate-700'} text-white font-black border-none px-6 h-12 rounded-2xl flex items-center gap-3 shadow-[0_0_20px_rgba(220,38,38,0.2)]`}>
-              <Signal className="h-4 w-4" /> {live.status === 'live' ? 'ON AIR' : 'OFFLINE'}
+            <Badge className={`${live.status === 'live' ? 'bg-red-600 animate-pulse' : 'bg-slate-700'} text-white font-black border-none px-6 h-12 rounded-2xl flex items-center gap-3`}>
+              <Signal className="h-4 w-4" /> {live.status === 'live' ? 'SALA ATIVA' : 'SALA OFFLINE'}
             </Badge>
           </div>
         </div>
@@ -189,17 +190,32 @@ export default function TeacherLiveStudioPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 min-h-0 overflow-hidden">
         <div className="lg:col-span-2 flex flex-col space-y-6 overflow-hidden">
-          <Card className="aspect-video bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-slate-800 relative group shrink-0">
-            <iframe 
-              width="100%" 
-              height="100%" 
-              src={`https://www.youtube.com/embed/${live?.youtube_id}?autoplay=1&mute=1&modestbranding=1`} 
-              frameBorder="0" 
-              allowFullScreen 
-            />
-            <div className="absolute top-4 left-4 pointer-events-none">
-              <Badge className="bg-black/60 backdrop-blur-md border-none text-[8px] font-black uppercase tracking-widest px-3">Retorno de Sinal (Mudo)</Badge>
-            </div>
+          <Card className="flex-1 bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-slate-800 relative flex items-center justify-center shrink-0">
+             {/* Retorno de Câmera do Mentor */}
+             <div className="w-full h-full relative flex flex-col items-center justify-center gap-8 bg-gradient-to-br from-slate-900 to-black">
+                <div className="h-48 w-48 rounded-3xl bg-accent/5 border-2 border-accent/20 flex items-center justify-center relative shadow-inner">
+                   <User className="h-24 w-24 text-accent/20" />
+                   <div className="absolute inset-0 flex items-center justify-center">
+                      <p className="text-[10px] font-black uppercase text-accent/40 italic tracking-widest">Preview de Sinal</p>
+                   </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                   <h3 className="text-xl font-black text-white/60 italic uppercase tracking-widest">Sinal Pronto para Transmissão</h3>
+                   <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500 animate-ping" />
+                      <span className="text-[10px] font-bold text-green-500 uppercase">Latência Industrial</span>
+                   </div>
+                </div>
+
+                {/* Controles de Produção */}
+                <div className="absolute bottom-10 flex items-center gap-4 bg-white/5 backdrop-blur-xl p-5 rounded-3xl border border-white/10">
+                   <Button size="icon" variant="ghost" className="h-14 w-14 rounded-2xl bg-white/5 hover:bg-white/10 text-white"><Mic className="h-6 w-6" /></Button>
+                   <Button size="icon" variant="ghost" className="h-14 w-14 rounded-2xl bg-white/5 hover:bg-white/10 text-white"><Video className="h-6 w-6" /></Button>
+                   <Button size="icon" variant="ghost" className="h-14 w-14 rounded-2xl bg-accent text-accent-foreground"><MonitorUp className="h-6 w-6" /></Button>
+                   <div className="w-px h-10 bg-white/10 mx-2" />
+                   <Button size="icon" variant="ghost" className="h-14 w-14 rounded-2xl bg-white/5 hover:bg-white/10 text-white"><Settings className="h-6 w-6" /></Button>
+                </div>
+             </div>
           </Card>
 
           <div className="grid grid-cols-3 gap-6 shrink-0">
@@ -207,8 +223,8 @@ export default function TeacherLiveStudioPage() {
               <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2 shadow-sm">
                 <Zap className="h-5 w-5" />
               </div>
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Latência</p>
-              <p className="text-lg font-black text-slate-900 italic mt-1">Baixa</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Stream</p>
+              <p className="text-lg font-black text-slate-900 italic mt-1">1080p</p>
             </Card>
             <Card className={`bg-white p-6 rounded-[2rem] shadow-xl flex flex-col items-center justify-center text-center border-2 transition-all ${questionCount > 0 ? 'border-amber-300 bg-amber-50 shadow-amber-100' : 'border-transparent'}`}>
               <div className={`h-10 w-10 rounded-2xl flex items-center justify-center mb-2 shadow-sm ${questionCount > 0 ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -221,8 +237,8 @@ export default function TeacherLiveStudioPage() {
               <div className="h-10 w-10 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center mb-2 shadow-sm">
                 <ShieldCheck className="h-5 w-5" />
               </div>
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Moderação</p>
-              <p className="text-lg font-black text-slate-900 italic mt-1">Ativa</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest leading-none">Status</p>
+              <p className="text-lg font-black text-slate-900 italic mt-1">Protegido</p>
             </Card>
           </div>
         </div>
@@ -250,7 +266,7 @@ export default function TeacherLiveStudioPage() {
             <div className="flex flex-col gap-4 pb-10">
               {filteredMessages.length === 0 ? (
                 <div className="py-20 text-center opacity-20">
-                  <p className="font-black italic text-xs uppercase">Silêncio no estúdio...</p>
+                  <p className="font-black italic text-xs uppercase">Sem mensagens ainda.</p>
                 </div>
               ) : (
                 filteredMessages.map((msg) => (
@@ -289,7 +305,7 @@ export default function TeacherLiveStudioPage() {
               <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Resposta oficial..." 
+                placeholder="Mensagem oficial..." 
                 className="border-none shadow-none text-xs font-bold italic h-10 bg-transparent focus-visible:ring-0 px-0" 
               />
               <Button type="submit" size="icon" className="h-10 w-10 bg-slate-900 hover:bg-slate-800 text-white rounded-full shrink-0 shadow-lg transition-transform active:scale-90">
