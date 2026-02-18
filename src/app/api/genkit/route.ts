@@ -18,8 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // No Genkit 1.x, usamos a instância ai para rodar fluxos dinamicamente
-    // O método run espera (flowId, input) como argumentos posicionais
+    // No Genkit 1.x, usamos a instância ai para rodar fluxos dinamicamente com argumentos posicionais
     const result = await ai.run(flowId, input);
 
     return NextResponse.json({ success: true, result });

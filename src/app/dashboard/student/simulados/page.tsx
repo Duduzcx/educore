@@ -308,7 +308,7 @@ export default function SimuladoPage() {
         <Card className="w-full max-w-xl text-center p-8 md:p-16 shadow-2xl rounded-[2rem] md:rounded-[3rem] bg-white border-none">
             <CardHeader>
                 <div className="h-16 w-16 md:h-24 md:w-24 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3">
-                  <BookCheck className="h-8 w-8 md:h-12 md:w-12 text-accent" />
+                  <BookCheck className="h-8 w-8 md:h-12 w-12 text-accent" />
                 </div>
                 <CardTitle className="text-2xl md:text-5xl font-black text-primary italic tracking-tighter">
                   Simulado <span className="text-accent">Compromisso</span>

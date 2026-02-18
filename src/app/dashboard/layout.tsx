@@ -41,7 +41,6 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Bloqueio inteligente: não disparar em calendários ou botões específicos que exigem precisão
     if (target.closest('.rdp-day, .rdrDay, .no-swipe')) return;
     
     touchStart.current = e.targetTouches[0].clientX;
@@ -58,13 +57,13 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     
-    if (distanceY > 80) return; // Movimento vertical excessivo, ignora
+    if (distanceY > 80) return; 
 
-    // Sensibilidade Industrial: Abrir ao deslizar da borda esquerda (até 80px)
+    // Abrir: Deslizar da esquerda para a direita (iniciando até 80px da borda)
     if (!openMobile && distanceX > 50 && touchStart.current < 80) {
       setOpenMobile(true);
     } 
-    // Fechar ao deslizar para a esquerda (qualquer lugar se estiver aberto)
+    // Fechar: Deslizar para a esquerda (qualquer lugar se estiver aberto)
     else if (openMobile && distanceX < -50) {
       setOpenMobile(false);
     }
@@ -87,7 +86,7 @@ const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname
 
   const handleLinkClick = () => {
     if (isMobile) {
-      setOpenMobile(false); // Fecha automaticamente ao selecionar
+      setOpenMobile(false); 
     }
   };
 

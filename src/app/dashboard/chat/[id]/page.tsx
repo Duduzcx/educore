@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, ChevronLeft, Loader2, MessageSquare, Sparkles, Bot, BookOpen } from "lucide-react";
+import { Send, ChevronLeft, Loader2, MessageSquare, Bot, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 
@@ -192,7 +192,7 @@ export default function DirectChatPage() {
               className="flex-1 h-9 md:h-10 bg-transparent border-none text-primary font-medium italic focus-visible:ring-0 px-0 text-xs md:text-sm"
             />
             <Button type="submit" disabled={!input.trim() || isAiThinking} className="h-9 w-9 md:h-12 md:w-12 bg-primary hover:bg-primary/95 rounded-full shadow-xl shrink-0">
-              {isAiThinking ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Send className="h-4 w-4 text-white" />}
+              {isAiThinking ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Send className="h-4 w-4" />}
             </Button>
           </form>
         </div>

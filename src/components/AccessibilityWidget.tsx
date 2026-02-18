@@ -25,7 +25,7 @@ export function AccessibilityWidget() {
   const { toast } = useToast();
   const pathname = usePathname();
 
-  // Verifica se estamos em uma página de chat/fórum para mover o widget e não atrapalhar inputs
+  // Widget sobe em páginas onde há input no rodapé para não cobrir o botão enviar
   const isInputHeavyPage = 
     pathname.includes('/chat/') || 
     pathname.includes('/support') || 
