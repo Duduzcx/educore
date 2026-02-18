@@ -40,8 +40,8 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Bloqueia gestos em áreas sensíveis para evitar travamentos
-    if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, button')) return;
+    // Bloqueia gestos em áreas sensíveis que usam scroll horizontal ou drag
+    if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, button, [role="slider"]')) return;
     
     touchStart.current = e.targetTouches[0].clientX;
     touchStartY.current = e.targetTouches[0].clientY;
@@ -60,12 +60,13 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     // Ignora movimentos majoritariamente verticais
     if (distanceY > 80) return; 
 
-    // ABRIR: Deslizar da borda esquerda (até 80px) para a direita
-    if (!openMobile && distanceX > 50 && touchStart.current < 80) {
+    // ABRIR: Deslizar da borda esquerda (até 120px) para a direita
+    // Aumentamos o limite de 80 para 120 para facilitar o "pegar" do menu
+    if (!openMobile && distanceX > 40 && touchStart.current < 120) {
       setOpenMobile(true);
     } 
     // FECHAR: Deslizar para a esquerda em qualquer lugar se estiver aberto
-    else if (openMobile && distanceX < -50) {
+    else if (openMobile && distanceX < -40) {
       setOpenMobile(false);
     }
   };

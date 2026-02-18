@@ -128,10 +128,10 @@ export default function DirectChatPage() {
               <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 rounded-full border-2 border-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xs md:text-lg font-black text-primary italic leading-none truncate">{contact?.name || "Carregando..."}</h1>
-              <div className="flex items-center gap-1 mt-0.5 truncate">
-                {contact?.type === 'teacher' && <BookOpen className="h-2 w-2 text-accent shrink-0" />}
-                <p className="text-[7px] md:text-[9px] font-black text-muted-foreground uppercase tracking-widest truncate">
+              <h1 className="text-sm md:text-lg font-black text-primary italic leading-none truncate">{contact?.name || "Carregando..."}</h1>
+              <div className="flex items-center gap-1.5 mt-1 truncate">
+                {contact?.type === 'teacher' && <BookOpen className="h-2.5 w-2.5 text-accent shrink-0" />}
+                <p className="text-[8px] md:text-[9px] font-black text-muted-foreground uppercase tracking-widest truncate">
                   {isAurora ? 'Tutor IA Integrado' : 'Estudante da Rede'}
                 </p>
               </div>
