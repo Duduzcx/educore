@@ -90,7 +90,7 @@ export default function LiveClassesPage() {
               </Card>
             ))}
           </div>
-        </section> section>
+        </section>
       )}
 
       <section className="space-y-6">

@@ -86,7 +86,7 @@ const MOCK_DB_TRAILS = [
     modules_count: 10,
     teacher_name: "Prof. Darwin",
     status: "active",
-    image_url: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&q=80&w=800",
+    image_url: "https://images.unsplash.com/photo-1600740073508-89a1726b3cf6?auto=format&fit=crop&q=80&w=800",
     targetAudience: "etec"
   },
   {

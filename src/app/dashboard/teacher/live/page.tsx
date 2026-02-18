@@ -110,21 +110,21 @@ export default function ManageLivePage() {
             <div className="grid gap-6 py-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
-                <Input placeholder="Ex: Revisão de Véspera - Humanas" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                <input placeholder="Ex: Revisão de Véspera - Humanas" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase opacity-40">Data</Label>
-                  <Input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                  <input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase opacity-40">Horário</Label>
-                  <Input type="time" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-bold" />
+                  <input type="time" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase opacity-40">ID do Vídeo YouTube</Label>
-                <Input placeholder="Ex: rfscVS0vtbw" value={formData.youtube_id} onChange={(e) => setFormData({...formData, youtube_id: e.target.value})} className="h-12 rounded-xl bg-muted/30 border-none font-medium" />
+                <input placeholder="Ex: rfscVS0vtbw" value={formData.youtube_id} onChange={(e) => setFormData({...formData, youtube_id: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
                 <p className="text-[8px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Use apenas o código final da URL do vídeo.</p>
               </div>
             </div>
