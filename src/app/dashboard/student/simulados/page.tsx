@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Loader2, BookCheck, Target, Award, RotateCw, AlertTriangle, BrainCircuit } from 'lucide-react';
+import { Loader2, BookCheck, Target, Award, RotateCw, BrainCircuit } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from '@/lib/AuthProvider';
@@ -168,11 +168,9 @@ export default function SimuladoPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchQuestions = useCallback(() => {
     setGameState('loading');
-    setError(null);
     setTimeout(() => {
       const shuffledData = [...mockQuestions].sort(() => 0.5 - Math.random());
       setQuestions(shuffledData.slice(0, SIMULATION_SIZE));
@@ -227,9 +225,9 @@ export default function SimuladoPage() {
             <div className='flex justify-between items-center mb-4 gap-2'>
                 <div className="flex items-center gap-2">
                   <BrainCircuit className="h-4 w-4 text-accent" />
-                  <p className='font-black text-primary text-[10px] md:text-sm uppercase tracking-widest'>QUESTÃO {currentQuestionIndex + 1} / {questions.length}</p>
+                  <p className='font-black text-primary text-xs md:text-sm uppercase tracking-widest'>QUESTÃO {currentQuestionIndex + 1} / {questions.length}</p>
                 </div>
-                <Badge variant="outline" className='font-black text-[8px] md:text-[10px] uppercase bg-primary text-white border-none px-3'>
+                <Badge variant="outline" className='font-black text-[10px] uppercase bg-primary text-white border-none h-7 px-4'>
                   {currentQuestion.subject} • {currentQuestion.year}
                 </Badge>
             </div>

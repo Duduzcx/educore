@@ -41,7 +41,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.rdp-day, .rdrDay, .no-swipe')) return;
+    if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, button')) return;
     
     touchStart.current = e.targetTouches[0].clientX;
     touchStartY.current = e.targetTouches[0].clientY;
