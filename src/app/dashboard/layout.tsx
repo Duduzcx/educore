@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -32,7 +33,6 @@ const teacherItems = [
   { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
 ];
 
-// Componente para lidar com o gesto de swipe no mobile
 function SwipeHandler({ children }: { children: React.ReactNode }) {
   const { setOpenMobile, isMobile, openMobile } = useSidebar();
   const touchStart = useRef<number>(0);
@@ -158,9 +158,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarHeader>
         <SidebarContent className="px-3">
           <SidebarGroup>
-            <SidebarGroupLabel className="px-4 py-4 text-[9px] font-black text-white/30 uppercase tracking-widest">
-              {isTeacher ? "Gestão Docente" : "Estudante"}
-            </SidebarGroupLabel>
             <NavMenu items={navItems} pathname={pathname} unreadCount={unreadCount} />
           </SidebarGroup>
         </SidebarContent>
