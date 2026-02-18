@@ -13,8 +13,11 @@ import { Send, ChevronLeft, Loader2, MessageSquare, Paperclip, Sparkles, Bot, Bo
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 
-// A importação direta do fluxo foi removida. Isso é código de servidor.
-// import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
+interface ChatContact {
+  name: string;
+  expertise: string;
+  type: 'teacher' | 'student';
+}
 
 export default function DirectChatPage() {
   const params = useParams();
@@ -29,8 +32,9 @@ export default function DirectChatPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Lógica de estado simplificada para o exemplo
-  const contact = isAurora ? { name: "Aurora IA", expertise: "Mentoria Geral & IA" } : null;
+  const contact: ChatContact = isAurora 
+    ? { name: "Aurora IA", expertise: "Mentoria Geral & IA", type: 'teacher' } 
+    : { name: "Estudante da Rede", expertise: "Dúvidas Gerais", type: 'student' };
 
   useEffect(() => {
     if (isAurora) {
@@ -73,14 +77,13 @@ export default function DirectChatPage() {
           content: m.message
         }));
 
-        // **FLUXO CORRIGIDO: Chamar a API do Genkit**
         const response = await fetch('/api/genkit', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            flowId: 'conceptExplanationAssistant', // O nome do fluxo a ser executado
+            flowId: 'conceptExplanationAssistant',
             input: {
               query: userText,
               history: history,
@@ -108,9 +111,7 @@ export default function DirectChatPage() {
 
       } catch (err: any) {
         console.error("Erro ao chamar a IA:", err);
-        toast({ title: "Aurora está ocupada", description: `Tente novamente em instantes. (${err.message})`, variant: "destructive" });
-        // Reverte a mensagem do usuário se a IA falhar
-        setMessages(messages);
+        toast({ title: "Aurora está ocupada", description: "Tente novamente em instantes.", variant: "destructive" });
       } finally {
         setIsAiThinking(false);
       }

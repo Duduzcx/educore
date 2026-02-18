@@ -10,7 +10,7 @@ import { Loader2, BookCheck, Target, Award, RotateCw, AlertTriangle, BrainCircui
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/lib/AuthProvider';
 
-const SIMULATION_SIZE = 10; // Aumentado para 10 questões
+const SIMULATION_SIZE = 10;
 
 type Question = {
   id: string;
