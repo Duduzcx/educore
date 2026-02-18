@@ -18,11 +18,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // No Genkit 1.x, usamos a instância ai para rodar fluxos dinamicamente
-    const result = await ai.run({
-      flow: flowId,
-      input: input,
-    });
+    // No Genkit 1.x, usamos a instância ai para rodar fluxos dinamicamente com argumentos posicionais
+    const result = await ai.run(flowId, input);
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {

@@ -6,7 +6,6 @@ import { MessageCircle, HandMetal, Send, Bot, Eraser, Loader2 } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { Virtuoso } from 'react-virtuoso';
 import { usePathname } from "next/navigation";
@@ -45,9 +44,19 @@ export function AccessibilityWidget() {
         content: m.content
       }));
 
-      const result = await conceptExplanationAssistant({ query: currentInput, history });
-      if (result?.response) {
-        setMessages(prev => [...prev, { role: "assistant", content: result.response }]);
+      // Chamada via API genkit segura
+      const response = await fetch('/api/genkit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flowId: 'conceptExplanationAssistant',
+          input: { query: currentInput, history }
+        })
+      });
+
+      const data = await response.json();
+      if (data.success && data.result.response) {
+        setMessages(prev => [...prev, { role: "assistant", content: data.result.response }]);
       }
     } catch (err) {
       toast({ title: "Aurora está ocupada agora", variant: "destructive" });

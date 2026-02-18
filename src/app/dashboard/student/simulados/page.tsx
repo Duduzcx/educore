@@ -10,7 +10,7 @@ import { Loader2, BookCheck, Target, Award, RotateCw, AlertTriangle, BrainCircui
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/lib/AuthProvider';
 
-const SIMULATION_SIZE = 8; // Aumentado para mais profundidade
+const SIMULATION_SIZE = 10; // Aumentado para 10 questões
 
 type Question = {
   id: string;
@@ -131,6 +131,32 @@ const mockQuestions: Question[] = [
     correct_answer: 'b',
     subject: 'Química',
     year: 2022,
+  },
+  {
+    id: 'q9',
+    question_text: 'Qual a principal fonte de energia para os seres vivos na Terra, considerando a base da cadeia alimentar?',
+    options: [
+      { letter: 'a', text: 'Energia Geotérmica' },
+      { letter: 'b', text: 'Energia Solar' },
+      { letter: 'c', text: 'Energia Química' },
+      { letter: 'd', text: 'Energia Nuclear' },
+    ],
+    correct_answer: 'b',
+    subject: 'Biologia',
+    year: 2024,
+  },
+  {
+    id: 'q10',
+    question_text: 'Sobre a globalização, é correto afirmar que:',
+    options: [
+      { letter: 'a', text: 'É um processo que isola as economias nacionais.' },
+      { letter: 'b', text: 'Promove apenas o intercâmbio cultural, sem impactos econômicos.' },
+      { letter: 'c', text: 'Caracteriza-se pela integração econômica, cultural e política mundial.' },
+      { letter: 'd', text: 'Iniciou-se apenas no século XXI com a internet.' },
+    ],
+    correct_answer: 'c',
+    subject: 'Geografia',
+    year: 2023,
   }
 ];
 
