@@ -120,7 +120,7 @@ export default function LearningTrailsPage() {
         if (isDemoAccount) {
           setAllProgress([{ trail_id: "math-enem-1", percentage: 75 }]);
         } else {
-          setAllProgress([]);
+          setAllProgress([]); // Novos usuários começam com trilhas zeradas
         }
         setLoading(false);
       }, 1000);

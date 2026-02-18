@@ -25,8 +25,12 @@ export function AccessibilityWidget() {
   const { toast } = useToast();
   const pathname = usePathname();
 
-  // Verifica se estamos em uma página de chat para mover o widget e não atrapalhar inputs
-  const isInputHeavyPage = pathname.includes('/chat/') || pathname.includes('/support') || pathname.includes('/live/');
+  // Verifica se estamos em uma página de chat/fórum para mover o widget e não atrapalhar inputs
+  const isInputHeavyPage = 
+    pathname.includes('/chat/') || 
+    pathname.includes('/support') || 
+    pathname.includes('/live/') || 
+    pathname.includes('/forum/');
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +48,6 @@ export function AccessibilityWidget() {
         content: m.content
       }));
 
-      // Chamada via API genkit segura
       const response = await fetch('/api/genkit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +96,7 @@ export function AccessibilityWidget() {
   );
 
   return (
-    <div className={`fixed ${isInputHeavyPage ? 'bottom-24 md:bottom-6' : 'bottom-6'} right-6 z-[9999] flex flex-col gap-3 items-end transition-all duration-500`}>
+    <div className={`fixed ${isInputHeavyPage ? 'bottom-28 md:bottom-10' : 'bottom-6'} right-6 z-[9999] flex flex-col gap-3 items-end transition-all duration-500`}>
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
            <button 

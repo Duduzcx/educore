@@ -106,6 +106,58 @@ const mockQuestions: Question[] = [
     correct_answer: 'b',
     subject: 'Geografia',
     year: 2023,
+  },
+  {
+    id: 'q7',
+    question_text: 'Na tabela periódica, os elementos situados no grupo 18 são conhecidos por sua baixa reatividade química. Eles são chamados de:',
+    options: [
+      { letter: 'a', text: 'Metais Alcalinos' },
+      { letter: 'b', text: 'Halogênios' },
+      { letter: 'c', text: 'Gases Nobres' },
+      { letter: 'd', text: 'Actinídios' },
+    ],
+    correct_answer: 'c',
+    subject: 'Química',
+    year: 2022,
+  },
+  {
+    id: 'q8',
+    question_text: 'A obra "Dom Casmurro", de Machado de Assis, é narrada por Bento Santiago e levanta a dúvida eterna sobre a fidelidade de:',
+    options: [
+      { letter: 'a', text: 'Lucíola' },
+      { letter: 'b', text: 'Capitu' },
+      { letter: 'c', text: 'Iracema' },
+      { letter: 'd', text: 'Aurélia' },
+    ],
+    correct_answer: 'b',
+    subject: 'Linguagens',
+    year: 2021,
+  },
+  {
+    id: 'q9',
+    question_text: 'Qual o valor da soma dos ângulos internos de um triângulo equilátero?',
+    options: [
+      { letter: 'a', text: '90 graus' },
+      { letter: 'b', text: '180 graus' },
+      { letter: 'c', text: '360 graus' },
+      { letter: 'd', text: '60 graus' },
+    ],
+    correct_answer: 'b',
+    subject: 'Matemática',
+    year: 2023,
+  },
+  {
+    id: 'q10',
+    question_text: 'O processo de independência do Brasil em 1822 resultou na manutenção do regime:',
+    options: [
+      { letter: 'a', text: 'Republicano' },
+      { letter: 'b', text: 'Parlamentarista' },
+      { letter: 'c', text: 'Monárquico' },
+      { letter: 'd', text: 'Ditatorial' },
+    ],
+    correct_answer: 'c',
+    subject: 'História',
+    year: 2022,
   }
 ];
 
@@ -178,7 +230,7 @@ export default function SimuladoPage() {
                   <p className='font-black text-primary text-[10px] md:text-sm uppercase tracking-widest'>QUESTÃO {currentQuestionIndex + 1} / {questions.length}</p>
                 </div>
                 <Badge variant="outline" className='font-black text-[8px] md:text-[10px] uppercase bg-primary text-white border-none px-3'>
-                  {currentQuestion.subject}
+                  {currentQuestion.subject} • {currentQuestion.year}
                 </Badge>
             </div>
             <Progress value={progress} className="h-1.5 bg-muted rounded-full" />
@@ -224,6 +276,31 @@ export default function SimuladoPage() {
         </div>
       </div>
     );
+  }
+
+  if (gameState === 'finished') {
+    return (
+      <div className="h-full w-full flex items-center justify-center p-4">
+        <Card className="w-full max-w-xl text-center p-8 md:p-16 shadow-2xl rounded-[2rem] md:rounded-[3rem] bg-white border-none">
+          <CardHeader>
+            <div className="h-20 w-20 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Award className="h-10 w-10 text-green-600" />
+            </div>
+            <CardTitle className="text-3xl font-black text-primary italic">Simulado Concluído!</CardTitle>
+            <CardDescription className="text-lg font-medium mt-2">Você acertou {score} de {questions.length} questões.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="p-6 bg-muted/20 rounded-2xl">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Desempenho Aurora</p>
+              <p className="text-sm italic font-medium">"{score >= 7 ? 'Excelente! Você está dominando os temas base. Continue focado nas revisões.' : 'Bom começo! Foque nos temas que você teve dúvida hoje para melhorar seu rendimento.'}"</p>
+            </div>
+            <Button onClick={resetSimulation} className="w-full h-14 rounded-xl bg-primary font-black">
+              <RotateCw className="h-5 w-5 mr-2" /> Tentar Novamente
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
