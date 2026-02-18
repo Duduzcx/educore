@@ -10,7 +10,7 @@ import { Loader2, BookCheck, Target, Award, RotateCw, AlertTriangle, BrainCircui
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/lib/AuthProvider';
 
-const SIMULATION_SIZE = 6; // Aumentado para mais profundidade
+const SIMULATION_SIZE = 8; // Aumentado para mais profundidade
 
 type Question = {
   id: string;
@@ -105,6 +105,32 @@ const mockQuestions: Question[] = [
     correct_answer: 'b',
     subject: 'Geografia',
     year: 2023,
+  },
+  {
+    id: 'q7',
+    question_text: 'O Iluminismo foi um movimento intelectual que surgiu no século XVIII. Qual era um dos seus pilares fundamentais?',
+    options: [
+      { letter: 'a', text: 'O absolutismo monárquico' },
+      { letter: 'b', text: 'A supremacia da fé sobre a razão' },
+      { letter: 'c', text: 'O uso da razão e a liberdade individual' },
+      { letter: 'd', text: 'A manutenção do sistema feudal' },
+    ],
+    correct_answer: 'c',
+    subject: 'História',
+    year: 2023,
+  },
+  {
+    id: 'q8',
+    question_text: 'Em química, o que define uma ligação iônica?',
+    options: [
+      { letter: 'a', text: 'Compartilhamento de elétrons' },
+      { letter: 'b', text: 'Transferência de elétrons entre um metal e um não metal' },
+      { letter: 'c', text: 'Atração entre moléculas polares' },
+      { letter: 'd', text: 'Ligação entre dois átomos de hidrogênio' },
+    ],
+    correct_answer: 'b',
+    subject: 'Química',
+    year: 2022,
   }
 ];
 
@@ -308,8 +334,8 @@ export default function SimuladoPage() {
             <CardContent className="relative z-10 space-y-8 mt-6">
                 <div className="flex items-center justify-center gap-8 py-4 border-y border-dashed">
                   <div className="text-center">
-                    <p className="text-2xl font-black text-primary italic">{SIMULATION_SIZE}</p>
-                    <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Questões</p>
+                    <p className="text-2xl font-black text-primary italic">{mockQuestions.length}</p>
+                    <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Banco de Dados</p>
                   </div>
                   <div className="h-8 w-px bg-muted" />
                   <div className="text-center">

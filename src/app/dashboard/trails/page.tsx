@@ -31,7 +31,7 @@ import {
   Dna,
   History,
   Globe
-} from "lucide-react";
+} from "lucide-center";
 import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
