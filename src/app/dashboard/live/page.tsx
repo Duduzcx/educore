@@ -75,7 +75,7 @@ export default function LiveClassesPage() {
                     </Badge>
                     <div className="text-right">
                       <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase">Mentor</p>
-                      <p className="font-bold italic text-blue-400 text-xs md:text-base">{live.teacher?.name}</p>
+                      <p className="font-bold italic text-blue-400 text-xs md:text-base">{live.teacher?.name || "Mentor da Rede"}</p>
                     </div>
                   </div>
                   <div className="space-y-2">

@@ -40,7 +40,6 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Bloqueia gestos em áreas sensíveis que usam scroll horizontal ou drag
     if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, button, [role="slider"]')) return;
     
     touchStart.current = e.targetTouches[0].clientX;
@@ -57,16 +56,14 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     
-    // Ignora movimentos majoritariamente verticais
-    if (distanceY > 80) return; 
+    if (distanceY > 100) return; 
 
-    // ABRIR: Deslizar da borda esquerda (até 120px) para a direita
-    // Aumentamos o limite de 80 para 120 para facilitar o "pegar" do menu
-    if (!openMobile && distanceX > 40 && touchStart.current < 120) {
+    // ABRIR (Menu à Direita): Deslizar para a esquerda (distanceX negativo)
+    if (!openMobile && distanceX < -50) {
       setOpenMobile(true);
     } 
-    // FECHAR: Deslizar para a esquerda em qualquer lugar se estiver aberto
-    else if (openMobile && distanceX < -40) {
+    // FECHAR (Menu à Direita): Deslizar para a direita (distanceX positivo)
+    else if (openMobile && distanceX > 50) {
       setOpenMobile(false);
     }
   };
@@ -88,7 +85,6 @@ const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname
 
   const handleLinkClick = () => {
     if (isMobile) {
-      // Fecha o menu automaticamente ao selecionar um item no mobile
       setOpenMobile(false); 
     }
   };
@@ -164,7 +160,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="bg-sidebar border-none transition-[width] duration-300 ease-in-out">
+      <Sidebar side="right" collapsible="icon" className="bg-sidebar border-none transition-[width] duration-300 ease-in-out">
         <SidebarHeader className="p-6">
            <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/20">
