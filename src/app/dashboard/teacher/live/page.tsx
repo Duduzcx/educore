@@ -3,10 +3,9 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio, Users } from "lucide-react";
+import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/AuthProvider";
@@ -77,7 +76,7 @@ export default function ManageLivePage() {
 
       if (error) throw error;
 
-      toast({ title: "Sala Criada!", description: "A sala online já está na agenda oficial." });
+      toast({ title: "Sala Criada!", description: "A sala online já está na agenda." });
       setIsCreateOpen(false);
       setFormData({ title: "", description: "", date: "", time: "" });
       fetchLives();
@@ -92,89 +91,89 @@ export default function ManageLivePage() {
     const { error } = await supabase.from('lives').delete().eq('id', id);
     if (!error) {
       setLives(prev => prev.filter(live => live.id !== id));
-      toast({ title: "Aula removida" });
+      toast({ title: "Sala removida" });
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="max-w-6xl mx-auto space-y-6 md:space-y-10 animate-in fade-in duration-700 pb-20 px-2">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div className="space-y-1 px-1">
-          <h1 className="text-3xl font-black text-primary italic leading-none">Studio de Transmissão</h1>
-          <p className="text-muted-foreground font-medium italic">Gerencie suas salas de aula online.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-primary italic leading-none uppercase tracking-tighter">Studio Virtual</h1>
+          <p className="text-muted-foreground text-xs md:text-base font-medium italic">Gerencie suas salas de mentoria.</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-none outline-none">
-              <PlusCircle className="h-6 w-6" /> Abrir Nova Sala
+            <button className="rounded-xl md:rounded-2xl h-12 md:h-14 bg-accent text-accent-foreground font-black px-6 md:px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-none">
+              <PlusCircle className="h-5 w-5 md:h-6 md:w-6" /> Abrir Sala
             </button>
           </DialogTrigger>
-          <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-lg border-none shadow-2xl">
+          <DialogContent className="rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 bg-white max-w-lg border-none shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-black italic text-primary">Configurar Sala Online</DialogTitle>
+              <DialogTitle className="text-xl md:text-2xl font-black italic text-primary">Nova Sala Online</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-6 py-6">
+            <div className="grid gap-4 md:gap-6 py-4 md:py-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Título da Aula</Label>
-                <input placeholder="Ex: Mentoria - Carreira em Tech" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
+                <Label className="text-[9px] font-black uppercase opacity-40">Título da Aula</Label>
+                <input placeholder="Ex: Mentoria - Carreira" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="flex h-11 w-full rounded-xl bg-muted/30 border-none px-3 text-sm font-bold focus:ring-2 focus:ring-accent" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase opacity-40">Data</Label>
-                  <input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
+                  <Label className="text-[9px] font-black uppercase opacity-40">Data</Label>
+                  <input type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="flex h-11 w-full rounded-xl bg-muted/30 border-none px-3 text-sm font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase opacity-40">Horário</Label>
-                  <input type="time" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="flex h-12 w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" />
+                  <Label className="text-[9px] font-black uppercase opacity-40">Horário</Label>
+                  <input type="time" value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} className="flex h-11 w-full rounded-xl bg-muted/30 border-none px-3 text-sm font-bold" />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase opacity-40">Descrição</Label>
-                <textarea placeholder="Pauta da aula..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="flex min-h-[100px] w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent resize-none" />
+                <Label className="text-[9px] font-black uppercase opacity-40">Objetivo</Label>
+                <textarea placeholder="Pauta..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="flex min-h-[80px] w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium resize-none" />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleCreateLive} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl transition-all">
-                {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Agendar Sala Online"}
+              <Button onClick={handleCreateLive} disabled={isSubmitting} className="w-full h-12 md:h-16 bg-primary text-white font-black text-base md:text-lg rounded-xl md:rounded-2xl shadow-xl">
+                {isSubmitting ? <Loader2 className="animate-spin h-5 w-5" /> : "Agendar Agora"}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-4 md:gap-6">
         {loading ? (
-          <div className="py-20 flex justify-center"><Loader2 className="h-12 w-12 animate-spin text-accent" /></div>
+          <div className="py-20 flex justify-center"><Loader2 className="h-10 w-10 animate-spin text-accent" /></div>
         ) : lives.length === 0 ? (
-          <div className="py-20 text-center border-4 border-dashed rounded-[3rem] bg-white/50 opacity-40">
-            <Calendar className="h-12 w-12 mx-auto mb-4" />
-            <p className="font-black italic">Nenhuma aula agendada.</p>
+          <div className="py-20 text-center border-2 border-dashed rounded-[2rem] bg-white/50 opacity-40">
+            <Calendar className="h-10 w-10 mx-auto mb-4 text-primary" />
+            <p className="font-black italic text-sm">Nenhuma sala agendada.</p>
           </div>
         ) : (
           lives.map((live) => (
-            <Card key={live.id} className="border-none shadow-xl bg-white rounded-[2.5rem] overflow-hidden group hover:shadow-2xl transition-all duration-500">
-              <CardContent className="p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="flex items-center gap-8 flex-1">
-                  <div className={`h-24 w-24 rounded-3xl flex flex-col items-center justify-center shadow-lg shrink-0 ${live.status === 'live' ? 'bg-red-600 text-white animate-pulse' : 'bg-primary text-white'}`}>
-                    <span className="text-[10px] font-black uppercase opacity-60">{format(new Date(live.start_time), 'MMM', { locale: ptBR })}</span>
-                    <span className="text-3xl font-black italic">{format(new Date(live.start_time), 'dd')}</span>
+            <Card key={live.id} className="border-none shadow-xl bg-white rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden group hover:shadow-2xl transition-all">
+              <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+                <div className="flex items-center gap-4 md:gap-8 flex-1 w-full">
+                  <div className={`h-16 w-16 md:h-24 md:w-24 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center shadow-lg shrink-0 ${live.status === 'live' ? 'bg-red-600 text-white animate-pulse' : 'bg-primary text-white'}`}>
+                    <span className="text-[7px] md:text-[10px] font-black uppercase opacity-60">{format(new Date(live.start_time), 'MMM', { locale: ptBR })}</span>
+                    <span className="text-xl md:text-3xl font-black italic">{format(new Date(live.start_time), 'dd')}</span>
                   </div>
-                  <div className="space-y-2 overflow-hidden">
+                  <div className="space-y-1 md:space-y-2 overflow-hidden flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {format(new Date(live.start_time), 'HH:mm')}</span>
-                      <Badge variant="secondary" className="text-[8px] font-black uppercase px-2 bg-muted/50 border-none">{live.status}</Badge>
+                      <span className="text-[10px] md:text-xs font-bold text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {format(new Date(live.start_time), 'HH:mm')}</span>
+                      <Badge variant="secondary" className="text-[7px] md:text-[8px] font-black uppercase px-2 bg-muted/50 border-none">{live.status}</Badge>
                     </div>
-                    <CardTitle className="text-2xl font-black text-primary italic leading-none truncate">{live.title}</CardTitle>
+                    <CardTitle className="text-base md:text-2xl font-black text-primary italic leading-none truncate">{live.title}</CardTitle>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(live.id)} className="h-12 w-12 rounded-2xl text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-all">
-                    <Trash2 className="h-5 w-5" />
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(live.id)} className="h-10 w-10 md:h-12 md:w-12 rounded-xl text-muted-foreground hover:bg-red-50 hover:text-red-600">
+                    <Trash2 className="h-4 w-4 md:h-5 md:w-5" />
                   </Button>
-                  <Button className="flex-1 md:flex-none h-14 px-8 bg-primary text-white font-black rounded-2xl shadow-xl shadow-primary/10 gap-3 group/btn" asChild>
+                  <Button className="flex-1 md:flex-none h-11 md:h-14 px-6 md:px-8 bg-primary text-white font-black rounded-xl md:rounded-2xl shadow-xl gap-2 text-xs md:text-base" asChild>
                     <Link href={`/dashboard/teacher/live/${live.id}`}>
-                      Entrar na Sala <Radio className="h-4 w-4 group-hover/btn:animate-pulse" />
+                      Studio <Radio className="h-4 w-4" />
                     </Link>
                   </Button>
                 </div>

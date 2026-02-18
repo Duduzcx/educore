@@ -40,9 +40,10 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
   const touchEnd = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Só inicia o gesto se não estiver em um elemento interativo (input, select, etc)
+    // Bloqueia gesto em elementos interativos para não travar o uso do app
     const target = e.target as HTMLElement;
-    if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) return;
+    const isInteractive = target.closest('input, select, textarea, button, [role="button"], .rdp-day');
+    if (isInteractive) return;
     
     touchStart.current = e.targetTouches[0].clientX;
     touchStartY.current = e.targetTouches[0].clientY;
@@ -58,14 +59,14 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     
-    // Evita abrir o menu se o movimento for muito vertical (scroll)
-    if (distanceY > 50) return;
+    // Filtra movimentos acidentais (scroll vertical)
+    if (distanceY > 60) return;
 
-    // Swipe para a direita: Abre o menu (apenas se começar perto da borda esquerda)
+    // Abrir: Swipe para a direita (apenas se começar perto da borda)
     if (distanceX > 80 && !openMobile && touchStart.current < 50) {
       setOpenMobile(true);
     } 
-    // Swipe para a esquerda: Fecha o menu
+    // Fechar: Swipe para a esquerda (qualquer parte da tela se aberto)
     else if (distanceX < -80 && openMobile) {
       setOpenMobile(false);
     }
@@ -184,15 +185,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarFooter>
       </Sidebar>
       <SidebarInset className="bg-background flex flex-col h-screen overflow-hidden">
-        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-6 shrink-0">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-4 md:px-6 shrink-0">
           <SidebarTrigger className="h-9 w-9 rounded-full hover:bg-muted transition-colors" />
           <div className="flex-1" />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Usuário"}</span>
               <span className="text-[8px] font-black text-accent uppercase tracking-widest">{isTeacher ? "Docente" : "Aluno"}</span>
             </div>
-            <Avatar className="h-10 w-10 border-2 border-primary/5 shadow-xl transition-transform hover:scale-105">
+            <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl transition-transform hover:scale-105">
               <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} />
               <AvatarFallback className="bg-primary text-white text-xs">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -200,8 +201,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         
         <SwipeHandler>
-          <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in duration-500`}>
-            <div className={isAppPage ? 'app-container' : ''}>
+          <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-2 md:p-8 animate-in fade-in duration-500`}>
+            <div className={isAppPage ? 'app-container' : 'max-w-7xl mx-auto w-full'}>
               {children}
             </div>
           </main>

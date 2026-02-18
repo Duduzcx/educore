@@ -106,58 +106,6 @@ const mockQuestions: Question[] = [
     correct_answer: 'b',
     subject: 'Geografia',
     year: 2023,
-  },
-  {
-    id: 'q7',
-    question_text: 'O Iluminismo foi um movimento intelectual que surgiu no século XVIII. Qual era um dos seus pilares fundamentais?',
-    options: [
-      { letter: 'a', text: 'O absolutismo monárquico' },
-      { letter: 'b', text: 'A supremacia da fé sobre a razão' },
-      { letter: 'c', text: 'O uso da razão e a liberdade individual' },
-      { letter: 'd', text: 'A manutenção do sistema feudal' },
-    ],
-    correct_answer: 'c',
-    subject: 'História',
-    year: 2023,
-  },
-  {
-    id: 'q8',
-    question_text: 'Em química, o que define uma ligação iônica?',
-    options: [
-      { letter: 'a', text: 'Compartilhamento de elétrons' },
-      { letter: 'b', text: 'Transferência de elétrons entre um metal e um não metal' },
-      { letter: 'c', text: 'Atração entre moléculas polares' },
-      { letter: 'd', text: 'Ligação entre dois átomos de hidrogênio' },
-    ],
-    correct_answer: 'b',
-    subject: 'Química',
-    year: 2022,
-  },
-  {
-    id: 'q9',
-    question_text: 'Qual a principal fonte de energia para os seres vivos na Terra, considerando a base da cadeia alimentar?',
-    options: [
-      { letter: 'a', text: 'Energia Geotérmica' },
-      { letter: 'b', text: 'Energia Solar' },
-      { letter: 'c', text: 'Energia Química' },
-      { letter: 'd', text: 'Energia Nuclear' },
-    ],
-    correct_answer: 'b',
-    subject: 'Biologia',
-    year: 2024,
-  },
-  {
-    id: 'q10',
-    question_text: 'Sobre a globalização, é correto afirmar que:',
-    options: [
-      { letter: 'a', text: 'É um processo que isola as economias nacionais.' },
-      { letter: 'b', text: 'Promove apenas o intercâmbio cultural, sem impactos econômicos.' },
-      { letter: 'c', text: 'Caracteriza-se pela integração econômica, cultural e política mundial.' },
-      { letter: 'd', text: 'Iniciou-se apenas no século XXI com a internet.' },
-    ],
-    correct_answer: 'c',
-    subject: 'Geografia',
-    year: 2023,
   }
 ];
 
@@ -210,70 +158,9 @@ export default function SimuladoPage() {
 
   if (gameState === 'loading') {
     return (
-      <div className="flex h-full w-full items-center justify-center flex-col gap-4">
-        <Loader2 className="h-16 w-16 animate-spin text-accent" />
-        <p className="text-lg font-black text-primary italic animate-pulse">Aurora calibrando questões...</p>
-      </div>
-    );
-  }
-
-  if (gameState === 'error') {
-    return (
-        <div className="h-full w-full flex items-center justify-center animate-in fade-in">
-            <Card className="w-full max-w-lg text-center p-8 shadow-2xl rounded-[3rem] bg-white border-none">
-                <CardHeader>
-                    <AlertTriangle className="h-16 w-16 mx-auto text-destructive" />
-                    <CardTitle className="text-3xl font-black text-primary italic mt-4">Ops! Algo deu errado</CardTitle>
-                    <CardDescription className="text-md font-medium text-muted-foreground mt-2">
-                        {error}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button onClick={resetSimulation} className="h-14 rounded-2xl font-black text-lg px-10">
-                        <RotateCw className="h-5 w-5 mr-3" />
-                        Voltar ao Início
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
-    );
-  }
-
-  if (gameState === 'finished') {
-    const performance = (score / questions.length) * 100;
-    return (
-      <div className="h-full w-full flex items-center justify-center animate-in fade-in">
-        <Card className="w-full max-w-2xl text-center p-8 shadow-2xl rounded-[3rem] bg-white border-none">
-          <CardHeader>
-            <div className="h-24 w-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-              <Award className="h-12 w-12 text-yellow-600" />
-            </div>
-            <CardTitle className="text-4xl font-black text-primary italic mt-4">Simulado Concluído!</CardTitle>
-            <CardDescription className="text-xl font-medium text-muted-foreground mt-2">
-              Você acertou {score} de {questions.length} questões.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="my-8 space-y-2">
-                <div className="flex justify-between text-xs font-black uppercase text-primary/40">
-                  <span>Performance Geral</span>
-                  <span>{performance.toFixed(0)}%</span>
-                </div>
-                <Progress value={performance} className="h-4 bg-muted rounded-full" />
-                <p className='font-black text-accent italic text-xl mt-4'>
-                  {performance >= 70 ? "EXCELENTE RESULTADO!" : performance >= 50 ? "BOM CAMINHO, CONTINUE!" : "FOCO NOS ESTUDOS!"}
-                </p>
-            </div>
-            <div className="flex gap-4">
-              <Button onClick={resetSimulation} variant="outline" className="flex-1 h-14 rounded-2xl font-black text-lg shadow-sm border-dashed">
-                Início
-              </Button>
-              <Button onClick={fetchQuestions} className="flex-1 h-14 rounded-2xl font-black text-lg bg-primary shadow-xl">
-                Tentar Novamente
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex h-full w-full items-center justify-center flex-col gap-4 px-4">
+        <Loader2 className="h-12 w-12 animate-spin text-accent" />
+        <p className="text-sm font-black text-primary italic animate-pulse">Aurora calibrando questões...</p>
       </div>
     );
   }
@@ -283,43 +170,41 @@ export default function SimuladoPage() {
     const progress = ((currentQuestionIndex) / questions.length) * 100;
 
     return (
-      <div className="p-4 md:p-8 max-w-4xl mx-auto animate-in fade-in space-y-8">
-        <div className='bg-white p-6 rounded-3xl shadow-sm border-b-4 border-accent'>
-            <div className='flex justify-between items-center mb-4'>
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <BrainCircuit className="h-5 w-5 text-accent" />
-                  </div>
-                  <p className='font-black text-primary text-xs md:text-sm uppercase tracking-widest'>QUESTÃO {currentQuestionIndex + 1} / {questions.length}</p>
+      <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6">
+        <div className='bg-white p-4 md:p-6 rounded-2xl shadow-sm border-b-4 border-accent'>
+            <div className='flex justify-between items-center mb-4 gap-2'>
+                <div className="flex items-center gap-2">
+                  <BrainCircuit className="h-4 w-4 text-accent" />
+                  <p className='font-black text-primary text-[10px] md:text-sm uppercase tracking-widest'>QUESTÃO {currentQuestionIndex + 1} / {questions.length}</p>
                 </div>
-                <Badge variant="outline" className='font-black text-[10px] uppercase bg-primary text-white border-none h-7 px-4'>
-                  {currentQuestion.subject} • {currentQuestion.year}
+                <Badge variant="outline" className='font-black text-[8px] md:text-[10px] uppercase bg-primary text-white border-none px-3'>
+                  {currentQuestion.subject}
                 </Badge>
             </div>
-            <Progress value={progress} className="h-2 bg-muted rounded-full overflow-hidden" />
+            <Progress value={progress} className="h-1.5 bg-muted rounded-full" />
         </div>
 
-        <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden animate-in slide-in-from-right-4 duration-500">
-          <CardHeader className='p-8 md:p-12 bg-muted/5'>
-            <CardDescription className="text-lg md:text-xl font-medium text-slate-800 leading-relaxed text-justify italic">
+        <Card className="border-none shadow-xl rounded-[1.5rem] md:rounded-[2.5rem] bg-white overflow-hidden">
+          <CardHeader className='p-6 md:p-12 bg-muted/5'>
+            <CardDescription className="text-sm md:text-xl font-medium text-slate-800 leading-relaxed italic">
               "{currentQuestion.question_text}"
             </CardDescription>
           </CardHeader>
-          <CardContent className='p-8 md:p-12 pt-4'>
-            <RadioGroup value={selectedAnswer ?? ''} onValueChange={setSelectedAnswer} className="space-y-4">
+          <CardContent className='p-6 md:p-12 pt-2'>
+            <RadioGroup value={selectedAnswer ?? ''} onValueChange={setSelectedAnswer} className="space-y-3">
               {currentQuestion.options.map((opt) => (
                 <Label 
                   key={opt.letter} 
-                  className={`flex items-start gap-5 text-base p-6 rounded-[1.5rem] border-2 transition-all cursor-pointer group ${
-                    selectedAnswer === opt.letter ? 'border-accent bg-accent/5 ring-4 ring-accent/5' : 'border-muted/20 hover:border-accent/40'
+                  className={`flex items-start gap-4 text-xs md:text-base p-4 md:p-6 rounded-xl md:rounded-[1.5rem] border-2 transition-all cursor-pointer ${
+                    selectedAnswer === opt.letter ? 'border-accent bg-accent/5' : 'border-muted/20 hover:border-accent/40'
                   }`}
                 >
                   <RadioGroupItem value={opt.letter} id={opt.letter} className="mt-1" />
-                  <div className="flex gap-4">
-                    <span className={`font-black text-lg italic ${selectedAnswer === opt.letter ? 'text-accent' : 'text-primary/30'}`}>
+                  <div className="flex gap-2 md:gap-4">
+                    <span className={`font-black italic ${selectedAnswer === opt.letter ? 'text-accent' : 'text-primary/30'}`}>
                       {opt.letter.toUpperCase()}.
                     </span>
-                    <span className="font-medium text-slate-700 leading-snug">{opt.text}</span>
+                    <span className="font-medium text-slate-700">{opt.text}</span>
                   </div>
                 </Label>
               ))}
@@ -327,12 +212,12 @@ export default function SimuladoPage() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-between items-center bg-white/50 backdrop-blur-md p-4 rounded-3xl border border-white shadow-xl">
-          <p className="text-[10px] font-black uppercase text-primary/40 px-4 italic">Pense com calma antes de responder.</p>
+        <div className="flex justify-between items-center bg-white/50 backdrop-blur-md p-3 rounded-2xl border border-white shadow-xl">
+          <p className="hidden md:block text-[10px] font-black uppercase text-primary/40 px-4 italic">Analise com calma.</p>
           <Button 
             onClick={handleNextQuestion} 
             disabled={selectedAnswer === null} 
-            className="h-14 rounded-2xl font-black text-lg px-12 bg-primary hover:bg-primary/95 shadow-2xl transition-all active:scale-95"
+            className="w-full md:w-auto h-12 md:h-14 rounded-xl md:rounded-2xl font-black text-sm md:text-lg px-8 bg-primary shadow-xl"
           >
             {currentQuestionIndex < questions.length - 1 ? 'Próxima Questão' : 'Finalizar Simulado'}
           </Button>
@@ -342,36 +227,22 @@ export default function SimuladoPage() {
   }
 
   return (
-    <div className="h-full w-full flex items-center justify-center animate-in fade-in duration-1000">
-        <Card className="w-full max-w-xl text-center p-10 md:p-16 shadow-2xl rounded-[3rem] bg-white border-none relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
-            
-            <CardHeader className="relative z-10">
-                <div className="h-24 w-24 bg-accent/10 rounded-3xl flex items-center justify-center mx-auto mb-6 rotate-3">
-                  <BookCheck className="h-12 w-12 text-accent" />
+    <div className="h-full w-full flex items-center justify-center p-4">
+        <Card className="w-full max-w-xl text-center p-8 md:p-16 shadow-2xl rounded-[2rem] md:rounded-[3rem] bg-white border-none">
+            <CardHeader>
+                <div className="h-16 w-16 md:h-24 md:w-24 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3">
+                  <BookCheck className="h-8 w-8 md:h-12 md:w-12 text-accent" />
                 </div>
-                <CardTitle className="text-4xl md:text-5xl font-black text-primary italic tracking-tighter leading-none">
+                <CardTitle className="text-2xl md:text-5xl font-black text-primary italic tracking-tighter">
                   Simulado <span className="text-accent">Compromisso</span>
                 </CardTitle>
-                <CardDescription className="text-lg md:text-xl font-medium text-muted-foreground mt-4 italic">
-                    Avalie seus conhecimentos com questões reais focadas na sua aprovação.
+                <CardDescription className="text-sm md:text-xl font-medium text-muted-foreground mt-4 italic">
+                    Avalie seus conhecimentos com questões reais.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="relative z-10 space-y-8 mt-6">
-                <div className="flex items-center justify-center gap-8 py-4 border-y border-dashed">
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-primary italic">{mockQuestions.length}</p>
-                    <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Banco de Dados</p>
-                  </div>
-                  <div className="h-8 w-px bg-muted" />
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-primary italic">IA</p>
-                    <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Avaliação</p>
-                  </div>
-                </div>
-                <Button onClick={fetchQuestions} className="w-full h-16 rounded-2xl font-black text-xl px-12 bg-primary hover:bg-primary/95 shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 group">
-                    <Target className="h-6 w-6 mr-3 group-hover:rotate-12 transition-transform" />
+            <CardContent className="space-y-6 mt-4">
+                <Button onClick={fetchQuestions} className="w-full h-14 md:h-16 rounded-xl md:rounded-2xl font-black text-lg md:text-xl bg-primary shadow-2xl">
+                    <Target className="h-5 w-5 md:h-6 md:w-6 mr-3" />
                     Começar Agora
                 </Button>
             </CardContent>
