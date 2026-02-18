@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Loader2, BookCheck, Target, Award, RotateCw, AlertTriangle, BrainCircuit } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from '@/lib/AuthProvider';
 
 const SIMULATION_SIZE = 10;

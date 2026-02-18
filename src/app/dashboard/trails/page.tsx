@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -213,7 +212,7 @@ export default function LearningTrailsPage() {
                     {activeAudience === filter.id && <CheckCircle2 className="h-4 w-4" />}
                   </div>
                 </DropdownMenuItem>
-              ))}
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
