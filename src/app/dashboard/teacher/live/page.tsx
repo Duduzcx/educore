@@ -75,7 +75,7 @@ export default function ManageLivePage() {
         });
 
       if (error) {
-        // Se o erro for sobre a coluna status, avisamos que é necessário atualizar o banco
+        // Erro comum de coluna faltante no cache. Recomendamos rodar o SQL.
         if (error.message.includes('status')) {
           throw new Error("Erro de Schema: A coluna 'status' não foi encontrada. Rode o script docs/database.sql no editor SQL do Supabase.");
         }
