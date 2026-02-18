@@ -26,12 +26,8 @@ import {
   ChevronRight,
   Zap,
   Star,
-  Flame,
-  Atom,
-  Dna,
-  History,
-  Globe
-} from "lucide-center";
+  Flame
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
@@ -116,6 +112,7 @@ export default function LearningTrailsPage() {
   const [allProgress, setAllProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Identifica se é a conta demo específica
   const isDemoAccount = user?.email === 'aluno@compromisso.com.br';
 
   useEffect(() => {
@@ -124,7 +121,7 @@ export default function LearningTrailsPage() {
       setLoading(true);
       setTimeout(() => {
         setDbTrails(MOCK_DB_TRAILS);
-        // Se for conta demo, mostra progresso. Se for nova conta, 0%.
+        // Se for conta demo, mostra progresso. Se for nova conta (cadastro), 0%.
         if (isDemoAccount) {
           setAllProgress([{ trail_id: "math-enem-1", percentage: 75 }]);
         } else {
@@ -253,20 +250,7 @@ export default function LearningTrailsPage() {
                             </Badge>
                           )}
                         </div>
-                        {trail.is_fundamental && (
-                          <Badge className="bg-accent text-accent-foreground border-none shadow-xl px-4 py-1.5 rounded-xl flex items-center gap-2 w-fit animate-pulse">
-                            <Flame className="h-3.5 w-3.5 fill-accent-foreground" />
-                            <span className="text-[9px] font-black uppercase tracking-tighter">ALTA RECORRÊNCIA</span>
-                          </Badge>
-                        )}
                       </div>
-                      {isCompleted && (
-                        <div className="absolute top-4 right-4 animate-in zoom-in duration-500">
-                          <Badge className="bg-green-500 text-white border-none text-[8px] font-black uppercase px-3 py-1.5 shadow-lg flex items-center gap-1.5 rounded-xl">
-                            <CheckCircle2 className="h-3 w-3" /> CONCLUÍDO
-                          </Badge>
-                        </div>
-                      )}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex flex-col items-center justify-center gap-3 p-8 backdrop-blur-sm">
                         <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-black h-12 rounded-xl shadow-2xl scale-90 group-hover/card:scale-100 transition-transform duration-500">
                           <PlayCircle className="h-4 w-4 mr-2" />
@@ -314,7 +298,7 @@ export default function LearningTrailsPage() {
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-primary/5 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden shrink-0 transition-transform duration-500 group-hover/card:scale-110">
                           <Image 
-                            src={`https://picsum.photos/seed/prof-${trail.teacher_id || 'default'}/100/100`} 
+                            src={`https://picsum.photos/seed/prof-${trail.id}/100/100`} 
                             alt="Professor" 
                             width={36} 
                             height={36} 

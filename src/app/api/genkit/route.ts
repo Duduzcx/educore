@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
     }
 
     // No Genkit 1.x, usamos a instância ai para rodar fluxos dinamicamente
-    // ou chamamos a função do fluxo diretamente se importada.
     const result = await ai.run({
       flow: flowId,
       input: input,
