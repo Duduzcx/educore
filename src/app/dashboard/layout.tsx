@@ -40,9 +40,8 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
   const touchEnd = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Bloqueia gesto em elementos interativos para não travar o uso do app
     const target = e.target as HTMLElement;
-    const isInteractive = target.closest('input, select, textarea, button, [role="button"], .rdp-day');
+    const isInteractive = target.closest('input, select, textarea, button, [role="button"], .rdp-day, .rdrDay');
     if (isInteractive) return;
     
     touchStart.current = e.targetTouches[0].clientX;
@@ -59,14 +58,11 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     
-    // Filtra movimentos acidentais (scroll vertical)
     if (distanceY > 60) return;
 
-    // Abrir: Swipe para a direita (apenas se começar perto da borda)
     if (distanceX > 80 && !openMobile && touchStart.current < 50) {
       setOpenMobile(true);
     } 
-    // Fechar: Swipe para a esquerda (qualquer parte da tela se aberto)
     else if (distanceX < -80 && openMobile) {
       setOpenMobile(false);
     }
@@ -85,12 +81,20 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 }
 
 const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname: string, unreadCount: number }) => {
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
   return (
     <SidebarMenu className="gap-1">
       {items.map((item) => (
         <SidebarMenuItem key={item.label}>
           <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label} className="h-11 rounded-xl data-[active=true]:bg-accent data-[active=true]:text-accent-foreground transition-all duration-200">
-            <Link href={item.href} className="flex items-center gap-3">
+            <Link href={item.href} onClick={handleLinkClick} className="flex items-center gap-3">
               <item.icon className="h-5 w-5" />
               <span className="font-bold text-sm">{item.label}</span>
               {unreadCount > 0 && item.badge && (

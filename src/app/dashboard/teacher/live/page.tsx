@@ -74,7 +74,13 @@ export default function ManageLivePage() {
           status: "scheduled"
         });
 
-      if (error) throw error;
+      if (error) {
+        // Se o erro for sobre a coluna status, avisamos que é necessário atualizar o banco
+        if (error.message.includes('status')) {
+          throw new Error("Erro de Schema: A coluna 'status' não foi encontrada. Rode o script docs/database.sql no editor SQL do Supabase.");
+        }
+        throw error;
+      }
 
       toast({ title: "Sala Criada!", description: "A sala online já está na agenda." });
       setIsCreateOpen(false);
