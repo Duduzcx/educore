@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -98,7 +99,7 @@ export default function ManageLivePage() {
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+            <button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-none outline-none">
               <PlusCircle className="h-6 w-6" /> Agendar Transmissão
             </button>
           </DialogTrigger>
@@ -156,7 +157,7 @@ export default function ManageLivePage() {
                   <div className="space-y-2 overflow-hidden">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-muted-foreground flex items-center gap-1.5"><Clock className="h-3 w-3" /> {format(new Date(live.start_time), 'HH:mm')}</span>
-                      <Badge variant="secondary" className="text-[8px] font-black uppercase px-2">{live.status}</Badge>
+                      <Badge variant="secondary" className="text-[8px] font-black uppercase px-2 bg-muted/50 border-none">{live.status}</Badge>
                     </div>
                     <CardTitle className="text-2xl font-black text-primary italic leading-none truncate">{live.title}</CardTitle>
                   </div>

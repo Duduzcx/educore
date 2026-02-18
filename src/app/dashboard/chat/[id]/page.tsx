@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -11,11 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Send, ChevronLeft, Loader2, MessageSquare, Paperclip, Sparkles, Bot, BookOpen } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 
-// TODO: Refatorar para usar o Firebase
-// A lógica de chat (mensagens, contatos) foi removida e precisa ser 
-// reimplementada com Firestore e possivelmente Realtime Database para o chat em tempo real.
+// A importação direta do fluxo foi removida. Isso é código de servidor.
+// import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 
 export default function DirectChatPage() {
   const params = useParams();
@@ -27,36 +26,21 @@ export default function DirectChatPage() {
   
   const [input, setInput] = useState("");
   const [isAiThinking, setIsAiThinking] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<{name: string, type: string, size: number} | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  
-  const [contact, setContact] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Lógica de estado simplificada para o exemplo
+  const contact = isAurora ? { name: "Aurora IA", expertise: "Mentoria Geral & IA" } : null;
 
   useEffect(() => {
-    // Lógica de carregar contato foi removida
     if (isAurora) {
-      setContact({ name: "Aurora IA", expertise: "Mentoria Geral & IA" });
-    } else {
-      setContact({ name: "Carregando...", expertise: ""});
+      setMessages([
+        { id: '1', sender_id: 'aurora-ai', message: 'Olá! Como posso te ajudar a acelerar seus estudos hoje?', created_at: new Date().toISOString() }
+      ]);
     }
-    setIsLoading(false);
-  }, [contactId, isAurora]);
+  }, [isAurora]);
 
   useEffect(() => {
-    // Lógica de carregar mensagens e inscrição em canal foi removida
-    if (isAurora) {
-        setMessages([
-            { id: '1', sender_id: 'aurora-ai', message: 'Olá! Como posso te ajudar a acelerar seus estudos hoje?', created_at: new Date().toISOString() }
-        ]);
-    }
-    setIsLoading(false);
-  }, [user, contactId, isAurora]);
-
-  useEffect(() => {
-    // Scroll para a última mensagem
     if (scrollRef.current) {
       const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
@@ -67,51 +51,72 @@ export default function DirectChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !selectedFile) || !user || !contactId) return;
+    if (!input.trim() || !user || !contactId) return;
 
     const userText = input;
     const newUserMessage = {
-        id: new Date().toISOString(),
-        sender_id: user.id,
-        receiver_id: contactId,
-        message: userText,
-        created_at: new Date().toISOString(),
-        is_read: isAurora
+      id: new Date().toISOString(),
+      sender_id: user.id,
+      message: userText,
+      created_at: new Date().toISOString(),
     };
 
-    setMessages(prev => [...prev, newUserMessage]);
+    const currentMessages = [...messages, newUserMessage];
+    setMessages(currentMessages);
     setInput("");
-    setSelectedFile(null);
 
     if (isAurora) {
       setIsAiThinking(true);
       try {
-        const history = messages.slice(-5).map(m => ({
+        const history = currentMessages.slice(-6).map(m => ({
           role: (m.sender_id === "aurora-ai" ? 'model' : 'user') as 'user' | 'model',
           content: m.message
         }));
 
-        const result = await conceptExplanationAssistant({ query: userText, history });
+        // **FLUXO CORRIGIDO: Chamar a API do Genkit**
+        const response = await fetch('/api/genkit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            flowId: 'conceptExplanationAssistant', // O nome do fluxo a ser executado
+            input: {
+              query: userText,
+              history: history,
+            },
+          }),
+        });
 
-        if (result && result.response) {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.result.response) {
           const aiResponseMessage = {
             id: new Date().toISOString() + '-ai',
             sender_id: "aurora-ai",
-            receiver_id: user.id,
-            message: result.response,
+            message: result.result.response,
             created_at: new Date().toISOString(),
-            is_read: true
           };
           setMessages(prev => [...prev, aiResponseMessage]);
+        } else {
+          throw new Error(result.error || 'Resposta da IA em formato inesperado.');
         }
-      } catch (err) {
-        toast({ title: "Aurora está ocupada", description: "Tente novamente em instantes.", variant: "destructive" });
+
+      } catch (err: any) {
+        console.error("Erro ao chamar a IA:", err);
+        toast({ title: "Aurora está ocupada", description: `Tente novamente em instantes. (${err.message})`, variant: "destructive" });
+        // Reverte a mensagem do usuário se a IA falhar
+        setMessages(messages);
       } finally {
         setIsAiThinking(false);
       }
     }
   };
-
+  
   return (
     <div className="flex flex-col flex-1 min-h-0 animate-in fade-in duration-500 overflow-hidden space-y-4 w-full">
         <div className="flex items-center justify-between px-2 py-2 shrink-0 bg-white/50 backdrop-blur-md rounded-2xl shadow-sm border border-white/20">
@@ -138,7 +143,7 @@ export default function DirectChatPage() {
               <div className="flex items-center gap-1.5 mt-1 truncate">
                 {contact?.type === 'teacher' && <BookOpen className="h-2.5 w-2.5 text-accent shrink-0" />}
                 <p className="text-[8px] md:text-[9px] font-black text-muted-foreground uppercase tracking-widest truncate">
-                  {isAurora ? 'Tutor IA Integrado' : contact?.type === 'teacher' ? `Mentor de ${contact?.subjects || 'Educação'}` : 'Estudante da Rede'}
+                  {isAurora ? 'Tutor IA Integrado' : 'Estudante da Rede'}
                 </p>
               </div>
             </div>
@@ -153,18 +158,13 @@ export default function DirectChatPage() {
       <Card className="flex-1 min-h-0 flex flex-col shadow-[0_10px_40px_-15px_hsl(var(--accent)/0.15)] border-none overflow-hidden rounded-[2rem] md:rounded-[3rem] bg-white relative animate-in zoom-in-95 duration-700">
         <ScrollArea className="flex-1" ref={scrollRef}>
           <div className="flex flex-col gap-6 py-8 px-4 md:px-12">
-            {isLoading ? (
-              <div className="flex flex-col justify-center items-center py-20 gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-accent" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Sincronizando Mensagens...</p>
-              </div>
-            ) : messages.length === 0 ? (
+            {messages.length === 0 ? (
               <div className="text-center py-20 opacity-30 flex flex-col items-center animate-in fade-in duration-1000">
                 <div className={`h-16 w-16 md:h-20 md:w-20 rounded-full ${isAurora ? 'bg-accent/20' : 'bg-muted'} flex items-center justify-center mb-4`}>
                   {isAurora ? <Sparkles className="h-10 w-10 text-accent" /> : <MessageSquare className="h-10 w-10" />}
                 </div>
                 <p className="text-xs md:text-sm font-black italic text-primary">{isAurora ? 'Olá! Sou a Aurora.' : 'Inicie esta conexão!'}</p>
-                <p className="text-[10px] font-medium mt-1">{isAurora ? 'Como posso acelerar seu aprendizado hoje?' : `Envie sua dúvida para o mentor.`}</p>
+                <p className="text-[10px] font-medium mt-1">{isAurora ? 'Como posso acelerar seu aprendizado hoje?' : `Envie sua dúvida.`}</p>
               </div>
             ) : (
               messages.map((msg, i) => {
@@ -199,21 +199,14 @@ export default function DirectChatPage() {
 
         <div className="p-4 md:p-6 bg-muted/5 border-t shrink-0">
           <form onSubmit={handleSend} className="flex items-center gap-2 max-w-4xl mx-auto bg-white p-1.5 pl-5 rounded-full shadow-2xl border border-muted/20 focus-within:ring-2 focus-within:ring-accent/30 transition-all duration-300">
-             <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => {
-              const f = e.target.files?.[0];
-              if(f) setSelectedFile({name: f.name, type: f.type, size: f.size});
-            }} />
-            <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="rounded-full text-muted-foreground hover:text-accent shrink-0 transition-all">
-              <Paperclip className="h-5 w-5" />
-            </Button>
-            <Input 
+             <Input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               disabled={isAiThinking}
               placeholder={isAurora ? "Tire uma dúvida com a Aurora..." : "Escreva para o mentor..."}
               className="flex-1 h-10 bg-transparent border-none text-primary font-medium italic focus-visible:ring-0 px-0 text-xs md:text-sm"
             />
-            <Button type="submit" disabled={(!input.trim() && !selectedFile) || isAiThinking} className="h-10 w-10 md:h-12 md:w-12 bg-primary hover:bg-primary/95 rounded-full shadow-xl shrink-0 transition-all active:scale-95">
+            <Button type="submit" disabled={!input.trim() || isAiThinking} className="h-10 w-10 md:h-12 md:w-12 bg-primary hover:bg-primary/95 rounded-full shadow-xl shrink-0 transition-all active:scale-95">
               {isAiThinking ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Send className="h-5 w-5 text-white" />}
             </Button>
           </form>

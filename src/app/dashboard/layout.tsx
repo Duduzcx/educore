@@ -1,12 +1,13 @@
+
 "use client";
 
-import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarGroupLabel, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { Home, Compass, BookOpen, Video, Library, HelpCircle, Wallet, LogOut, Bell, LayoutDashboard, ClipboardList, Users, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useEffect, useState, useMemo, memo } from "react";
+import { useEffect, useState, useMemo, memo, useRef } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
 
 const studentItems = [
@@ -31,6 +32,45 @@ const teacherItems = [
   { icon: Bell, label: "Mural de Avisos", href: "/dashboard/teacher/communication" },
   { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
 ];
+
+// Componente para lidar com o gesto de swipe no mobile
+function SwipeHandler({ children }: { children: React.ReactNode }) {
+  const { setOpenMobile, isMobile, openMobile } = useSidebar();
+  const touchStart = useRef<number>(0);
+  const touchEnd = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!isMobile) return;
+    const distance = touchEnd.current - touchStart.current;
+    const isSwipeRight = distance > 70;
+    const isSwipeLeft = distance < -70;
+
+    if (isSwipeRight && !openMobile) {
+      setOpenMobile(true);
+    } else if (isSwipeLeft && openMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  return (
+    <div 
+      className="flex-1 flex flex-col min-h-0"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {children}
+    </div>
+  );
+}
 
 const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname: string, unreadCount: number }) => {
   return (
@@ -152,11 +192,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         
-        <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in`}>
-          <div className={isAppPage ? 'app-container' : ''}>
-            {children}
-          </div>
-        </main>
+        <SwipeHandler>
+          <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-4 md:p-8 animate-in fade-in`}>
+            <div className={isAppPage ? 'app-container' : ''}>
+              {children}
+            </div>
+          </main>
+        </SwipeHandler>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Video, MonitorPlay, Calendar, Clock, Loader2, ArrowRight, Signal } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { MonitorPlay, Clock, Loader2, ArrowRight, Signal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/app/lib/supabase";
@@ -42,8 +43,9 @@ export default function LiveClassesPage() {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
+      <div className="flex h-screen items-center justify-center flex-col gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-accent" />
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Sintonizando Satélite...</p>
       </div>
     );
   }
@@ -66,7 +68,7 @@ export default function LiveClassesPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {liveNow.map((live) => (
-              <Card key={live.id} className="border-none shadow-2xl bg-slate-950 text-white rounded-[2.5rem] overflow-hidden group">
+              <Card key={live.id} className="border-none shadow-2xl bg-slate-950 text-white rounded-[2.5rem] overflow-hidden group animate-in zoom-in duration-500">
                 <CardContent className="p-8 space-y-6">
                   <div className="flex justify-between items-start">
                     <Badge className="bg-red-600 text-white border-none px-4 py-1.5 font-black flex items-center gap-2 animate-pulse">
@@ -94,18 +96,18 @@ export default function LiveClassesPage() {
       <section className="space-y-6">
         <h2 className="text-xl font-black text-primary italic px-2">Próximas Sessões</h2>
         {upcoming.length === 0 && liveNow.length === 0 ? (
-          <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-12 text-center opacity-50">
+          <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-12 text-center opacity-50 border-dashed border-2">
             <MonitorPlay className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <p className="font-black italic text-lg text-primary">Nenhuma aula agendada no momento.</p>
-            <p className="text-sm font-medium mt-1">Fique atento ao mural de avisos para novas das!</p>
+            <p className="text-sm font-medium mt-1">Fique atento ao mural de avisos para novas datas!</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {upcoming.map((live) => (
-              <Card key={live.id} className="border-none shadow-lg bg-white rounded-3xl overflow-hidden hover:shadow-xl transition-all">
+              <Card key={live.id} className="border-none shadow-lg bg-white rounded-3xl overflow-hidden hover:shadow-xl transition-all animate-in slide-in-from-bottom-2">
                 <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
                   <div className="flex items-center gap-6">
-                    <div className="h-16 w-16 rounded-2xl bg-blue-50 text-blue-600 flex flex-col items-center justify-center shadow-inner">
+                    <div className="h-16 w-16 rounded-2xl bg-blue-50 text-blue-600 flex flex-col items-center justify-center shadow-inner shrink-0">
                       <span className="text-[8px] font-black uppercase">{format(new Date(live.start_time), 'MMM', { locale: ptBR })}</span>
                       <span className="text-xl font-black italic">{format(new Date(live.start_time), 'dd')}</span>
                     </div>
@@ -122,7 +124,7 @@ export default function LiveClassesPage() {
                       </div>
                       <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Início Estimado</span>
                     </div>
-                    <Button asChild variant="outline" className="rounded-xl border-2 font-black">
+                    <Button asChild variant="outline" className="rounded-xl border-2 font-black h-12 px-6 hover:bg-primary hover:text-white transition-all">
                       <Link href={`/dashboard/live/${live.id}`}>Ver Detalhes</Link>
                     </Button>
                   </div>

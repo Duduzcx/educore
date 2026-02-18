@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,15 +9,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { Virtuoso } from 'react-virtuoso';
+import { usePathname } from "next/navigation";
 
 interface Message {
   role: "assistant" | "user";
   content: string;
 }
 
-// Otimização: A lista de mensagens agora é virtualizada com react-virtuoso para
-// renderizar apenas os itens visíveis, melhorando drasticamente a performance em conversas longas.
-// O scroll manual foi removido em favor da prop 'followOutput', que é mais eficiente.
 export function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -25,6 +24,10 @@ export function AccessibilityWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const pathname = usePathname();
+
+  // Verifica se estamos em uma página de chat para mover o widget e não atrapalhar inputs
+  const isInputHeavyPage = pathname.includes('/chat/') || pathname.includes('/support') || pathname.includes('/live/');
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,11 +84,11 @@ export function AccessibilityWidget() {
   );
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 items-end">
+    <div className={`fixed ${isInputHeavyPage ? 'bottom-24 md:bottom-6' : 'bottom-6'} right-6 z-[9999] flex flex-col gap-3 items-end transition-all duration-500`}>
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
            <button 
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group relative"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group relative animate-in zoom-in duration-700"
             title="Abrir Aurora IA"
           >
             <MessageCircle className="h-7 w-7 transition-transform group-hover:rotate-12 text-accent" />
@@ -147,7 +150,7 @@ export function AccessibilityWidget() {
       </Sheet>
 
       <button 
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group" 
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group animate-in zoom-in duration-1000" 
         title="Acessibilidade VLibras"
       >
         <HandMetal className="h-6 w-6 transition-transform group-hover:rotate-12" />

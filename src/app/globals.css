@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,8 +44,8 @@
     @apply bg-background text-foreground;
     overflow-x: hidden;
     min-height: 100vh;
-    /* Reset de scroll global para permitir rolagem natural */
     overflow-y: auto !important;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -76,6 +77,12 @@
   position: relative;
 }
 
+@media (max-width: 768px) {
+  .app-container {
+    height: calc(100vh - 8rem);
+  }
+}
+
 .scrollable-content {
   flex: 1;
   overflow-y: auto;
@@ -85,4 +92,19 @@
 
 .animate-in {
   animation-fill-mode: forwards;
+}
+
+/* Animação Personalizada para entrada lateral */
+@keyframes slide-right {
+  from { transform: translateX(-20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-slide-right {
+  animation: slide-right 0.5s ease-out forwards;
+}
+
+/* Fix para botões que não devem ter outline azul no mobile */
+button:focus {
+  outline: none;
 }

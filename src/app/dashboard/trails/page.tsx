@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -25,17 +26,18 @@ import {
   ChevronRight,
   Zap,
   Star,
-  Flame
+  Flame,
+  Atom,
+  Dna,
+  History,
+  Globe
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthProvider";
 
-// TODO: Refatorar para usar o Firebase.
-// A lógica de busca de trilhas e progresso do usuário foi mocada.
-
-const TRAIL_CATEGORIES = ["Todos", "Matemática", "Tecnologia", "Linguagens", "Física", "História"];
+const TRAIL_CATEGORIES = ["Todos", "Matemática", "Tecnologia", "Linguagens", "Física", "Biologia", "História", "Geografia"];
 const AUDIENCE_FILTERS = [
   { id: "all", label: "Toda a Comunidade" },
   { id: "etec", label: "Perfil ETEC" },
@@ -68,26 +70,39 @@ const MOCK_DB_TRAILS = [
     image_url: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800",
     targetAudience: "etec",
     is_fundamental: true,
-  }
-];
-
-const MOCK_USER_PROGRESS = [
-    { trail_id: "math-enem-1", percentage: 75 },
-];
-
-const EXAMPLE_TRAILS = [
+  },
   {
-    id: "ex-math-1",
-    title: "Cálculo I: O Poder das Derivadas",
-    category: "Matemática",
-    description: "Explore os fundamentos do cálculo diferencial, desde limites até aplicações reais de taxas de variação e otimização.",
-    modulesCount: 5,
-    teacherName: "Prof. Ricardo Silva",
-    image: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYXRoZW1hdGljcyUyMGVkdWNhdGlvbnxlbnwwfHx8fDE3NzAwODU2MDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    targetAudience: "uni",
-    teacherId: "demo-1",
-    isNew: true,
-    isFundamental: true
+    id: "physics-exp-1",
+    title: "Física Experimental: Mecânica",
+    category: "Física",
+    description: "Leis de Newton e cinemática através de experimentos práticos e simulações.",
+    modules_count: 6,
+    teacher_name: "Prof. Newton",
+    status: "active",
+    image_url: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=800",
+    targetAudience: "uni"
+  },
+  {
+    id: "bio-cel-1",
+    title: "Biologia: A Vida na Célula",
+    category: "Biologia",
+    description: "Explore o interior das células, organelas e o código genético.",
+    modules_count: 10,
+    teacher_name: "Prof. Darwin",
+    status: "active",
+    image_url: "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?auto=format&fit=crop&q=80&w=800",
+    targetAudience: "etec"
+  },
+  {
+    id: "hist-br-1",
+    title: "História do Brasil: Colônia ao Império",
+    category: "História",
+    description: "Uma jornada pelos eventos que moldaram a identidade brasileira.",
+    modules_count: 15,
+    teacher_name: "Prof. Tiradentes",
+    status: "active",
+    image_url: "https://images.unsplash.com/photo-1599116723121-ef48d9058d3c?auto=format&fit=crop&q=80&w=800",
+    targetAudience: "uni"
   }
 ];
 
@@ -101,23 +116,28 @@ export default function LearningTrailsPage() {
   const [allProgress, setAllProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const isDemoAccount = user?.email === 'aluno@compromisso.com.br';
+
   useEffect(() => {
     function fetchData() {
       if (!user) return;
       setLoading(true);
       setTimeout(() => {
         setDbTrails(MOCK_DB_TRAILS);
-        setAllProgress(MOCK_USER_PROGRESS);
+        // Se for conta demo, mostra progresso. Se for nova conta, 0%.
+        if (isDemoAccount) {
+          setAllProgress([{ trail_id: "math-enem-1", percentage: 75 }]);
+        } else {
+          setAllProgress([]);
+        }
         setLoading(false);
       }, 1000);
     }
     fetchData();
-  }, [user]);
+  }, [user, isDemoAccount]);
 
   const filteredTrails = useMemo(() => {
-    const all = [...dbTrails, ...EXAMPLE_TRAILS];
-    
-    return all.filter(trail => {
+    return dbTrails.filter(trail => {
       const matchesSearch = trail.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             trail.category?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = activeCategory === "Todos" || trail.category === activeCategory;
@@ -209,12 +229,12 @@ export default function LearningTrailsPage() {
               const isCompleted = percentage === 100;
 
               return (
-                <Card key={trail.id} className={`overflow-hidden border-none shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group bg-white rounded-[2.5rem] flex flex-col relative group/card ${isCompleted ? 'ring-4 ring-green-500/10' : ''} ${trail.isFundamental ? 'ring-4 ring-accent/20' : ''} animate-in fade-in slide-in-from-bottom-4 duration-700`} style={{ animationDelay: `${index * 100}ms` }}>
+                <Card key={trail.id} className={`overflow-hidden border-none shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group bg-white rounded-[2.5rem] flex flex-col relative group/card ${isCompleted ? 'ring-4 ring-green-500/10' : ''} animate-in fade-in slide-in-from-bottom-4 duration-700`} style={{ animationDelay: `${index * 100}ms` }}>
                   
                   <div className="relative aspect-[16/10] overflow-hidden cursor-pointer">
                     <Link href={`/dashboard/classroom/${trail.id}`}>
                       <Image 
-                        src={trail.image_url || trail.image || `https://picsum.photos/seed/trail-${trail.id}/600/400`} 
+                        src={trail.image_url || `https://picsum.photos/seed/trail-${trail.id}/600/400`} 
                         alt={trail.title} 
                         fill 
                         className="object-cover transition-transform duration-1000 group-hover/card:scale-110"
@@ -224,16 +244,16 @@ export default function LearningTrailsPage() {
                         <div className="flex gap-2">
                           <Badge className="bg-white/80 backdrop-blur-md text-primary border-none shadow-lg flex items-center gap-2 px-4 py-1.5 rounded-xl">
                             <Layers className="h-4 w-4 text-accent" />
-                            <span className="text-[10px] font-black uppercase tracking-wider">{trail.modules_count || trail.modulesCount || 0} Módulos</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider">{trail.modules_count || 0} Módulos</span>
                           </Badge>
-                          {(trail.is_new || trail.isNew) && (
+                          {trail.is_new && (
                             <Badge className="bg-orange-500 text-white border-none shadow-lg px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-bounce">
                               <Zap className="h-3 w-3 fill-white" />
                               <span className="text-[8px] font-black uppercase">NOVO</span>
                             </Badge>
                           )}
                         </div>
-                        {(trail.is_fundamental || trail.isFundamental) && (
+                        {trail.is_fundamental && (
                           <Badge className="bg-accent text-accent-foreground border-none shadow-xl px-4 py-1.5 rounded-xl flex items-center gap-2 w-fit animate-pulse">
                             <Flame className="h-3.5 w-3.5 fill-accent-foreground" />
                             <span className="text-[9px] font-black uppercase tracking-tighter">ALTA RECORRÊNCIA</span>
@@ -294,7 +314,7 @@ export default function LearningTrailsPage() {
                       <div className="flex items-center gap-3">
                         <div className="h-9 w-9 rounded-full bg-primary/5 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden shrink-0 transition-transform duration-500 group-hover/card:scale-110">
                           <Image 
-                            src={`https://picsum.photos/seed/prof-${trail.teacher_id || trail.teacherId || 'default'}/100/100`} 
+                            src={`https://picsum.photos/seed/prof-${trail.teacher_id || 'default'}/100/100`} 
                             alt="Professor" 
                             width={36} 
                             height={36} 
@@ -303,7 +323,7 @@ export default function LearningTrailsPage() {
                         </div>
                         <div className="flex flex-col overflow-hidden">
                           <span className="text-[10px] font-black text-primary italic truncate max-w-[120px]">
-                            {trail.teacher_name || trail.teacherName || "Mentor da Rede"}
+                            {trail.teacher_name || "Mentor da Rede"}
                           </span>
                           <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Docente</span>
                         </div>
