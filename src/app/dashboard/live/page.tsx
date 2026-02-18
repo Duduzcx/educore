@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -83,9 +82,9 @@ export default function LiveClassesPage() {
                     <h3 className="text-lg md:text-2xl font-black italic leading-tight group-hover:text-blue-400 transition-colors truncate">{live.title}</h3>
                     <p className="text-[10px] md:text-sm text-slate-400 line-clamp-2 italic">{live.description}</p>
                   </div>
-                  <button className="w-full bg-white text-slate-950 hover:bg-blue-400 hover:text-white font-black h-12 md:h-14 rounded-xl md:rounded-2xl shadow-xl transition-all" asChild>
+                  <Button className="w-full bg-white text-slate-950 hover:bg-blue-400 hover:text-white font-black h-12 md:h-14 rounded-xl md:rounded-2xl shadow-xl transition-all" asChild>
                     <Link href={`/dashboard/live/${live.id}`}>Entrar na Sala <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" /></Link>
-                  </button>
+                  </Button>
                 </CardContent>
               </Card>
             ))}

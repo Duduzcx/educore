@@ -1,4 +1,3 @@
-
 import { ai } from '@/ai/genkit';
 import { NextRequest, NextResponse } from 'next/server';
 
