@@ -1,4 +1,3 @@
-
 import { ai } from '@/ai/genkit';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -9,28 +8,18 @@ import '@/ai/flows/quiz-generator';
 export async function POST(req: NextRequest) {
   try {
     const text = await req.text();
-    if (!text) {
+    if (!text || text.trim() === '') {
       return NextResponse.json(
-        { error: 'Request body is empty' },
+        { error: 'Corpo da requisição vazio ou inválido.' },
         { status: 400 }
       );
     }
 
-    let body;
-    try {
-      body = JSON.parse(text);
-    } catch (e) {
-      return NextResponse.json(
-        { error: 'Invalid JSON input' },
-        { status: 400 }
-      );
-    }
-
-    const { flowId, input } = body;
+    const { flowId, input } = JSON.parse(text);
 
     if (!flowId) {
       return NextResponse.json(
-        { error: 'flowId is required' },
+        { error: 'flowId é obrigatório.' },
         { status: 400 }
       );
     }
@@ -40,9 +29,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
-    console.error(`Error running flow:`, error);
+    console.error(`Erro ao executar flow:`, error);
     return NextResponse.json(
-      { error: `An error occurred: ${error.message || 'Unknown error'}` },
+      { error: `Ocorreu um erro interno: ${error.message || 'Erro desconhecido'}` },
       { status: 500 }
     );
   }

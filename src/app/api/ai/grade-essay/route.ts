@@ -6,7 +6,15 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const textData = await request.text();
+    if (!textData || textData.trim() === '') {
+      return NextResponse.json(
+        { error: 'Corpo da requisição vazio.' },
+        { status: 400 }
+      );
+    }
+
+    const body = JSON.parse(textData);
     const { theme, text } = body;
 
     if (!theme || !text) {
@@ -19,10 +27,10 @@ export async function POST(request: Request) {
     const result = await gradeEssayFlow(theme, text);
     return NextResponse.json(result);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro na API de correção de redação:', error);
     return NextResponse.json(
-      { error: 'Ocorreu um erro inesperado ao processar a correção.' },
+      { error: `Ocorreu um erro inesperado: ${error.message || 'Falha na comunicação'}` },
       { status: 500 }
     );
   }

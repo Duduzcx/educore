@@ -1,4 +1,3 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -47,7 +46,6 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Ignorar swipe em elementos de entrada e players
     if (target.closest('.no-swipe, input, textarea, select, [role="slider"], button, audio, video, #youtube-player')) return;
     touchStart.current = e.targetTouches[0].clientX;
     touchEnd.current = e.targetTouches[0].clientX;
@@ -62,13 +60,13 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const absX = Math.abs(distanceX);
 
-    // Gesto para abrir (Menu na Direita): Deslizar para a ESQUERDA (distanceX negativo)
-    // Desbloqueado: Funciona em qualquer lugar da tela
-    if (!openMobile && distanceX < -50 && absX > 30) {
+    // Menu na DIREITA (side="right")
+    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo) de qualquer lugar
+    if (!openMobile && distanceX < -40 && absX > 20) {
       setOpenMobile(true);
     } 
-    // Gesto para fechar: Deslizar para a DIREITA (distanceX positivo)
-    else if (openMobile && distanceX > 50) {
+    // FECHAR: Deslizar para a DIREITA (distanceX positivo)
+    else if (openMobile && distanceX > 40) {
       setOpenMobile(false);
     }
   };

@@ -19,6 +19,10 @@ export default function TeacherHomePage() {
     setDiagLoading(true);
     try {
       const response = await fetch('/api/health');
+      if (!response.ok) {
+        throw new Error('Falha na resposta do diagnóstico.');
+      }
+      
       const data = await response.json();
       
       if (response.status === 200) {
@@ -27,7 +31,7 @@ export default function TeacherHomePage() {
           description: "Supabase e IA Aurora estão conectados com sucesso! ✅" 
         });
       } else {
-        const errorMsg = data.supabase.status !== 'ok' ? `Supabase: ${data.supabase.details}` : `IA: ${data.genkit.details}`;
+        const errorMsg = data?.supabase?.status !== 'ok' ? `Supabase: ${data?.supabase?.details}` : `IA: ${data?.genkit?.details}`;
         toast({ 
           title: "Alerta de Rede", 
           description: errorMsg, 
@@ -37,7 +41,7 @@ export default function TeacherHomePage() {
     } catch (err: any) {
       toast({ 
         title: "Erro de Comunicação", 
-        description: "Não foi possível contatar a API de diagnóstico.", 
+        description: "Não foi possível contatar a API de diagnóstico ou o JSON retornou vazio.", 
         variant: "destructive" 
       });
     } finally {
