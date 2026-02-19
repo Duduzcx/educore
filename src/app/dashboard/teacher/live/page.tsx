@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -75,9 +74,8 @@ export default function ManageLivePage() {
         });
 
       if (error) {
-        // Erro comum de coluna faltante no cache. Recomendamos rodar o SQL.
         if (error.message.includes('status')) {
-          throw new Error("Erro de Schema: A coluna 'status' não foi encontrada. Rode o script docs/database.sql no editor SQL do Supabase.");
+          throw new Error("Erro de Schema: A coluna 'status' não foi encontrada. Rode o script docs/database.sql no seu console Supabase.");
         }
         throw error;
       }
@@ -111,9 +109,9 @@ export default function ManageLivePage() {
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <button className="rounded-xl md:rounded-2xl h-12 md:h-14 bg-accent text-accent-foreground font-black px-6 md:px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-none">
+            <Button className="rounded-xl md:rounded-2xl h-12 md:h-14 bg-accent text-accent-foreground font-black px-6 md:px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-none">
               <PlusCircle className="h-5 w-5 md:h-6 md:w-6" /> Abrir Sala
-            </button>
+            </Button>
           </DialogTrigger>
           <DialogContent className="rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 bg-white max-w-lg border-none shadow-2xl">
             <DialogHeader>

@@ -1,40 +1,21 @@
+-- SCRIPT DE ATUALIZAÇÃO INDUSTRIAL COMPROMISSO
+-- Rode este script no seu editor SQL do Supabase para sincronizar as colunas.
 
--- SQL DE SINCRONIZAÇÃO DO COMPROMISSO
--- Copie este conteúdo e rode no SQL Editor do seu projeto Supabase
+-- 1. Tabela de Trilhas (Trails)
+ALTER TABLE IF EXISTS public.trails ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE IF EXISTS public.trails ADD COLUMN IF NOT EXISTS target_audience TEXT DEFAULT 'all';
+ALTER TABLE IF EXISTS public.trails ADD COLUMN IF NOT EXISTS teacher_name TEXT;
+ALTER TABLE IF EXISTS public.trails ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';
+ALTER TABLE IF EXISTS public.trails ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Geral';
 
--- 1. Extensão para busca semântica (opcional, para IA futura)
-create extension if not exists vector;
+-- 2. Tabela de Mensagens de Live (Live Messages)
+-- Garante que o status 'is_answered' exista para mentoria.
+ALTER TABLE IF EXISTS public.live_messages ADD COLUMN IF NOT EXISTS is_answered BOOLEAN DEFAULT false;
 
--- 2. Tabela de Trilhas (trails) - Sincronização de colunas faltantes
-alter table public.trails add column if not exists teacher_name text;
-alter table public.trails add column if not exists image_url text;
-alter table public.trails add column if not exists target_audience text default 'all';
-alter table public.trails add column if not exists is_new boolean default true;
-alter table public.trails add column if not exists status text default 'draft';
+-- 3. Tabela de Perfis (Profiles)
+ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS is_financial_aid_eligible BOOLEAN DEFAULT false;
+ALTER TABLE IF EXISTS public.profiles ADD COLUMN IF NOT EXISTS class_id TEXT;
 
--- 3. Tabela de Vidas/Lives (lives) - Sincronização
-alter table public.lives add column if not exists status text default 'scheduled';
-alter table public.lives add column if not exists teacher_name text;
-
--- 4. Tabela de Progresso do Usuário (user_progress)
-create table if not exists public.user_progress (
-  id uuid default gen_random_uuid() primary key,
-  user_id uuid references auth.users(id) on delete cascade,
-  trail_id uuid references public.trails(id) on delete cascade,
-  percentage integer default 0,
-  last_accessed timestamp with time zone default now(),
-  unique(user_id, trail_id)
-);
-
--- 5. Habilitar Realtime
-alter publication supabase_realtime add table public.lives;
-alter publication supabase_realtime add table public.live_messages;
-
--- 6. Regras de Acesso (RLS) - Permitir tudo para demonstração
-alter table public.trails enable row level security;
-alter table public.lives enable row level security;
-alter table public.user_progress enable row level security;
-
-create policy "Permitir tudo para todos - Demo" on public.trails for all using (true);
-create policy "Permitir tudo para todos - Demo" on public.lives for all using (true);
-create policy "Permitir tudo para todos - Demo" on public.user_progress for all using (true);
+-- 4. Notificações de Alertas de Risco (Simulação para Dashboard 360)
+-- Este comando atualiza o schema cache do PostgREST.
+NOTIFY pgrst, 'reload schema';

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -56,6 +55,7 @@ export default function TeacherTrailsPage() {
 
     setIsSubmitting(true);
     try {
+      // Inserção com colunas completas. Se houver erro de Schema Cache, rodar docs/database.sql
       const { data, error } = await supabase
         .from('trails')
         .insert([{
@@ -72,6 +72,10 @@ export default function TeacherTrailsPage() {
         .single();
 
       if (error) {
+        // Se a coluna image_url não existir, o Supabase retornará um erro de Schema
+        if (error.message.includes('column') || error.message.includes('schema cache')) {
+          throw new Error("Erro de Banco: A coluna 'image_url' ou outras colunas administrativas não foram encontradas. Por favor, rode o script docs/database.sql no seu console Supabase.");
+        }
         throw new Error(error.message || "Erro desconhecido ao salvar trilha.");
       }
 
@@ -82,7 +86,7 @@ export default function TeacherTrailsPage() {
     } catch (e: any) {
       console.error("Falha ao criar trilha:", e);
       toast({ 
-        title: "Erro ao criar trilha", 
+        title: "Erro Crítico", 
         description: e.message || "Verifique sua conexão ou a estrutura do banco de dados.", 
         variant: "destructive" 
       });

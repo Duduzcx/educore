@@ -46,7 +46,6 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Ignora gestos em elementos interativos pesados para não quebrar a aula
     if (target.closest('.no-swipe, input, textarea, select, [role="slider"], button, audio, video, #youtube-player')) return;
     touchStart.current = e.targetTouches[0].clientX;
     touchEnd.current = e.targetTouches[0].clientX;
@@ -62,7 +61,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const absX = Math.abs(distanceX);
 
     // Menu na DIREITA (side="right")
-    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo) em qualquer lugar da tela
+    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo) - Unblocked em qualquer lugar
     if (!openMobile && distanceX < -45 && absX > 25) {
       setOpenMobile(true);
     } 
