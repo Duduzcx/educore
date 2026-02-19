@@ -85,6 +85,10 @@ export default function DirectChatPage() {
           }),
         });
 
+        if (!response.ok) {
+          throw new Error('Erro na comunicação com o servidor.');
+        }
+
         const result = await response.json();
 
         if (result.success && result.result.response) {
@@ -99,7 +103,7 @@ export default function DirectChatPage() {
           throw new Error('Falha na resposta da IA.');
         }
       } catch (err: any) {
-        toast({ title: "Aurora está ocupada", description: "Tente novamente em instantes.", variant: "destructive" });
+        toast({ title: "Aurora está ocupada", description: err.message || "Tente novamente em instantes.", variant: "destructive" });
       } finally {
         setIsAiThinking(false);
       }

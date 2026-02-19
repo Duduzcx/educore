@@ -1,8 +1,7 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -47,7 +46,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.rdp-day, .no-swipe, input, textarea, select, [role="slider"], button, audio, video')) return;
+    if (target.closest('.no-swipe, input, textarea, select, [role="slider"], button, audio, video, #youtube-player')) return;
     touchStart.current = e.targetTouches[0].clientX;
     touchEnd.current = e.targetTouches[0].clientX;
   };
@@ -62,12 +61,11 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const absX = Math.abs(distanceX);
 
     // Menu na DIREITA (side="right")
-    // ABRIR: Deslizar da DIREITA para a ESQUERDA (distanceX negativo)
-    // Reduzido threshold para 40px para ficar mais sensível
+    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo) de qualquer lugar
     if (!openMobile && distanceX < -40 && absX > 20) {
       setOpenMobile(true);
     } 
-    // FECHAR: Deslizar da ESQUERDA para a DIREITA (distanceX positivo)
+    // FECHAR: Deslizar para a DIREITA (distanceX positivo)
     else if (openMobile && distanceX > 40) {
       setOpenMobile(false);
     }

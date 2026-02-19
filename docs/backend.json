@@ -27,7 +27,10 @@
         "category": { "type": "string" },
         "description": { "type": "string" },
         "teacher_id": { "type": "string" },
+        "teacher_name": { "type": "string" },
         "status": { "type": "string", "enum": ["draft", "review", "published", "inactive"] },
+        "image_url": { "type": "string" },
+        "target_audience": { "type": "string" },
         "average_rating": { "type": "number" }
       }
     },

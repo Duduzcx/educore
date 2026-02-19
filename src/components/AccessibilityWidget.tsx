@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -56,12 +55,16 @@ export function AccessibilityWidget() {
         })
       });
 
+      if (!response.ok) {
+        throw new Error('Serviço temporariamente indisponível.');
+      }
+
       const data = await response.json();
       if (data.success && data.result.response) {
         setMessages(prev => [...prev, { role: "assistant", content: data.result.response }]);
       }
-    } catch (err) {
-      toast({ title: "Aurora está analisando dados agora", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Aurora está analisando dados agora", description: err.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setLoading(false);
     }

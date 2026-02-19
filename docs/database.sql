@@ -1,34 +1,40 @@
 
--- SCRIPT DE ATUALIZAÇÃO INDUSTRIAL COMPROMISSO
--- Rode este script no Editor SQL do Supabase para garantir que as lives funcionem corretamente.
+-- SQL DE SINCRONIZAÇÃO DO COMPROMISSO
+-- Copie este conteúdo e rode no SQL Editor do seu projeto Supabase
 
--- 1. Garante que a tabela de lives possui a coluna status
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='lives' AND column_name='status') THEN
-        ALTER TABLE public.lives ADD COLUMN status text DEFAULT 'scheduled';
-    END IF;
-END $$;
+-- 1. Extensão para busca semântica (opcional, para IA futura)
+create extension if not exists vector;
 
--- 2. Tabela de mensagens da live (Realtime Chat)
-CREATE TABLE IF NOT EXISTS public.live_messages (
-    id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-    live_id uuid REFERENCES public.lives(id) ON DELETE CASCADE,
-    user_id uuid REFERENCES auth.users(id),
-    user_name text,
-    content text,
-    is_question boolean DEFAULT false,
-    is_answered boolean DEFAULT false,
-    created_at timestamp with time zone DEFAULT now()
+-- 2. Tabela de Trilhas (trails) - Sincronização de colunas faltantes
+alter table public.trails add column if not exists teacher_name text;
+alter table public.trails add column if not exists image_url text;
+alter table public.trails add column if not exists target_audience text default 'all';
+alter table public.trails add column if not exists is_new boolean default true;
+alter table public.trails add column if not exists status text default 'draft';
+
+-- 3. Tabela de Vidas/Lives (lives) - Sincronização
+alter table public.lives add column if not exists status text default 'scheduled';
+alter table public.lives add column if not exists teacher_name text;
+
+-- 4. Tabela de Progresso do Usuário (user_progress)
+create table if not exists public.user_progress (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  trail_id uuid references public.trails(id) on delete cascade,
+  percentage integer default 0,
+  last_accessed timestamp with time zone default now(),
+  unique(user_id, trail_id)
 );
 
--- 3. Habilita Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE lives;
-ALTER PUBLICATION supabase_realtime ADD TABLE live_messages;
+-- 5. Habilitar Realtime
+alter publication supabase_realtime add table public.lives;
+alter publication supabase_realtime add table public.live_messages;
 
--- 4. Políticas de Segurança (Modo Aberto para Apresentação)
-ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.live_messages ENABLE ROW LEVEL SECURITY;
+-- 6. Regras de Acesso (RLS) - Permitir tudo para demonstração
+alter table public.trails enable row level security;
+alter table public.lives enable row level security;
+alter table public.user_progress enable row level security;
 
-CREATE POLICY "Acesso total lives" ON public.lives FOR ALL USING (true);
-CREATE POLICY "Acesso total mensagens" ON public.live_messages FOR ALL USING (true);
+create policy "Permitir tudo para todos - Demo" on public.trails for all using (true);
+create policy "Permitir tudo para todos - Demo" on public.lives for all using (true);
+create policy "Permitir tudo para todos - Demo" on public.user_progress for all using (true);

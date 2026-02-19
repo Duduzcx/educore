@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, LayoutDashboard, Search, Loader2, AlertCircle, FlaskConical, Database, Eye, Globe, Lock, Sparkles } from "lucide-react";
+import { Plus, LayoutDashboard, Search, Loader2, Database, Eye, Globe, Lock, Sparkles, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -17,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/app/lib/supabase";
 
 export default function TeacherTrailsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -63,22 +62,32 @@ export default function TeacherTrailsPage() {
           category: newTrail.category,
           description: newTrail.description,
           teacher_id: user.id,
-          teacher_name: user.user_metadata?.full_name || "Professor",
+          teacher_name: profile?.name || user.user_metadata?.full_name || "Professor",
           status: "draft",
-          image_url: `https://picsum.photos/seed/${Date.now()}/600/400`,
+          image_url: `https://picsum.photos/seed/trail-${Date.now()}/600/400`,
           target_audience: "all"
         }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('column') || error.code === '42703') {
+          throw new Error("Erro de Banco: Colunas ausentes. Rode o script docs/database.sql no seu painel Supabase.");
+        }
+        throw error;
+      }
 
       toast({ title: "Trilha Criada!", description: "Continue editando os módulos para publicar." });
       setTrails(prev => [data, ...prev]);
       setIsCreateDialogOpen(false);
       setNewTrail({ title: "", category: "Dúvidas", description: "" });
     } catch (e: any) {
-      toast({ title: "Erro ao criar", description: e.message, variant: "destructive" });
+      console.error("Falha ao criar trilha:", e);
+      toast({ 
+        title: "Erro ao criar trilha", 
+        description: e.message || "Verifique sua conexão ou rode o SQL de sincronização.", 
+        variant: "destructive" 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -103,7 +112,9 @@ export default function TeacherTrailsPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-lg border-none shadow-2xl">
-              <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Configurar Trilha</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black italic text-primary">Configurar Trilha</DialogTitle>
+              </DialogHeader>
               <div className="grid gap-6 py-6">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -147,7 +158,7 @@ export default function TeacherTrailsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {trails.filter(t => t.title.toLowerCase().includes(searchTerm.toLowerCase())).map((trail) => {
-            const isActive = trail.status === 'active';
+            const isActive = trail.status === 'active' || trail.status === 'published';
             
             return (
               <Card key={trail.id} className="border-none shadow-xl overflow-hidden group bg-white rounded-[2.5rem] flex flex-col hover:shadow-2xl transition-all duration-500">

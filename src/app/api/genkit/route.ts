@@ -1,4 +1,3 @@
-
 import { ai } from '@/ai/genkit';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -8,7 +7,15 @@ import '@/ai/flows/quiz-generator';
 
 export async function POST(req: NextRequest) {
   try {
-    const { flowId, input } = await req.json();
+    const text = await req.text();
+    if (!text) {
+      return NextResponse.json(
+        { error: 'Empty request body' },
+        { status: 400 }
+      );
+    }
+
+    const { flowId, input } = JSON.parse(text);
 
     if (!flowId) {
       return NextResponse.json(

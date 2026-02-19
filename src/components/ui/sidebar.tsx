@@ -179,10 +179,8 @@ const Sidebar = React.forwardRef<
           )}
           ref={ref}
           {...props}
-        >
-          {children}
-        </div>
-      )
+        )
+      }
     }
 
     if (isMobile) {
