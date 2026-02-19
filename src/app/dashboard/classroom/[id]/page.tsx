@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -14,14 +13,11 @@ import {
   BookOpen, 
   PlayCircle, 
   BrainCircuit,
-  Bot,
   Paperclip,
   Loader2,
   Video,
   CheckCircle2,
-  AlertCircle,
   HelpCircle,
-  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -65,7 +61,6 @@ export default function ClassroomPage() {
       if (modulesData.length > 0) {
         setActiveModuleId(modulesData[0].id);
         
-        // Busca todos os conteúdos de todos os módulos de uma vez
         const moduleIds = modulesData.map(m => m.id);
         const { data: contentsData } = await supabase.from('learning_contents').select('*').in('module_id', moduleIds);
         
@@ -233,7 +228,6 @@ export default function ClassroomPage() {
                     </div>
                     {activeContent?.type === 'quiz' ? (
                       <div className="grid gap-4">
-                        {/* Renderização dinâmica das questões se houver JSON no description */}
                         <p className="text-xs text-muted-foreground italic font-medium">Inicie o quiz anexado abaixo para testar seus conhecimentos.</p>
                         <Button className="w-full md:w-auto bg-primary h-14 rounded-2xl font-black shadow-xl">Começar Simulado</Button>
                       </div>

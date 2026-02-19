@@ -1,7 +1,6 @@
 import { ai } from '@/ai/genkit';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Importe seus fluxos de IA aqui para garantir o registro
 import '@/ai/flows/concept-explanation-assistant';
 import '@/ai/flows/financial-aid-determination';
 import '@/ai/flows/quiz-generator';
@@ -17,8 +16,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // No Genkit 1.x, usamos a instância ai para rodar fluxos dinamicamente
-    // O padrão de chamada correto é ai.run(flowId, input)
     const result = await ai.run(flowId, input);
 
     return NextResponse.json({ success: true, result });

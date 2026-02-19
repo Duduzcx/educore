@@ -40,7 +40,6 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    // Ignora elementos de interação complexa para não travar
     if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, [role="slider"]')) return;
     
     touchStart.current = e.targetTouches[0].clientX;
@@ -57,7 +56,6 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     
-    // Se o movimento vertical for muito grande, ignora (evita abrir menu ao rolar a página)
     if (distanceY > 80) return; 
 
     // Menu na DIREITA (side="right")
