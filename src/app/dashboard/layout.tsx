@@ -7,7 +7,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { SheetTitle } from "@/components/ui/sheet";
 import { useEffect, useState, useMemo, memo, useRef } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
 
@@ -48,8 +47,9 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.rdp-day, .no-swipe, input, textarea, select, [role="slider"], button')) return;
+    if (target.closest('.rdp-day, .no-swipe, input, textarea, select, [role="slider"], button, audio, video')) return;
     touchStart.current = e.targetTouches[0].clientX;
+    touchEnd.current = e.targetTouches[0].clientX;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -59,20 +59,22 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
   const handleTouchEnd = () => {
     if (!isMobile) return;
     const distanceX = touchEnd.current - touchStart.current;
+    const absX = Math.abs(distanceX);
 
     // Menu na DIREITA (side="right")
     // ABRIR: Deslizar da DIREITA para a ESQUERDA (distanceX negativo)
-    if (!openMobile && distanceX < -50) {
+    // Reduzido threshold para 40px para ficar mais sensível
+    if (!openMobile && distanceX < -40 && absX > 20) {
       setOpenMobile(true);
     } 
     // FECHAR: Deslizar da ESQUERDA para a DIREITA (distanceX positivo)
-    else if (openMobile && distanceX > 50) {
+    else if (openMobile && distanceX > 40) {
       setOpenMobile(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+    <div className="flex-1 flex flex-col min-h-0 touch-pan-y" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
       {children}
     </div>
   );
@@ -139,7 +141,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarProvider>
       <Sidebar side="right" collapsible="icon" className="bg-sidebar border-none">
         <SidebarHeader className="p-6">
-           <SheetTitle className="sr-only">Menu Compromisso</SheetTitle>
            <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg">
               <BookOpen className="h-5 w-5" />
