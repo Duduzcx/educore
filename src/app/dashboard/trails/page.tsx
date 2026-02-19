@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -30,72 +31,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/app/lib/supabase";
 
 const TRAIL_CATEGORIES = ["Todos", "Matemática", "Tecnologia", "Linguagens", "Física", "Biologia", "História", "Geografia"];
 const AUDIENCE_FILTERS = [
   { id: "all", label: "Toda a Comunidade" },
   { id: "etec", label: "Perfil ETEC" },
   { id: "uni", label: "Perfil Vestibular" }
-];
-
-const MOCK_DB_TRAILS = [
-  {
-    id: "ia-gen-1",
-    title: "IA Generativa: Do Zero ao Avançado",
-    category: "Tecnologia",
-    description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho.",
-    modules_count: 8,
-    teacher_name: "Prof. Ada Lovelace",
-    status: "active",
-    image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
-    targetAudience: "both",
-    is_new: true,
-  },
-  {
-    id: "math-enem-1",
-    title: "Matemática ENEM: Foco em Aprovação",
-    category: "Matemática",
-    description: "Revisão intensiva dos temas com maior recorrência no exame nacional.",
-    modules_count: 12,
-    teacher_name: "Prof. Bhaskara",
-    status: "active",
-    image_url: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800",
-    targetAudience: "etec",
-    is_fundamental: true,
-  },
-  {
-    id: "physics-exp-1",
-    title: "Física Experimental: Mecânica",
-    category: "Física",
-    description: "Leis de Newton e cinemática através de experimentos práticos e simulações.",
-    modules_count: 6,
-    teacher_name: "Prof. Newton",
-    status: "active",
-    image_url: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=800",
-    targetAudience: "uni"
-  },
-  {
-    id: "bio-cel-1",
-    title: "Biologia: A Vida na Célula",
-    category: "Biologia",
-    description: "Explore o interior das células, organelas e o código genético.",
-    modules_count: 10,
-    teacher_name: "Prof. Darwin",
-    status: "active",
-    image_url: "https://images.unsplash.com/photo-1600740073508-89a1726b3cf6?auto=format&fit=crop&q=80&w=800",
-    targetAudience: "etec"
-  },
-  {
-    id: "hist-br-1",
-    title: "História do Brasil: Colônia ao Império",
-    category: "História",
-    description: "Uma jornada pelos eventos que moldaram a identidade brasileira.",
-    modules_count: 15,
-    teacher_name: "Prof. Tiradentes",
-    status: "active",
-    image_url: "https://images.unsplash.com/photo-1599116723121-ef48d9058d3c?auto=format&fit=crop&q=80&w=800",
-    targetAudience: "uni"
-  }
 ];
 
 export default function LearningTrailsPage() {
@@ -108,31 +50,43 @@ export default function LearningTrailsPage() {
   const [allProgress, setAllProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isDemoAccount = user?.email === 'aluno@compromisso.com.br';
-
   useEffect(() => {
-    function fetchData() {
+    async function fetchData() {
       if (!user) return;
       setLoading(true);
-      setTimeout(() => {
-        setDbTrails(MOCK_DB_TRAILS);
-        if (isDemoAccount) {
-          setAllProgress([{ trail_id: "math-enem-1", percentage: 75 }]);
-        } else {
-          setAllProgress([]); 
-        }
+      try {
+        // Busca trilhas ativas do banco real
+        const { data: trails, error: trailsError } = await supabase
+          .from('trails')
+          .select('*')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+
+        if (trailsError) throw trailsError;
+
+        // Busca progresso do usuário
+        const { data: progress } = await supabase
+          .from('user_progress')
+          .select('*')
+          .eq('user_id', user.id);
+
+        setDbTrails(trails || []);
+        setAllProgress(progress || []);
+      } catch (e) {
+        console.error("Erro ao sincronizar trilhas:", e);
+      } finally {
         setLoading(false);
-      }, 1000);
+      }
     }
     fetchData();
-  }, [user, isDemoAccount]);
+  }, [user]);
 
   const filteredTrails = useMemo(() => {
     return dbTrails.filter(trail => {
       const matchesSearch = trail.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             trail.category?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = activeCategory === "Todos" || trail.category === activeCategory;
-      const matchesAudience = activeAudience === "all" || trail.targetAudience === activeAudience || trail.targetAudience === "both";
+      const matchesAudience = activeAudience === "all" || trail.target_audience === activeAudience || trail.target_audience === "both";
       
       return matchesSearch && matchesCategory && matchesAudience;
     });

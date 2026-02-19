@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,45 +14,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-
-// TODO: Refatorar para usar o Firebase.
-// A lógica de criação e busca de trilhas foi mocada.
-
-const mockInitialTrails = [
-    {
-      id: "ia-gen-1",
-      title: "IA Generativa: Do Zero ao Avançado",
-      category: "Tecnologia",
-      description: "Domine as ferramentas de Inteligência Artificial que estão transformando o mercado de trabalho.",
-      teacher_id: "teacher-demo",
-      teacher_name: "Professor Demo",
-      status: "active",
-      image_url: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
-      created_at: new Date(Date.now() - 86400000).toISOString()
-    },
-    {
-      id: "math-enem-1",
-      title: "Matemática ENEM: Foco em Aprovação",
-      category: "Matemática",
-      description: "Revisão intensiva dos temas com maior recorrência no exame nacional.",
-      teacher_id: "teacher-demo",
-      teacher_name: "Professor Demo",
-      status: "active",
-      image_url: "https://images.unsplash.com/photo-1613563696452-c7239f5ae99c?auto=format&fit=crop&q=80&w=800",
-      created_at: new Date(Date.now() - 172800000).toISOString()
-    },
-    {
-      id: "redacao-rascunho-1",
-      title: "Guia de Redação (Rascunho)",
-      category: "Redação",
-      description: "Estruturando a dissertação perfeita.",
-      teacher_id: "teacher-demo",
-      teacher_name: "Professor Demo",
-      status: "draft",
-      image_url: null,
-      created_at: new Date().toISOString()
-    }
-];
+import { supabase } from "@/app/lib/supabase";
 
 export default function TeacherTrailsPage() {
   const { user } = useAuth();
@@ -61,59 +24,68 @@ export default function TeacherTrailsPage() {
   const [trails, setTrails] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newTrail, setNewTrail] = useState({ title: "", category: "", description: "" });
+  const [newTrail, setNewTrail] = useState({ title: "", category: "Dúvidas", description: "" });
 
-  const fetchTrails = () => {
+  const fetchTrails = async () => {
+    if (!user) return;
     setLoading(true);
-    setTimeout(() => {
-        setTrails(mockInitialTrails);
-        setLoading(false);
-    }, 800);
+    try {
+      const { data, error } = await supabase
+        .from('trails')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTrails(data || []);
+    } catch (e) {
+      console.error("Erro ao buscar trilhas:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (user) fetchTrails();
+    fetchTrails();
   }, [user]);
 
-  const handleCreateTrail = () => {
-    if (!newTrail.title || !user) return;
+  const handleCreateTrail = async () => {
+    if (!newTrail.title || !user) {
+      toast({ title: "Título obrigatório", variant: "destructive" });
+      return;
+    }
 
     setIsSubmitting(true);
-    const createdTrail = {
-        id: `trail_${Date.now()}`,
-        ...newTrail,
-        teacher_id: user.id,
-        teacher_name: user.user_metadata?.full_name || "Professor",
-        status: "draft",
-        created_at: new Date().toISOString(),
-        image_url: null
-    };
+    try {
+      const { data, error } = await supabase
+        .from('trails')
+        .insert([{
+          title: newTrail.title,
+          category: newTrail.category,
+          description: newTrail.description,
+          teacher_id: user.id,
+          teacher_name: user.user_metadata?.full_name || "Professor",
+          status: "draft",
+          image_url: `https://picsum.photos/seed/${Date.now()}/600/400`,
+          target_audience: "all"
+        }])
+        .select()
+        .single();
 
-    setTimeout(() => {
-        setTrails(prev => [createdTrail, ...prev]);
-        toast({ title: "Trilha Criada em Rascunho! (Simulação)" });
-        setIsCreateDialogOpen(false);
-        setNewTrail({ title: "", category: "", description: "" });
-        setIsSubmitting(false);
-    }, 1000);
+      if (error) throw error;
+
+      toast({ title: "Trilha Criada!", description: "Continue editando os módulos para publicar." });
+      setTrails(prev => [data, ...prev]);
+      setIsCreateDialogOpen(false);
+      setNewTrail({ title: "", category: "Dúvidas", description: "" });
+    } catch (e: any) {
+      toast({ title: "Erro ao criar", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleGenerateTopics = () => {
-    toast({ title: "Funcionalidade em desenvolvimento", description: "Em breve, a IA irá sugerir tópicos para você." });
-  };
-
-  const handleSeedTrails = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-        toast({ 
-            title: "Estrutura Digital Gerada! (Simulação)", 
-            description: "Trilhas, módulos e aulas foram adicionados para demonstração." 
-        });
-        // Adiciona as trilhas mock novamente com IDs diferentes para evitar conflitos de chave
-        const newSeed = mockInitialTrails.map(t => ({...t, id: `${t.id}-${Date.now()}`}))
-        setTrails(prev => [...newSeed, ...prev]);
-        setIsSubmitting(false);
-    }, 1500);
+    toast({ title: "Aurora analisando...", description: "A IA está processando sugestões para sua nova trilha." });
   };
 
   return (
@@ -124,31 +96,21 @@ export default function TeacherTrailsPage() {
           <p className="text-muted-foreground font-medium">Administre caminhos pedagógicos e publique para a rede.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={handleSeedTrails} 
-            disabled={isSubmitting}
-            className="rounded-xl h-14 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6 shadow-sm"
-          >
-            {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <FlaskConical className="h-5 w-5 mr-2" />}
-            Gerar Trilhas Ativas (Demos)
-          </Button>
-          
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl">
+              <Button className="rounded-2xl h-14 bg-accent text-accent-foreground font-black px-8 shadow-xl hover:scale-105 transition-all">
                 <Plus className="h-6 w-6 mr-2" /> Nova Trilha Digital
               </Button>
             </DialogTrigger>
-            <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-lg">
-              <DialogHeader><DialogTitle className="text-2xl font-black italic">Configurar Trilha</DialogTitle></DialogHeader>
+            <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-lg border-none shadow-2xl">
+              <DialogHeader><DialogTitle className="text-2xl font-black italic text-primary">Configurar Trilha</DialogTitle></DialogHeader>
               <div className="grid gap-6 py-6">
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label className="text-[10px] font-black uppercase opacity-40">Título da Trilha</Label>
                     <Button variant="ghost" size="sm" onClick={handleGenerateTopics} className="text-xs text-accent font-bold hover:bg-accent/10">
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Gerar Tópicos com IA
+                      Sugerir com IA
                     </Button>
                   </div>
                   <Input placeholder="Ex: Fundamentos de IA" className="h-12 rounded-xl bg-muted/30 border-none font-bold" value={newTrail.title} onChange={(e) => setNewTrail({ ...newTrail, title: e.target.value })} />
@@ -159,12 +121,12 @@ export default function TeacherTrailsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase opacity-40">Descrição Geral</Label>
-                  <Textarea placeholder="O que o aluno aprenderá nesta jornada?" className="min-h-[120px] rounded-xl bg-muted/30 border-none font-medium" value={newTrail.description} onChange={(e) => setNewTrail({ ...newTrail, description: e.target.value })} />
+                  <Textarea placeholder="O que o aluno aprenderá nesta jornada?" className="min-h-[120px] rounded-xl bg-muted/30 border-none font-medium resize-none" value={newTrail.description} onChange={(e) => setNewTrail({ ...newTrail, description: e.target.value })} />
                 </div>
               </div>
               <DialogFooter>
                 <Button onClick={handleCreateTrail} disabled={isSubmitting} className="w-full h-16 bg-primary text-white font-black text-lg rounded-2xl shadow-xl">
-                  {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Trilha Pedagógica"}
+                  {isSubmitting ? <Loader2 className="animate-spin h-6 w-6" /> : "Criar Trilha"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -172,9 +134,9 @@ export default function TeacherTrailsPage() {
         </div>
       </div>
 
-      <div className="relative max-w-xl">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        <Input placeholder="Pesquisar entre suas trilhas..." className="pl-12 h-14 bg-white border-none shadow-xl rounded-[1.25rem] italic" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      <div className="relative max-w-xl group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-accent transition-colors" />
+        <Input placeholder="Pesquisar entre suas trilhas..." className="pl-12 h-14 bg-white border-none shadow-xl rounded-[1.25rem] italic focus-visible:ring-accent" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
       </div>
 
       {loading ? (
@@ -221,7 +183,7 @@ export default function TeacherTrailsPage() {
             <div className="col-span-full py-20 text-center border-4 border-dashed border-muted/20 rounded-[3rem] bg-muted/5 animate-in fade-in duration-1000">
               <Database className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
               <p className="font-black text-primary italic text-xl">Nenhuma trilha encontrada</p>
-              <p className="text-muted-foreground font-medium mt-2">Inicie uma nova trilha ou gere as demos acima.</p>
+              <p className="text-muted-foreground font-medium mt-2">Inicie uma nova trilha ou publique seus rascunhos.</p>
             </div>
           )}
         </div>

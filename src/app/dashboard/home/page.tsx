@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Library,
   Bot,
@@ -13,11 +14,15 @@ import {
   Sparkles,
   Megaphone,
   AlertOctagon,
-  Info
+  Info,
+  TrendingUp,
+  Clock,
+  PlayCircle
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider"; 
+import { supabase } from "@/app/lib/supabase";
 
 interface LibraryItem {
   id: string;
@@ -45,28 +50,41 @@ export default function DashboardHome() {
   const [loadingLibrary, setLoadingLibrary] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [recentProgress, setRecentProgress] = useState<any[]>([]);
+  const [loadingProgress, setLoadingProgress] = useState(true);
 
   useEffect(() => {
-    setLoadingAnnouncements(true);
-    setTimeout(() => {
-        setAnnouncements([
-             { id: 2, title: 'Manutenção Programada', message: 'A plataforma passará por uma manutenção rápida na próxima sexta-feira às 23h.', priority: 'medium' },
-             { id: 1, title: 'Boas-vindas à Plataforma Compromisso!', message: 'Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.', priority: 'low' },
-        ]);
-        setLoadingAnnouncements(false);
-    }, 400);
+    async function fetchHomeData() {
+      if (!user) return;
 
-    setLoadingLibrary(true);
-    setTimeout(() => {
-        setLibraryItems([
-            { id: '1', title: 'Guia Completo de Redação', description: 'Aprenda a estruturar sua redação para a nota máxima.', category: 'Linguagens' },
-            { id: '2', title: 'Fórmulas de Física Essenciais', description: 'Todas as fórmulas que você precisa saber para o ENEM.', category: 'Física' },
-            { id: '3', title: 'Revoluções e seus Impactos', description: 'Um resumo sobre as principais revoluções da história.', category: 'História' },
-            { id: '4', title: 'Guia de Funções Matemáticas', description: 'Domine as funções de primeiro e segundo grau.', category: 'Matemática' }
-        ]);
-        setLoadingLibrary(false);
-    }, 500);
-  }, []);
+      setLoadingAnnouncements(true);
+      // Simulação de avisos (geralmente fixos do polo)
+      setAnnouncements([
+           { id: 2, title: 'Manutenção Programada', message: 'A plataforma passará por uma manutenção rápida na próxima sexta-feira às 23h.', priority: 'medium' },
+           { id: 1, title: 'Boas-vindas à Plataforma Compromisso!', message: 'Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.', priority: 'low' },
+      ]);
+      setLoadingAnnouncements(false);
+
+      setLoadingLibrary(true);
+      // Busca trilhas em destaque como acervo
+      const { data: featured } = await supabase.from('trails').select('*').limit(4);
+      setLibraryItems(featured?.map(f => ({ id: f.id, title: f.title, description: f.description, category: f.category })) || []);
+      setLoadingLibrary(false);
+
+      setLoadingProgress(true);
+      // Busca progresso real do usuário
+      const { data: progress } = await supabase
+        .from('user_progress')
+        .select('*, trail:trails(title, category, image_url)')
+        .eq('user_id', user.id)
+        .order('last_accessed', { ascending: false })
+        .limit(2);
+      
+      setRecentProgress(progress || []);
+      setLoadingProgress(false);
+    }
+    fetchHomeData();
+  }, [user]);
 
   if (isUserLoading) {
     return (
@@ -96,72 +114,81 @@ export default function DashboardHome() {
          </div>
       </section>
 
-      <div>
-        <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2 mb-4">
-          <Megaphone className="h-5 w-5 text-accent" /> Mural de Avisos
-        </h2>
-        {loadingAnnouncements ? (
-          <div className="py-10 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
-            <Loader2 className="animate-spin text-accent h-8 w-8" />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {announcements.map(ann => {
-              const Icon = priorityStyles[ann.priority].icon;
-              const color = priorityStyles[ann.priority].color;
-              const bgColor = priorityStyles[ann.priority].bgColor;
-              return (
-                <div key={ann.id} className={`p-4 rounded-xl flex items-start gap-4 shadow-sm ${bgColor}`}>
-                  <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${color}`} />
-                  <div className="flex-1">
-                    <p className={`font-bold text-sm ${color}`}>{ann.title}</p>
-                    <p className="text-xs text-slate-600">{ann.message}</p>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-8">
-        <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2">
-              <Library className="h-5 w-5 text-accent" /> Acervo em Destaque
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div>
+            <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2 mb-4">
+              <Megaphone className="h-5 w-5 text-accent" /> Mural de Avisos
             </h2>
-            {loadingLibrary ? (
-               <div className="py-20 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
-                <Loader2 className="animate-spin text-accent h-10 w-10" />
+            {loadingAnnouncements ? (
+              <div className="py-10 flex flex-col items-center justify-center gap-4 border-2 border-dashed rounded-[2.5rem] bg-white/50">
+                <Loader2 className="animate-spin text-accent h-8 w-8" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {libraryItems.map((item, idx) => (
-                  <Link key={item.id} href="/dashboard/library" className="group block">
-                    <Card className="border-none shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-white rounded-[2rem] flex items-center gap-5 p-5">
-                        <div className='w-20 h-20 shrink-0 relative rounded-2xl overflow-hidden shadow-md'>
-                            <Image 
-                              src={`https://picsum.photos/seed/${item.id}/150/150`} 
-                              alt={item.title} 
-                              width={150} 
-                              height={150} 
-                              className="object-cover" 
-                              priority={idx < 2}
-                              data-ai-hint="educational cover"
-                            />
+              <div className="space-y-3">
+                {announcements.map(ann => {
+                  const Icon = priorityStyles[ann.priority].icon;
+                  const color = priorityStyles[ann.priority].color;
+                  const bgColor = priorityStyles[ann.priority].bgColor;
+                  return (
+                    <div key={ann.id} className={`p-4 rounded-xl flex items-start gap-4 shadow-sm ${bgColor} animate-in slide-in-from-left duration-500`}>
+                      <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${color}`} />
+                      <div className="flex-1">
+                        <p className={`font-bold text-sm ${color}`}>{ann.title}</p>
+                        <p className="text-xs text-slate-600">{ann.message}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h2 className="text-xl font-black text-primary italic flex items-center gap-2 px-2 mb-4">
+              <TrendingUp className="h-5 w-5 text-accent" /> Continuar Aprendizado
+            </h2>
+            {loadingProgress ? (
+              <div className="py-10 flex justify-center"><Loader2 className="animate-spin text-accent" /></div>
+            ) : recentProgress.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {recentProgress.map((prog) => (
+                  <Link key={prog.id} href={`/dashboard/classroom/${prog.trail_id}`}>
+                    <Card className="border-none shadow-xl hover:shadow-2xl transition-all duration-500 bg-white rounded-3xl p-6 flex flex-col md:flex-row items-center gap-6 group">
+                      <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                        <PlayCircle className="h-10 w-10" />
+                      </div>
+                      <div className="flex-1 space-y-2 w-full">
+                        <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black uppercase text-accent tracking-widest">{prog.trail?.category}</span>
+                          <span className="text-[10px] font-black text-primary/40 uppercase flex items-center gap-1 italic"><Clock className="h-3 w-3"/> Ativo</span>
                         </div>
-                        <div className='flex-1 space-y-1.5 overflow-hidden'>
-                            <Badge variant='secondary' className='font-black text-[7px] uppercase tracking-widest bg-accent/10 text-accent border-none'>{item.category}</Badge>
-                            <h3 className='font-black text-sm leading-tight text-primary truncate italic'>{item.title}</h3>
-                            <p className='text-[10px] text-muted-foreground line-clamp-2 font-medium'>{item.description}</p>
+                        <h3 className="font-black text-lg text-primary italic leading-none">{prog.trail?.title}</h3>
+                        <div className="space-y-1.5 pt-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[8px] font-black text-primary/40 uppercase">Sua Evolução</span>
+                            <span className="text-[10px] font-black text-accent italic">{prog.percentage}%</span>
+                          </div>
+                          <Progress value={prog.percentage} className="h-1.5 rounded-full" />
                         </div>
+                      </div>
                     </Card>
                   </Link>
                 ))}
               </div>
+            ) : (
+              <div className="py-12 text-center border-4 border-dashed rounded-[2.5rem] bg-muted/5 opacity-40">
+                <PlayCircle className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="font-black italic text-primary">Inicie sua primeira trilha!</p>
+                <Button asChild variant="ghost" className="text-[10px] uppercase font-black mt-2 text-accent">
+                  <Link href="/dashboard/trails">Explorar Trilhas</Link>
+                </Button>
+              </div>
             )}
+          </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
             <h3 className="text-xl font-black text-primary italic px-2">Sistema Monitorado</h3>
             <Card className="border-none shadow-2xl bg-primary text-white rounded-[2.5rem] p-8 overflow-hidden relative group">
               <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
@@ -185,6 +212,25 @@ export default function DashboardHome() {
                 </Button>
               </div>
             </Card>
+
+            <h3 className="text-xl font-black text-primary italic px-2">Acervo Recomendado</h3>
+            <div className="space-y-4">
+              {libraryItems.map((item) => (
+                <Link key={item.id} href={`/dashboard/classroom/${item.id}`} className="block">
+                  <Card className="p-4 border-none shadow-lg bg-white rounded-2xl hover:shadow-xl transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-xl bg-muted/30 relative overflow-hidden shrink-0">
+                        <Image src={`https://picsum.photos/seed/${item.id}/100/100`} alt={item.title} fill className="object-cover" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Badge className="bg-primary/5 text-primary text-[7px] border-none font-black uppercase mb-1">{item.category}</Badge>
+                        <h4 className="font-black text-xs text-primary truncate italic">{item.title}</h4>
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
         </div>
       </div>
     </div>

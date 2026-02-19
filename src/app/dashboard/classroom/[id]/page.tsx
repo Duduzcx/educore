@@ -19,10 +19,13 @@ import {
   Loader2,
   Video,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  HelpCircle,
+  Sparkles
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/app/lib/supabase";
 
 let apiLoaded = false;
 
@@ -47,16 +50,63 @@ export default function ClassroomPage() {
   const progressInterval = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const loadTrailData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const { data: trailData } = await supabase.from('trails').select('*').eq('id', trailId).single();
+      if (!trailData) return;
+      setTrail(trailData);
+
+      const { data: modulesData } = await supabase.from('modules').select('*').eq('trail_id', trailId).order('order_index');
+      if (!modulesData) return;
+      setModules(modulesData);
+      
+      if (modulesData.length > 0) {
+        setActiveModuleId(modulesData[0].id);
+        
+        // Busca todos os conteúdos de todos os módulos de uma vez
+        const moduleIds = modulesData.map(m => m.id);
+        const { data: contentsData } = await supabase.from('learning_contents').select('*').in('module_id', moduleIds);
+        
+        const contentMap: Record<string, any[]> = {};
+        contentsData?.forEach(c => {
+          if (!contentMap[c.module_id]) contentMap[c.module_id] = [];
+          contentMap[c.module_id].push(c);
+        });
+        setContents(contentMap);
+
+        if (contentMap[modulesData[0].id]?.length > 0) {
+          setActiveContentId(contentMap[modulesData[0].id][0].id);
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao carregar aula:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [trailId]);
+
+  useEffect(() => {
+    loadTrailData();
+  }, [loadTrailData]);
+
   const updateServerProgress = useCallback(async (percentage: number) => {
     const completed = percentage >= 80;
-    if (completed && !isCompleted) {
+    if (completed && !isCompleted && user) {
       setIsCompleted(true);
+      await supabase.from('user_progress').upsert({
+        user_id: user.id,
+        trail_id: trailId,
+        percentage: Math.round(percentage),
+        last_accessed: new Date().toISOString()
+      });
       toast({ 
-        title: "Vigilante Compromisso: Módulo Concluído!", 
-        description: "Você atingiu 80% de visualização e seu progresso foi salvo (simulação)." 
+        title: "Módulo Concluído!", 
+        description: "Seu progresso foi salvo com sucesso." 
       });
     }
-  }, [isCompleted, toast]);
+  }, [isCompleted, toast, user, trailId]);
 
   const onPlayerStateChange = (event: any) => {
     if (event.data === 1) { // PLAYING
@@ -85,23 +135,6 @@ export default function ClassroomPage() {
       apiLoaded = true;
     }
   }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    setTrail({ id: trailId, title: "Trilha de Exemplo" });
-    const mockModules = [{ id: '1', title: "Módulo 1", order_index: 1 }];
-    setModules(mockModules);
-    setActiveModuleId('1');
-    const mockContents = {
-        '1': [
-            { id: '101', module_id: '1', title: 'Vídeo de Introdução', type: 'video', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', description: 'Descrição do vídeo.' },
-            { id: '102', module_id: '1', title: 'Quiz Rápido', type: 'quiz', description: '[]' }
-        ]
-    };
-    setContents(mockContents);
-    setActiveContentId('101');
-    setLoading(false);
-  }, [trailId]);
 
   const activeModule = modules.find(m => m.id === activeModuleId);
   const activeContent = contents[activeModuleId || ""]?.find(c => c.id === activeContentId);
@@ -165,17 +198,71 @@ export default function ClassroomPage() {
 
           <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
             <TabsList className="grid w-full grid-cols-4 bg-muted/30 p-1 h-14 rounded-none border-b shrink-0">
-              <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest"><BookOpen className="h-4 w-4 text-accent"/>Aula</TabsTrigger>
+              <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest"><BookOpen className="h-4 w-4 text-accent"/>Resumo</TabsTrigger>
               <TabsTrigger value="quiz" className="gap-2 font-black text-[9px] uppercase tracking-widest"><BrainCircuit className="h-4 w-4 text-accent"/>Quiz IA</TabsTrigger>
               <TabsTrigger value="live" className="gap-2 font-black text-[9px] uppercase tracking-widest"><Video className="h-4 w-4 text-red-500"/>Live</TabsTrigger>
               <TabsTrigger value="materials" className="gap-2 font-black text-[9px] uppercase tracking-widest"><Paperclip className="h-4 w-4 text-blue-500"/>Apoio</TabsTrigger>
             </TabsList>
             
             <div className="flex-1 overflow-y-auto p-6 md:p-10 scrollable-content" ref={scrollRef}>
-               <TabsContent value="summary" className="mt-0 outline-none"><p>{activeContent?.description}</p></TabsContent>
-               <TabsContent value="quiz" className="mt-0 outline-none">...</TabsContent>
-               <TabsContent value="live" className="mt-0 outline-none">...</TabsContent>
-               <TabsContent value="materials" className="mt-0 outline-none">...</TabsContent>
+               <TabsContent value="summary" className="mt-0 outline-none">
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <h2 className="text-xl font-black text-primary italic">Material da Aula</h2>
+                    </div>
+                    <Card className="border-none shadow-sm bg-muted/5 p-6 rounded-2xl">
+                      <p className="text-sm md:text-base leading-relaxed text-primary/80 font-medium italic">
+                        {activeContent?.description || "Selecione um conteúdo para ver o resumo detalhado desta unidade."}
+                      </p>
+                    </Card>
+                  </div>
+               </TabsContent>
+               <TabsContent value="quiz" className="mt-0 outline-none">
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                          <BrainCircuit className="h-5 w-5" />
+                        </div>
+                        <h2 className="text-xl font-black text-primary italic">Avaliação Adaptativa</h2>
+                      </div>
+                      <Badge className="bg-primary text-white border-none font-black text-[8px] px-3 uppercase tracking-widest">IA Aurora</Badge>
+                    </div>
+                    {activeContent?.type === 'quiz' ? (
+                      <div className="grid gap-4">
+                        {/* Renderização dinâmica das questões se houver JSON no description */}
+                        <p className="text-xs text-muted-foreground italic font-medium">Inicie o quiz anexado abaixo para testar seus conhecimentos.</p>
+                        <Button className="w-full md:w-auto bg-primary h-14 rounded-2xl font-black shadow-xl">Começar Simulado</Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 bg-muted/5 rounded-[2.5rem] border-2 border-dashed border-muted/20">
+                        <HelpCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                        <p className="text-sm font-bold text-muted-foreground italic">Nenhum quiz vinculado a este material específico.</p>
+                      </div>
+                    )}
+                  </div>
+               </TabsContent>
+               <TabsContent value="live" className="mt-0 outline-none">
+                  <div className="text-center py-20">
+                    <Video className="h-12 w-12 mx-auto mb-4 text-red-500 opacity-30" />
+                    <p className="font-black italic text-primary">Sala Online Indisponível</p>
+                    <p className="text-xs text-muted-foreground mt-2">Consulte o mural de avisos para datas de transmissões ao vivo.</p>
+                  </div>
+               </TabsContent>
+               <TabsContent value="materials" className="mt-0 outline-none">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Card className="p-4 border-none shadow-md bg-white rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-primary transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-white/10 group-hover:text-white"><FileText className="h-6 w-6" /></div>
+                      <div>
+                        <p className="font-black text-xs text-primary group-hover:text-white uppercase tracking-widest">Guia de Estudos.pdf</p>
+                        <p className="text-[10px] text-muted-foreground group-hover:text-white/60">Baixar material de apoio</p>
+                      </div>
+                    </Card>
+                  </div>
+               </TabsContent>
             </div>
           </Tabs>
         </div>

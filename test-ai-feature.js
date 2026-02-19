@@ -4,10 +4,10 @@ require('dotenv').config({ path: '.env.local' });
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Pega a chave da API que você configurou
-const apiKey = process.env.GOOGLE_AI_API_KEY; // O script espera este nome
+const apiKey = process.env.GEMINI_API_KEY; // O script espera este nome
 
 if (!apiKey) {
-  console.error("\n❌ ERRO: A variável GOOGLE_AI_API_KEY não foi encontrada no seu arquivo .env.local.");
+  console.error("\n❌ ERRO: A variável GEMINI_API_KEY não foi encontrada no seu arquivo .env.local.");
   console.error("   Por favor, verifique se o arquivo .env.local existe na raiz do projeto e se a chave está preenchida corretamente.");
   process.exit(1);
 }
@@ -17,8 +17,8 @@ const genAI = new GoogleGenerativeAI(apiKey);
 async function runAITest() {
   console.log("🔵 Iniciando teste de comunicação com a Aurora IA (Google AI)...");
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = "Explique o que foi o Renascimento em um parágrafo para um estudante.";
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const prompt = "Explain how AI works in a few words";
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
