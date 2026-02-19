@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -55,7 +54,6 @@ export default function LearningTrailsPage() {
       if (!user) return;
       setLoading(true);
       try {
-        // Busca trilhas ativas do banco real
         const { data: trails, error: trailsError } = await supabase
           .from('trails')
           .select('*')
@@ -64,7 +62,6 @@ export default function LearningTrailsPage() {
 
         if (trailsError) throw trailsError;
 
-        // Busca progresso do usuário
         const { data: progress } = await supabase
           .from('user_progress')
           .select('*')

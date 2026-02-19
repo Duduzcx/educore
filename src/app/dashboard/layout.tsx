@@ -40,7 +40,8 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, button, [role="slider"]')) return;
+    // Ignora elementos de interação complexa para não travar
+    if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, [role="slider"]')) return;
     
     touchStart.current = e.targetTouches[0].clientX;
     touchStartY.current = e.targetTouches[0].clientY;
@@ -56,14 +57,16 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
     
-    if (distanceY > 100) return; 
+    // Se o movimento vertical for muito grande, ignora (evita abrir menu ao rolar a página)
+    if (distanceY > 80) return; 
 
-    // ABRIR (Menu à Direita): Deslizar para a esquerda (distanceX negativo)
-    if (!openMobile && distanceX < -50) {
+    // Menu na DIREITA (side="right")
+    // ABRIR: Deslizar da DIREITA para a ESQUERDA (distanceX negativo)
+    if (!openMobile && distanceX < -40) {
       setOpenMobile(true);
     } 
-    // FECHAR (Menu à Direita): Deslizar para a direita (distanceX positivo)
-    else if (openMobile && distanceX > 50) {
+    // FECHAR: Deslizar da ESQUERDA para a DIREITA (distanceX positivo)
+    else if (openMobile && distanceX > 40) {
       setOpenMobile(false);
     }
   };
