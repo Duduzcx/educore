@@ -19,7 +19,7 @@ const studentItems = [
   { icon: MessageSquare, label: "Chat com Mentores", href: "/dashboard/chat", badge: true },
   { icon: Library, label: "Biblioteca Digital", href: "/dashboard/library" },
   { icon: Video, label: "Aulas ao Vivo", href: "/dashboard/live" },
-  { icon: Calculator, label: "Simulador de Isenção", href: "/dashboard/student/exemption-simulator" },
+  { icon: Calculator, label: "Simulador de Isenção", href: "/dashboard/financial-aid" },
 ];
 
 const teacherItems = [
@@ -48,7 +48,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.rdp-day, .no-swipe, input, textarea, select, [role="slider"]')) return;
+    if (target.closest('.rdp-day, .no-swipe, input, textarea, select, [role="slider"], button')) return;
     touchStart.current = e.targetTouches[0].clientX;
   };
 
@@ -139,6 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarProvider>
       <Sidebar side="right" collapsible="icon" className="bg-sidebar border-none">
         <SidebarHeader className="p-6">
+           <SheetTitle className="sr-only">Menu Compromisso</SheetTitle>
            <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg">
               <BookOpen className="h-5 w-5" />
@@ -171,7 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex-1" />
           <div className="flex items-center gap-3 md:gap-4">
             <div className="hidden sm:flex flex-col items-end">
-              <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Coordenadora"}</span>
+              <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Usuário"}</span>
               <span className="text-[8px] font-black text-accent uppercase tracking-widest">{role.toUpperCase()}</span>
             </div>
             <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl">

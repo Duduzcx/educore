@@ -17,10 +17,9 @@ import {
   BookOpen,
   Filter
 } from "lucide-react";
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, Line, LineChart, CartesianGrid } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
-import { supabase } from "@/app/lib/supabase";
 
 const engagementData = [
   { name: "Seg", acessos: 120, quizzes: 45 },
@@ -33,30 +32,17 @@ const engagementData = [
 ];
 
 export default function CoordinatorDashboard() {
-  const { user, profile, loading: isUserLoading } = useAuth();
+  const { profile, loading: isUserLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalStudents: 0,
-    totalTeachers: 0,
-    completionRate: 78,
-    avgScore: 8.4
+    totalStudents: 1250,
+    totalTeachers: 42,
+    completionRate: 82,
+    avgScore: 8.7
   });
 
   useEffect(() => {
-    async function fetchAdminStats() {
-      setLoading(true);
-      // Simulação de busca de dados reais
-      setTimeout(() => {
-        setStats({
-          totalStudents: 1250,
-          totalTeachers: 42,
-          completionRate: 82,
-          avgScore: 8.7
-        });
-        setLoading(false);
-      }, 1000);
-    }
-    fetchAdminStats();
+    setTimeout(() => setLoading(false), 1000);
   }, []);
 
   if (isUserLoading || loading) return (
