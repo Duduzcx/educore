@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -24,6 +25,7 @@ export function AccessibilityWidget() {
   const { toast } = useToast();
   const pathname = usePathname();
 
+  // Detectar páginas onde o widget deve subir para não cobrir o botão de enviar
   const isInputHeavyPage = 
     pathname.includes('/chat/') || 
     pathname.includes('/support') || 

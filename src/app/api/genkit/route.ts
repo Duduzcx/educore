@@ -1,3 +1,4 @@
+
 import { ai } from '@/ai/genkit';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -10,12 +11,22 @@ export async function POST(req: NextRequest) {
     const text = await req.text();
     if (!text) {
       return NextResponse.json(
-        { error: 'Empty request body' },
+        { error: 'Request body is empty' },
         { status: 400 }
       );
     }
 
-    const { flowId, input } = JSON.parse(text);
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json(
+        { error: 'Invalid JSON input' },
+        { status: 400 }
+      );
+    }
+
+    const { flowId, input } = body;
 
     if (!flowId) {
       return NextResponse.json(

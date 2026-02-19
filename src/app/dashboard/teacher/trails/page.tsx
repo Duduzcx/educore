@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -71,10 +72,7 @@ export default function TeacherTrailsPage() {
         .single();
 
       if (error) {
-        if (error.message.includes('column') || error.code === '42703') {
-          throw new Error("Erro de Banco: Colunas ausentes. Rode o script docs/database.sql no seu painel Supabase.");
-        }
-        throw error;
+        throw new Error(error.message || "Erro desconhecido ao salvar trilha.");
       }
 
       toast({ title: "Trilha Criada!", description: "Continue editando os módulos para publicar." });
@@ -85,7 +83,7 @@ export default function TeacherTrailsPage() {
       console.error("Falha ao criar trilha:", e);
       toast({ 
         title: "Erro ao criar trilha", 
-        description: e.message || "Verifique sua conexão ou rode o SQL de sincronização.", 
+        description: e.message || "Verifique sua conexão ou a estrutura do banco de dados.", 
         variant: "destructive" 
       });
     } finally {

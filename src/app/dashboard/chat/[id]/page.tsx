@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -86,10 +87,13 @@ export default function DirectChatPage() {
         });
 
         if (!response.ok) {
-          throw new Error('Erro na comunicação com o servidor.');
+          throw new Error('Falha na comunicação com o servidor.');
         }
 
-        const result = await response.json();
+        const text = await response.text();
+        if (!text) throw new Error("Resposta da IA está vazia.");
+        
+        const result = JSON.parse(text);
 
         if (result.success && result.result.response) {
           const aiResponseMessage = {
@@ -100,7 +104,7 @@ export default function DirectChatPage() {
           };
           setMessages(prev => [...prev, aiResponseMessage]);
         } else {
-          throw new Error('Falha na resposta da IA.');
+          throw new Error('Falha na resposta estruturada da IA.');
         }
       } catch (err: any) {
         toast({ title: "Aurora está ocupada", description: err.message || "Tente novamente em instantes.", variant: "destructive" });
