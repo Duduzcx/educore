@@ -46,6 +46,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
+    // Ignora gestos em elementos interativos pesados para não quebrar a aula
     if (target.closest('.no-swipe, input, textarea, select, [role="slider"], button, audio, video, #youtube-player')) return;
     touchStart.current = e.targetTouches[0].clientX;
     touchEnd.current = e.targetTouches[0].clientX;
@@ -61,18 +62,18 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const absX = Math.abs(distanceX);
 
     // Menu na DIREITA (side="right")
-    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo) de qualquer lugar
-    if (!openMobile && distanceX < -40 && absX > 20) {
+    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo) em qualquer lugar da tela
+    if (!openMobile && distanceX < -45 && absX > 25) {
       setOpenMobile(true);
     } 
     // FECHAR: Deslizar para a DIREITA (distanceX positivo)
-    else if (openMobile && distanceX > 40) {
+    else if (openMobile && distanceX > 45) {
       setOpenMobile(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 touch-pan-y" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+    <div className="flex-1 flex flex-col min-h-0 touch-pan-y overflow-hidden" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
       {children}
     </div>
   );

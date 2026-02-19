@@ -179,8 +179,10 @@ const Sidebar = React.forwardRef<
           )}
           ref={ref}
           {...props}
-        )
-      }
+        >
+          {children}
+        </div>
+      )
     }
 
     if (isMobile) {
@@ -198,7 +200,7 @@ const Sidebar = React.forwardRef<
             side={side}
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Menu de Navegação</SheetTitle>
+              <SheetTitle>Menu Compromisso</SheetTitle>
             </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
