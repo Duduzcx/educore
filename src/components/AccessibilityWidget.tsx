@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -17,14 +18,13 @@ interface Message {
 export function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Olá! Sou a Aurora. Como posso ajudar seu aprendizado hoje?" }
+    { role: "assistant", content: "Olá! Sou a Aurora IA. Como posso ajudar na sua gestão ou aprendizado hoje?" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const pathname = usePathname();
 
-  // Widget sobe em páginas onde há input no rodapé para não cobrir o botão enviar
   const isInputHeavyPage = 
     pathname.includes('/chat/') || 
     pathname.includes('/support') || 
@@ -61,7 +61,7 @@ export function AccessibilityWidget() {
         setMessages(prev => [...prev, { role: "assistant", content: data.result.response }]);
       }
     } catch (err) {
-      toast({ title: "Aurora está ocupada agora", variant: "destructive" });
+      toast({ title: "Aurora está analisando dados agora", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -79,21 +79,6 @@ export function AccessibilityWidget() {
     </div>
   );
   
-  const LoadingIndicator = () => (
-    <div className="px-6 pb-4 bg-slate-50/50">
-      <div className="flex justify-start animate-pulse">
-        <div className="bg-accent/10 p-4 rounded-2xl rounded-tl-none border border-accent/20 flex items-center gap-3">
-          <div className="flex gap-1">
-            <div className="h-1.5 w-1.5 bg-accent rounded-full animate-bounce" />
-            <div className="h-1.5 w-1.5 bg-accent rounded-full animate-bounce [animation-delay:0.2s]" />
-            <div className="h-1.5 w-1.5 bg-accent rounded-full animate-bounce [animation-delay:0.4s]" />
-          </div>
-          <span className="text-[9px] font-black uppercase tracking-widest text-accent italic">Aurora analisando...</span>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className={`fixed ${isInputHeavyPage ? 'bottom-28 md:bottom-10' : 'bottom-6'} right-6 z-[9999] flex flex-col gap-3 items-end transition-all duration-500`}>
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -115,17 +100,10 @@ export function AccessibilityWidget() {
                 </div>
                 <div className="text-left">
                   <SheetTitle className="text-white font-black italic leading-none">Aurora IA</SheetTitle>
-                  <p className="text-[8px] font-black uppercase tracking-widest text-accent mt-1">SISTEMA DE APOIO ATIVO</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-accent mt-1">Gabinete de Apoio 360</p>
                 </div>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setMessages([{role: "assistant", content: "Chat reiniciado! Em que posso ajudar?"}])} 
-                className="text-white/40 hover:text-white hover:bg-white/10 rounded-full"
-              >
-                <Eraser className="h-4 w-4" />
-              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setMessages([{role: "assistant", content: "Sintonizando dados..."}])} className="text-white/40 hover:text-white rounded-full"><Eraser className="h-4 w-4" /></Button>
             </div>
           </SheetHeader>
 
@@ -135,7 +113,6 @@ export function AccessibilityWidget() {
             data={messages}
             itemContent={renderMessage}
             followOutput="auto"
-            components={{ Footer: loading ? LoadingIndicator : undefined }}
           />
 
           <div className="p-4 bg-white border-t shrink-0">
@@ -143,16 +120,11 @@ export function AccessibilityWidget() {
               <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Tire uma dúvida agora..."
+                placeholder="Pergunte sobre gestão ou conteúdo..."
                 disabled={loading}
                 className="border-none shadow-none focus-visible:ring-0 text-xs font-bold italic h-10 bg-transparent"
               />
-              <Button 
-                type="submit" 
-                size="icon" 
-                disabled={!input.trim() || loading} 
-                className="rounded-full bg-primary hover:bg-primary/95 shadow-xl h-10 w-10 shrink-0 transition-all active:scale-90"
-              >
+              <Button type="submit" size="icon" disabled={!input.trim() || loading} className="rounded-full bg-primary hover:bg-primary/95 shadow-xl h-10 w-10 shrink-0 transition-all">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Send className="h-4 w-4" />}
               </Button>
             </form>
@@ -160,12 +132,7 @@ export function AccessibilityWidget() {
         </SheetContent>
       </Sheet>
 
-      <button 
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group animate-in zoom-in duration-1000" 
-        title="Acessibilidade VLibras"
-      >
-        <HandMetal className="h-6 w-6 transition-transform group-hover:rotate-12" />
-      </button>
+      <button className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-2xl transition-all hover:scale-110 active:scale-95 border-4 border-white group animate-in zoom-in duration-1000" title="Acessibilidade VLibras"><HandMetal className="h-6 w-6 transition-transform group-hover:rotate-12" /></button>
     </div>
   );
 }

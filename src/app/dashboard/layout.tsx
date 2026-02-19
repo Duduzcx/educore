@@ -1,11 +1,13 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database, Sparkles } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, Loader2, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { SheetTitle } from "@/components/ui/sheet";
 import { useEffect, useState, useMemo, memo, useRef } from "react";
 import { useAuth } from "@/lib/AuthProvider"; 
 
@@ -25,57 +27,52 @@ const teacherItems = [
   { icon: ClipboardList, label: "Gestão de Trilhas", href: "/dashboard/teacher/trails" },
   { icon: Database, label: "Banco de Questões", href: "/dashboard/teacher/questions" },
   { icon: MonitorPlay, label: "Gerenciar Lives", href: "/dashboard/teacher/live" },
-  { icon: BookOpen, label: "Gestão da Biblioteca", href: "/dashboard/teacher/library" },
   { icon: MessagesSquare, label: "Fórum Pedagógico", href: "/dashboard/forum" },
   { icon: MessageSquare, label: "Chats com Alunos", href: "/dashboard/chat", badge: true },
   { icon: Bell, label: "Mural de Avisos", href: "/dashboard/teacher/communication" },
+];
+
+const adminItems = [
+  { icon: ShieldCheck, label: "Gestão 360", href: "/dashboard/admin/home" },
+  { icon: ClipboardList, label: "Aprovação de Trilhas", href: "/dashboard/admin/trails" },
+  { icon: Users, label: "Gestão de Turmas", href: "/dashboard/admin/students" },
   { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
+  { icon: Bell, label: "Comunicados Globais", href: "/dashboard/teacher/communication" },
+  { icon: MessagesSquare, label: "Fórum de Gestão", href: "/dashboard/forum" },
 ];
 
 function SwipeHandler({ children }: { children: React.ReactNode }) {
   const { setOpenMobile, isMobile, openMobile } = useSidebar();
   const touchStart = useRef<number>(0);
-  const touchStartY = useRef<number>(0);
   const touchEnd = useRef<number>(0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest('.rdp-day, .rdrDay, .no-swipe, input, textarea, select, [role="slider"]')) return;
-    
+    if (target.closest('.rdp-day, .no-swipe, input, textarea, select, [role="slider"]')) return;
     touchStart.current = e.targetTouches[0].clientX;
-    touchStartY.current = e.targetTouches[0].clientY;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     touchEnd.current = e.targetTouches[0].clientX;
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = () => {
     if (!isMobile) return;
-    
     const distanceX = touchEnd.current - touchStart.current;
-    const distanceY = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
-    
-    if (distanceY > 80) return; 
 
     // Menu na DIREITA (side="right")
     // ABRIR: Deslizar da DIREITA para a ESQUERDA (distanceX negativo)
-    if (!openMobile && distanceX < -40) {
+    if (!openMobile && distanceX < -50) {
       setOpenMobile(true);
     } 
     // FECHAR: Deslizar da ESQUERDA para a DIREITA (distanceX positivo)
-    else if (openMobile && distanceX > 40) {
+    else if (openMobile && distanceX > 50) {
       setOpenMobile(false);
     }
   };
 
   return (
-    <div 
-      className="flex-1 flex flex-col min-h-0"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="flex-1 flex flex-col min-h-0" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
       {children}
     </div>
   );
@@ -84,18 +81,12 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname: string, unreadCount: number }) => {
   const { setOpenMobile, isMobile } = useSidebar();
 
-  const handleLinkClick = () => {
-    if (isMobile) {
-      setOpenMobile(false); 
-    }
-  };
-
   return (
     <SidebarMenu className="gap-1">
       {items.map((item) => (
         <SidebarMenuItem key={item.label}>
           <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.label} className="h-11 rounded-xl data-[active=true]:bg-accent data-[active=true]:text-accent-foreground transition-all duration-200">
-            <Link href={item.href} onClick={handleLinkClick} className="flex items-center gap-3">
+            <Link href={item.href} onClick={() => isMobile && setOpenMobile(false)} className="flex items-center gap-3">
               <item.icon className="h-5 w-5" />
               <span className="font-bold text-sm">{item.label}</span>
               {unreadCount > 0 && item.badge && (
@@ -115,29 +106,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { user, profile, loading: isUserLoading, signOut } = useAuth();
   
-  const isTeacher = useMemo(() => 
-    user?.user_metadata?.role === 'teacher' || user?.user_metadata?.role === 'admin'
-  , [user?.user_metadata?.role]);
-  
-  const [isSignOutLoading, setIsSignOutLoading] = useState(false);
+  const role = profile?.profile_type || user?.user_metadata?.role || 'student';
+  const navItems = useMemo(() => {
+    if (role === 'admin') return adminItems;
+    if (role === 'teacher') return teacherItems;
+    return studentItems;
+  }, [role]);
 
   useEffect(() => {
     if (!isUserLoading && !user) router.replace("/login");
   }, [user, isUserLoading, router]);
 
   const isAppPage = useMemo(() => {
-    return pathname.includes('/chat/') || 
-           pathname.includes('/forum/') || 
-           pathname.includes('/classroom/') ||
-           pathname.includes('/teacher/live/');
+    return pathname.includes('/chat/') || pathname.includes('/forum/') || pathname.includes('/classroom/') || pathname.includes('/live/');
   }, [pathname]);
-
-  const navItems = useMemo(() => isTeacher ? teacherItems : studentItems, [isTeacher]);
-
-  const handleSignOutClick = async () => {
-    setIsSignOutLoading(true);
-    await signOut();
-  };
 
   if (isUserLoading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-primary gap-6">
@@ -147,13 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <Sparkles className="absolute -top-4 -right-4 h-8 w-8 text-accent animate-bounce" />
       </div>
-      <div className="space-y-3 text-center">
-        <h2 className="text-2xl font-black text-white italic tracking-tighter">Compromisso</h2>
-        <div className="flex items-center justify-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-accent" />
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 animate-pulse">Sintonizando Identidade...</p>
-        </div>
-      </div>
+      <h2 className="text-2xl font-black text-white italic">Compromisso</h2>
     </div>
   );
 
@@ -161,15 +137,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <Sidebar side="right" collapsible="icon" className="bg-sidebar border-none transition-[width] duration-300 ease-in-out">
+      <Sidebar side="right" collapsible="icon" className="bg-sidebar border-none">
         <SidebarHeader className="p-6">
            <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg shadow-accent/20">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-lg">
               <BookOpen className="h-5 w-5" />
             </div>
             <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-              <span className="font-headline text-lg font-black text-white italic">Compromisso</span>
-              <span className="text-[8px] text-white/40 uppercase tracking-widest font-black">Smart Education</span>
+              <span className="text-lg font-black text-white italic leading-none">Compromisso</span>
+              <span className="text-[8px] text-white/40 uppercase tracking-widest font-black">Educori 360</span>
             </div>
           </div>
         </SidebarHeader>
@@ -181,8 +157,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <SidebarFooter className="p-4 border-t border-white/5">
            <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton onClick={handleSignOutClick} disabled={isSignOutLoading} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl transition-colors">
-                {isSignOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              <SidebarMenuButton onClick={() => signOut()} className="text-red-400 hover:bg-red-500/10 h-11 rounded-xl">
+                <LogOut className="h-4 w-4" />
                 <span className="font-bold text-xs">Sair</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -191,14 +167,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </Sidebar>
       <SidebarInset className="bg-background flex flex-col h-screen overflow-hidden">
         <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-4 md:px-6 shrink-0">
-          <SidebarTrigger className="h-9 w-9 rounded-full hover:bg-muted transition-colors" />
+          <SidebarTrigger className="h-9 w-9 rounded-full hover:bg-muted" />
           <div className="flex-1" />
           <div className="flex items-center gap-3 md:gap-4">
             <div className="hidden sm:flex flex-col items-end">
-              <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Usuário"}</span>
-              <span className="text-[8px] font-black text-accent uppercase tracking-widest">{isTeacher ? "Docente" : "Aluno"}</span>
+              <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Coordenadora"}</span>
+              <span className="text-[8px] font-black text-accent uppercase tracking-widest">{role.toUpperCase()}</span>
             </div>
-            <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl transition-transform hover:scale-105">
+            <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl">
               <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} />
               <AvatarFallback className="bg-primary text-white text-xs">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -206,7 +182,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         
         <SwipeHandler>
-          <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-2 md:p-8 animate-in fade-in duration-500`}>
+          <main className={`flex-1 flex flex-col min-h-0 ${isAppPage ? 'overflow-hidden' : 'overflow-y-auto'} p-2 md:p-8`}>
             <div className={isAppPage ? 'app-container' : 'max-w-7xl mx-auto w-full'}>
               {children}
             </div>

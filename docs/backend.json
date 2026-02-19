@@ -1,60 +1,45 @@
+
 {
   "entities": {
     "Profile": {
       "title": "Profile",
       "type": "object",
-      "description": "Dados de perfil do estudante.",
+      "description": "Dados de perfil do usuário (Estudante, Professor ou Coordenador).",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string" },
-        "profile_type": { "type": "string", "enum": ["etec", "uni"] },
+        "profile_type": { "type": "string", "enum": ["etec", "uni", "teacher", "admin"] },
         "institution": { "type": "string" },
         "course": { "type": "string" },
         "is_financial_aid_eligible": { "type": "boolean" },
         "last_access": { "type": "string", "format": "date-time" },
-        "last_financial_simulation": { "type": "string", "format": "date-time" },
-        "interests": { "type": "string" }
+        "class_id": { "type": "string", "description": "ID da Turma/Cohort." }
       }
     },
-    "Teacher": {
-      "title": "Teacher",
+    "Trail": {
+      "title": "Trail",
       "type": "object",
-      "description": "Dados do professor ou mentor.",
+      "description": "Trilha de aprendizagem com workflow de aprovação.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "teacher_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "review", "published", "inactive"] },
+        "average_rating": { "type": "number" }
+      }
+    },
+    "Class": {
+      "title": "Class",
+      "type": "object",
+      "description": "Turmas ou Cohorts de alunos.",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "email": { "type": "string" },
-        "subjects": { "type": "string" },
-        "experience": { "type": "string" },
-        "interests": { "type": "string" }
-      }
-    },
-    "Live": {
-      "title": "Live",
-      "type": "object",
-      "description": "Transmissão ao vivo agendada com data e hora obrigatórias.",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "teacher_name": { "type": "string" },
-        "youtube_id": { "type": "string" },
-        "start_time": { "type": "string", "format": "date-time", "description": "Momento exato do início da aula." },
-        "status": { "type": "string", "enum": ["scheduled", "live", "finished"] }
-      }
-    },
-    "LearningContent": {
-      "title": "LearningContent",
-      "type": "object",
-      "description": "Aula ou Quiz IA. No caso de quiz, o campo description armazena o JSON das questões.",
-      "properties": {
-        "id": { "type": "string" },
-        "module_id": { "type": "string" },
-        "title": { "type": "string" },
-        "type": { "type": "string", "enum": ["video", "pdf", "text", "quiz"] },
-        "url": { "type": "string" },
-        "description": { "type": "string" }
+        "coordinator_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
       }
     }
   }

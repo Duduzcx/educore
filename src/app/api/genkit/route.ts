@@ -1,3 +1,4 @@
+
 import { ai } from '@/ai/genkit';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -16,6 +17,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Genkit 1.x pattern: ai.run(flowId, input)
     const result = await ai.run(flowId, input);
 
     return NextResponse.json({ success: true, result });
