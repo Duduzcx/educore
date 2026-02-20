@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, ChevronLeft, Loader2, MessageSquare, Bot, BookOpen } from "lucide-react";
+import { Send, ChevronLeft, Loader2, MessageSquare, Bot } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/app/lib/supabase";
@@ -29,32 +29,37 @@ export default function DirectChatPage() {
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais e histórico
   useEffect(() => {
     async function loadChatData() {
       if (!user || !contactId) return;
       setLoading(true);
 
-      if (isAurora) {
-        setContact({ name: "Aurora IA", profile_type: "teacher", institution: "Mentoria Geral" });
-        setMessages([
-          { id: 'initial', sender_id: 'aurora-ai', content: 'Olá! Como posso te ajudar a acelerar seus estudos hoje?', created_at: new Date().toISOString() }
-        ]);
-      } else {
-        // Carregar Perfil do Contato
-        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', contactId).single();
-        setContact(profileData);
+      try {
+        if (isAurora) {
+          setContact({ name: "Aurora IA", profile_type: "teacher", institution: "Mentoria Geral" });
+          setMessages([
+            { id: 'initial', sender_id: 'aurora-ai', content: 'Olá! Como posso te ajudar a acelerar seus estudos hoje?', created_at: new Date().toISOString() }
+          ]);
+        } else {
+          // Carregar Perfil do Contato
+          const { data: profileData } = await supabase.from('profiles').select('*').eq('id', contactId).single();
+          setContact(profileData);
 
-        // Carregar Mensagens Reais
-        const { data: msgs, error } = await supabase
-          .from('direct_messages')
-          .select('*')
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${contactId}),and(sender_id.eq.${contactId},receiver_id.eq.${user.id})`)
-          .order('created_at', { ascending: true });
-        
-        if (!error) setMessages(msgs || []);
+          // Carregar Mensagens Reais (Histórico entre eu e o contato)
+          const { data: msgs, error } = await supabase
+            .from('direct_messages')
+            .select('*')
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${contactId}),and(sender_id.eq.${contactId},receiver_id.eq.${user.id})`)
+            .order('created_at', { ascending: true });
+          
+          if (!error) setMessages(msgs || []);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar chat:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     loadChatData();
@@ -62,13 +67,14 @@ export default function DirectChatPage() {
     // Inscrição Real-time para chats entre humanos
     if (!isAurora && user) {
       const channel = supabase
-        .channel(`chat:${user.id}-${contactId}`)
+        .channel(`chat:${contactId}`)
         .on('postgres_changes', { 
           event: 'INSERT', 
           schema: 'public', 
           table: 'direct_messages',
           filter: `receiver_id=eq.${user.id}`
         }, (payload) => {
+          // Só adiciona se for do contato atual
           if (payload.new.sender_id === contactId) {
             setMessages(prev => [...prev, payload.new]);
           }
@@ -100,12 +106,11 @@ export default function DirectChatPage() {
 
     if (isAurora) {
       const newUserMessage = { id: Date.now().toString(), sender_id: user.id, content: userText, created_at: new Date().toISOString() };
-      const currentMessages = [...messages, newUserMessage];
-      setMessages(currentMessages);
+      setMessages(prev => [...prev, newUserMessage]);
       
       setIsAiThinking(true);
       try {
-        const history = currentMessages.slice(-6).map(m => ({
+        const history = [...messages, newUserMessage].slice(-6).map(m => ({
           role: (m.sender_id === "aurora-ai" ? 'model' : 'user') as 'user' | 'model',
           content: m.content
         }));
@@ -119,25 +124,22 @@ export default function DirectChatPage() {
           }),
         });
 
-        const text = await response.text();
-        if (!text) throw new Error("Sem resposta");
-        const result = JSON.parse(text);
-
-        if (result.success && result.result.response) {
+        const data = await response.json();
+        if (data.success && data.result.response) {
           setMessages(prev => [...prev, {
             id: Date.now().toString() + '-ai',
             sender_id: "aurora-ai",
-            content: result.result.response,
+            content: data.result.response,
             created_at: new Date().toISOString(),
           }]);
         }
       } catch (err) {
-        toast({ title: "Aurora está analisando...", description: "Tente novamente em instantes.", variant: "destructive" });
+        toast({ title: "Aurora processando...", description: "Tente novamente em instantes.", variant: "destructive" });
       } finally {
         setIsAiThinking(false);
       }
     } else {
-      // Chat Real entre humanos
+      // Chat Real entre humanos - Persistência no Supabase
       const { data, error } = await supabase.from('direct_messages').insert({
         sender_id: user.id,
         receiver_id: contactId,
@@ -147,7 +149,8 @@ export default function DirectChatPage() {
       if (!error) {
         setMessages(prev => [...prev, data]);
       } else {
-        toast({ title: "Erro ao enviar", variant: "destructive" });
+        console.error("Erro ao enviar:", error);
+        toast({ title: "Erro ao enviar", description: "Verifique se a tabela direct_messages existe.", variant: "destructive" });
       }
     }
   };

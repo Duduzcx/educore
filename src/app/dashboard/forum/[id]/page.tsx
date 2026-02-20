@@ -7,20 +7,18 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { 
-  ChevronLeft, 
-  Send, 
-  Loader2, 
-} from "lucide-react";
+import { ChevronLeft, Send, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/app/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ForumDetailPage() {
   const params = useParams();
   const forumId = params.id as string;
   const { user, profile } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [newPost, setNewPost] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -30,18 +28,24 @@ export default function ForumDetailPage() {
 
   useEffect(() => {
     async function loadData() {
+      if (!forumId) return;
       setLoading(true);
-      const { data: forumData } = await supabase.from('forums').select('*').eq('id', forumId).single();
-      if (forumData) setForum(forumData);
+      try {
+        const { data: forumData } = await supabase.from('forums').select('*').eq('id', forumId).single();
+        if (forumData) setForum(forumData);
 
-      const { data: postsData } = await supabase
-        .from('forum_posts')
-        .select('*')
-        .eq('forum_id', forumId)
-        .order('created_at', { ascending: true });
-      
-      setPosts(postsData || []);
-      setLoading(false);
+        const { data: postsData } = await supabase
+          .from('forum_posts')
+          .select('*')
+          .eq('forum_id', forumId)
+          .order('created_at', { ascending: true });
+        
+        setPosts(postsData || []);
+      } catch (err) {
+        console.error("Erro ao carregar fórum:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
 
@@ -54,7 +58,11 @@ export default function ForumDetailPage() {
         table: 'forum_posts', 
         filter: `forum_id=eq.${forumId}` 
       }, (payload) => {
-        setPosts(prev => [...prev, payload.new]);
+        setPosts(prev => {
+          // Evita duplicatas se o autor for o próprio usuário (já adicionado manualmente)
+          const exists = prev.some(p => p.id === payload.new.id);
+          return exists ? prev : [...prev, payload.new];
+        });
       })
       .subscribe();
 
@@ -70,12 +78,19 @@ export default function ForumDetailPage() {
     const content = newPost;
     setNewPost("");
 
-    await supabase.from('forum_posts').insert({
+    const { data, error } = await supabase.from('forum_posts').insert({
       forum_id: forumId,
       author_id: user.id,
       author_name: profile?.name || user.email?.split('@')[0],
       content: content
-    });
+    }).select().single();
+
+    if (error) {
+      console.error("Erro ao postar:", error);
+      toast({ title: "Erro ao publicar", description: "Verifique as permissões do banco.", variant: "destructive" });
+    } else if (data) {
+      setPosts(prev => [...prev, data]);
+    }
   };
 
   useEffect(() => {
