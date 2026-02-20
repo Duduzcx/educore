@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -56,7 +55,7 @@ export default function TeacherTrailsPage() {
 
     setIsSubmitting(true);
     try {
-      // Inserção real no Supabase com image_url
+      // Inserção real no Supabase garantindo image_url
       const { data, error } = await supabase
         .from('trails')
         .insert([{
@@ -84,7 +83,7 @@ export default function TeacherTrailsPage() {
       console.error("Falha ao criar trilha:", e);
       toast({ 
         title: "Erro de Persistência", 
-        description: "Verifique se você executou o script SQL no Supabase para criar a coluna 'image_url'.", 
+        description: "Verifique se a coluna 'image_url' existe no Supabase.", 
         variant: "destructive" 
       });
     } finally {
