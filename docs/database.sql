@@ -1,31 +1,26 @@
 
--- SCRIPT DE SINCRONIZAÇÃO DO BANCO DE DADOS (RODAR NO SQL EDITOR DO SUPABASE)
+-- SCRIPT DE SINCRONIZAÇÃO DO BANCO DE DADOS COMPROMISSO
+-- Rode este script no SQL Editor do Supabase para evitar erros de coluna inexistente.
 
--- 1. Atualizar a tabela de trilhas com colunas administrativas e de mídia
+-- 1. Atualiza a tabela de trilhas (Trails)
 ALTER TABLE trails ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE trails ADD COLUMN IF NOT EXISTS teacher_name TEXT;
-ALTER TABLE trails ADD COLUMN IF NOT EXISTS target_audience TEXT DEFAULT 'all';
 ALTER TABLE trails ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'draft';
-ALTER TABLE trails ADD COLUMN IF NOT EXISTS modules_count INTEGER DEFAULT 0;
+ALTER TABLE trails ADD COLUMN IF NOT EXISTS target_audience TEXT DEFAULT 'all';
+ALTER TABLE trails ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Geral';
 
--- 2. Garantir que a tabela de progresso do usuário existe
+-- 2. Atualiza a tabela de perfis (Profiles)
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_type TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS institution TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS course TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS last_access TIMESTAMPTZ DEFAULT now();
+
+-- 3. Cria suporte para progresso do usuário (User Progress)
 CREATE TABLE IF NOT EXISTS user_progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  trail_id UUID REFERENCES trails(id) ON DELETE CASCADE,
+  trail_id UUID,
   percentage INTEGER DEFAULT 0,
-  last_accessed TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_accessed TIMESTAMPTZ DEFAULT now(),
   UNIQUE(user_id, trail_id)
 );
-
--- 3. Habilitar RLS (Row Level Security) se necessário
-ALTER TABLE trails ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
-
--- 4. Criar políticas básicas de acesso (Exemplo: Leitura pública para trilhas ativas)
-DO $$ 
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Allow public read access on active trails') THEN
-        CREATE POLICY "Allow public read access on active trails" ON trails FOR SELECT USING (status = 'active' OR status = 'published');
-    END IF;
-END $$;
