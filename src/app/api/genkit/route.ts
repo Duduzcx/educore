@@ -1,3 +1,4 @@
+
 import { ai } from '@/ai/genkit';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,7 +16,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { flowId, input } = JSON.parse(text);
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json(
+        { error: 'Formato JSON inválido.' },
+        { status: 400 }
+      );
+    }
+
+    const { flowId, input } = body;
 
     if (!flowId) {
       return NextResponse.json(

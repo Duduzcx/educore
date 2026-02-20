@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, LayoutDashboard, Search, Loader2, Database, Eye, Globe, Lock, Sparkles, AlertCircle } from "lucide-react";
+import { Plus, LayoutDashboard, Search, Loader2, Database, Eye, Globe, Lock, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -55,7 +56,6 @@ export default function TeacherTrailsPage() {
 
     setIsSubmitting(true);
     try {
-      // Inserção com colunas completas. Se houver erro de Schema Cache, rodar docs/database.sql
       const { data, error } = await supabase
         .from('trails')
         .insert([{
@@ -72,7 +72,6 @@ export default function TeacherTrailsPage() {
         .single();
 
       if (error) {
-        // Se a coluna image_url não existir, o Supabase retornará um erro de Schema
         if (error.message.includes('column') || error.message.includes('schema cache')) {
           throw new Error("Erro de Banco: A coluna 'image_url' ou outras colunas administrativas não foram encontradas. Por favor, rode o script docs/database.sql no seu console Supabase.");
         }
