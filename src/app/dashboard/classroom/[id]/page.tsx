@@ -244,7 +244,7 @@ export default function ClassroomPage() {
                   <div className="text-center py-20">
                     <Video className="h-12 w-12 mx-auto mb-4 text-red-500 opacity-30" />
                     <p className="font-black italic text-primary">Sala Online Indisponível</p>
-                    <p className="text-xs text-muted-foreground mt-2">Consulte o mural de avisos para datas de transmissões ao vivo.</p>
+                    <p className="text-xs text-muted-foreground mt-2">Consulte o mural de avisos para das de transmissões ao vivo.</p>
                   </div>
                </TabsContent>
                <TabsContent value="materials" className="mt-0 outline-none">
