@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -61,7 +62,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const absX = Math.abs(distanceX);
 
     // Menu na DIREITA (side="right")
-    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo) - Unblocked em qualquer lugar
+    // ABRIR: Deslizar para a ESQUERDA (distanceX negativo)
     if (!openMobile && distanceX < -45 && absX > 25) {
       setOpenMobile(true);
     } 
