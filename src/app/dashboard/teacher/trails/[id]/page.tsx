@@ -27,7 +27,9 @@ import {
   Video,
   FileCode,
   FileSearch,
-  ListPlus
+  ListPlus,
+  X,
+  Layers
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -56,6 +58,9 @@ export default function TrailManagementPage() {
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   
   const [moduleForm, setModuleForm] = useState({ title: "" });
+  
+  // Lista temporária para múltiplos itens no formulário
+  const [pendingItems, setPendingItems] = useState<any[]>([]);
   const [contentForm, setContentForm] = useState({ 
     title: "", 
     type: "video", 
@@ -156,29 +161,46 @@ export default function TrailManagementPage() {
     setIsSubmitting(false);
   };
 
-  const handleAddContent = async () => {
-    if (!activeModuleId || !contentForm.title || isSubmitting) return;
+  // Adiciona item à fila local antes de salvar no banco
+  const addToQueue = () => {
+    if (!contentForm.title.trim()) {
+      toast({ title: "Título Obrigatório", variant: "destructive" });
+      return;
+    }
+    setPendingItems([...pendingItems, { ...contentForm, id: Date.now().toString() }]);
+    setContentForm({ title: "", type: "video", url: "", description: "" });
+  };
+
+  const removeFromQueue = (id: string) => {
+    setPendingItems(pendingItems.filter(item => item.id !== id));
+  };
+
+  const handleBatchSaveContent = async () => {
+    if (!activeModuleId || pendingItems.length === 0 || isSubmitting) return;
     setIsSubmitting(true);
     
     const currentModuleContents = contents[activeModuleId] || [];
-    
-    const { data, error } = await supabase.from('learning_contents').insert({
+    const itemsToInsert = pendingItems.map((item, idx) => ({
       module_id: activeModuleId,
-      title: contentForm.title,
-      type: contentForm.type,
-      url: contentForm.url,
-      description: contentForm.description,
-      order_index: currentModuleContents.length
-    }).select().single();
+      title: item.title,
+      type: item.type,
+      url: item.url,
+      description: item.description,
+      order_index: currentModuleContents.length + idx
+    }));
+
+    const { data, error } = await supabase.from('learning_contents').insert(itemsToInsert).select();
 
     if (!error) {
       setContents(prev => ({
         ...prev,
-        [activeModuleId]: [...(prev[activeModuleId] || []), data]
+        [activeModuleId]: [...(prev[activeModuleId] || []), ...data]
       }));
-      toast({ title: "Material Anexado!", description: "Você pode adicionar mais itens a este módulo." });
-      setContentForm({ title: "", type: "video", url: "", description: "" });
+      toast({ title: "Materiais Publicados!", description: `${data.length} itens foram adicionados ao capítulo.` });
+      setPendingItems([]);
       setIsContentDialogOpen(false);
+    } else {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     }
     setIsSubmitting(false);
   };
@@ -220,7 +242,6 @@ export default function TrailManagementPage() {
 
   return (
     <div className="max-w-6xl mx-auto w-full space-y-8 animate-in fade-in duration-700 pb-24">
-      {/* Header do Estúdio */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-[2rem] shadow-xl border border-muted/10">
         <div className="flex items-center gap-6">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-12 w-12 bg-muted/30">
@@ -228,17 +249,17 @@ export default function TrailManagementPage() {
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-primary italic leading-none">{trail?.title}</h1>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1.5">
               <Badge variant={trail?.status === 'active' ? 'default' : 'outline'} className={`text-[8px] font-black uppercase ${trail?.status === 'active' ? 'bg-green-600 border-none' : 'text-orange-500 border-orange-500'}`}>
                 {trail?.status === 'active' ? 'PÚBLICA' : 'RASCUNHO'}
               </Badge>
-              <span className="text-[9px] font-bold text-muted-foreground uppercase">Organizando caminhos pedagógicos</span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Modo Gestor de Conteúdo</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="rounded-xl h-12 border-primary/20 text-primary font-black" asChild>
-            <Link href={`/dashboard/classroom/${trailId}`}><Eye className="h-5 w-5 mr-2" /> Ver como Aluno</Link>
+            <Link href={`/dashboard/classroom/${trailId}`}><Eye className="h-5 w-5 mr-2" /> Prévia do Aluno</Link>
           </Button>
           <Button onClick={() => setIsModuleDialogOpen(true)} className="bg-primary text-white font-black rounded-xl shadow-lg h-12 px-8">
             <Plus className="h-5 w-5 mr-2" /> Novo Capítulo
@@ -247,7 +268,6 @@ export default function TrailManagementPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Lista de Módulos */}
         <div className="lg:col-span-8 space-y-6">
           {modules.length === 0 ? (
             <Card className="border-4 border-dashed border-muted/20 bg-muted/5 rounded-[3rem] p-20 text-center flex flex-col items-center gap-4">
@@ -267,7 +287,7 @@ export default function TrailManagementPage() {
                     </div>
                     <div>
                       <CardTitle className="text-lg font-black text-primary italic leading-none">{mod.title}</CardTitle>
-                      <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1.5">Unidade de Ensino</p>
+                      <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1.5">{contents[mod.id]?.length || 0} Itens Vinculados</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -281,10 +301,10 @@ export default function TrailManagementPage() {
                       {deletingId === mod.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     </Button>
                     <Button 
-                      onClick={() => { setActiveModuleId(mod.id); setIsContentDialogOpen(true); }} 
+                      onClick={() => { setActiveModuleId(mod.id); setPendingItems([]); setIsContentDialogOpen(true); }} 
                       className="bg-accent text-accent-foreground font-black text-[9px] uppercase rounded-xl h-9 px-4"
                     >
-                      <Plus className="h-3.5 w-3.5 mr-1.5" /> Anexar Material
+                      <Plus className="h-3.5 w-3.5 mr-1.5" /> Adicionar Aula
                     </Button>
                   </div>
                 </CardHeader>
@@ -303,7 +323,7 @@ export default function TrailManagementPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-black text-xs md:text-sm text-primary truncate leading-none">{content.title}</p>
-                            <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1 opacity-60">{content.type} • {content.url ? 'Link Externo' : 'Descrição Interna'}</p>
+                            <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1 opacity-60">{content.type}</p>
                           </div>
                         </div>
                         <Button 
@@ -319,7 +339,7 @@ export default function TrailManagementPage() {
                     ))}
                     {(!contents[mod.id] || contents[mod.id].length === 0) && (
                       <div className="text-center py-8 border-2 border-dashed border-muted/30 rounded-2xl bg-muted/5">
-                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest italic">Vazio • Adicione vídeos ou atividades</p>
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest italic opacity-40">Sem conteúdo vinculado</p>
                       </div>
                     )}
                 </CardContent>
@@ -328,7 +348,6 @@ export default function TrailManagementPage() {
           )}
         </div>
 
-        {/* Sidebar */}
         <div className="lg:col-span-4 space-y-6">
           <Card className="border-none shadow-2xl bg-primary text-white rounded-[2.5rem] p-8 overflow-hidden relative">
             <div className="relative z-10 space-y-6">
@@ -345,8 +364,8 @@ export default function TrailManagementPage() {
               <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                 <p className="text-[10px] font-medium italic opacity-80 leading-relaxed">
                   {trail?.status === 'active' 
-                    ? "Alunos de toda a rede municipal já podem ver e estudar este conteúdo." 
-                    : "Este material está oculto para os alunos. Finalize a edição antes de publicar."}
+                    ? "Alunos já podem estudar este material no portal principal." 
+                    : "Em modo rascunho. O material só é visível para você."}
                 </p>
               </div>
 
@@ -360,7 +379,7 @@ export default function TrailManagementPage() {
                 }`}
               >
                 {isPublishing ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
-                {trail?.status === 'active' ? 'Tirar do Ar' : 'Publicar Agora'}
+                {trail?.status === 'active' ? 'Ocultar Trilha' : 'Publicar Agora'}
               </Button>
             </div>
           </Card>
@@ -369,7 +388,7 @@ export default function TrailManagementPage() {
             <h3 className="text-[10px] font-black text-primary/40 uppercase tracking-widest">Dica Pedagógica</h3>
             <div className="flex gap-3">
               <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent shrink-0"><Sparkles className="h-4 w-4" /></div>
-              <p className="text-[11px] font-medium italic text-primary/70 leading-relaxed">Para maior engajamento, intercale uma videoaula com um pequeno Quiz IA ou material de leitura rápida.</p>
+              <p className="text-[11px] font-medium italic text-primary/70 leading-relaxed">Combine múltiplos itens por capítulo (ex: vídeo + atividade) para aumentar a retenção dos alunos.</p>
             </div>
           </Card>
         </div>
@@ -384,7 +403,7 @@ export default function TrailManagementPage() {
           <div className="py-6 space-y-2">
             <Label className="text-[9px] font-black uppercase opacity-40">Título da Unidade</Label>
             <Input 
-              placeholder="Ex: Introdução à Química" 
+              placeholder="Ex: Introdução à Matéria" 
               value={moduleForm.title} 
               onChange={(e) => setModuleForm({title: e.target.value})} 
               disabled={isSubmitting} 
@@ -393,70 +412,106 @@ export default function TrailManagementPage() {
           </div>
           <DialogFooter>
             <Button onClick={handleAddModule} disabled={isSubmitting || !moduleForm.title} className="w-full h-14 bg-primary text-white font-black rounded-xl">
-              {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Confirmar"}
+              {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Criar Capítulo"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Anexar Material */}
+      {/* Dialog: Anexar Materiais (Batch Add) */}
       <Dialog open={isContentDialogOpen} onOpenChange={setIsContentDialogOpen}>
-        <DialogContent className="rounded-[2.5rem] p-10 max-w-md bg-white border-none shadow-2xl">
+        <DialogContent className="rounded-[2.5rem] p-8 md:p-10 max-w-2xl bg-white border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black italic text-primary">Anexar Material</DialogTitle>
+            <DialogTitle className="text-2xl font-black italic text-primary">Anexar Materiais</DialogTitle>
+            <p className="text-muted-foreground text-xs italic">Monte sua sequência didática antes de publicar.</p>
           </DialogHeader>
-          <div className="space-y-5 py-6">
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase opacity-40">Tipo do Item</Label>
-              <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})} disabled={isSubmitting}>
-                <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-none shadow-2xl">
-                  <SelectItem value="video" className="py-2.5 font-bold">🎞️ Videoaula</SelectItem>
-                  <SelectItem value="quiz" className="py-2.5 font-bold">🧠 Quiz IA / Atividade</SelectItem>
-                  <SelectItem value="pdf" className="py-2.5 font-bold">📄 Material PDF</SelectItem>
-                  <SelectItem value="text" className="py-2.5 font-bold">📝 Resumo de Apoio</SelectItem>
-                </SelectContent>
-              </Select>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <Label className="text-[9px] font-black uppercase opacity-40">Tipo do Item</Label>
+                <Select value={contentForm.type} onValueChange={(v) => setContentForm({...contentForm, type: v})} disabled={isSubmitting}>
+                  <SelectTrigger className="h-12 rounded-xl bg-muted/30 border-none font-bold">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-none shadow-2xl">
+                    <SelectItem value="video" className="py-2.5 font-bold">🎞️ Videoaula</SelectItem>
+                    <SelectItem value="quiz" className="py-2.5 font-bold">🧠 Quiz / Avaliação</SelectItem>
+                    <SelectItem value="pdf" className="py-2.5 font-bold">📄 Material PDF</SelectItem>
+                    <SelectItem value="text" className="py-2.5 font-bold">📝 Texto de Apoio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[9px] font-black uppercase opacity-40">Título do Material</Label>
+                <Input 
+                  placeholder="Ex: Aula 01 - Conceitos" 
+                  value={contentForm.title} 
+                  onChange={(e) => setContentForm({...contentForm, title: e.target.value})} 
+                  disabled={isSubmitting} 
+                  className="h-12 rounded-xl bg-muted/30 border-none font-bold" 
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[9px] font-black uppercase opacity-40">Link (YouTube/PDF/Quiz)</Label>
+                <Input 
+                  placeholder="URL do conteúdo..." 
+                  value={contentForm.url} 
+                  onChange={(e) => setContentForm({...contentForm, url: e.target.value})} 
+                  disabled={isSubmitting} 
+                  className="h-12 rounded-xl bg-muted/30 border-none font-medium" 
+                />
+              </div>
+
+              <Button 
+                onClick={addToQueue} 
+                variant="outline" 
+                disabled={isSubmitting || !contentForm.title}
+                className="w-full h-12 rounded-xl border-dashed border-primary/20 text-primary font-black uppercase text-[10px] gap-2"
+              >
+                <Plus className="h-4 w-4" /> Adicionar à Fila
+              </Button>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase opacity-40">Título do Material</Label>
-              <Input 
-                placeholder="Ex: Teoria de Dalton" 
-                value={contentForm.title} 
-                onChange={(e) => setContentForm({...contentForm, title: e.target.value})} 
-                disabled={isSubmitting} 
-                className="h-12 rounded-xl bg-muted/30 border-none font-bold" 
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase opacity-40">Link Externo (Opcional)</Label>
-              <Input 
-                placeholder="URL do YouTube, PDF ou Quiz..." 
-                value={contentForm.url} 
-                onChange={(e) => setContentForm({...contentForm, url: e.target.value})} 
-                disabled={isSubmitting} 
-                className="h-12 rounded-xl bg-muted/30 border-none font-medium" 
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[9px] font-black uppercase opacity-40">Instruções para o Aluno</Label>
-              <Textarea 
-                placeholder="O que estudar aqui?" 
-                value={contentForm.description} 
-                onChange={(e) => setContentForm({...contentForm, description: e.target.value})} 
-                disabled={isSubmitting} 
-                className="min-h-[100px] rounded-xl bg-muted/30 border-none resize-none p-3 text-xs" 
-              />
+            <div className="bg-muted/10 rounded-[2rem] p-6 flex flex-col border border-dashed border-muted/30">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-primary/40 mb-4 flex items-center gap-2">
+                <Layers className="h-3 w-3" /> Fila de Publicação ({pendingItems.length})
+              </h3>
+              <div className="flex-1 overflow-y-auto space-y-2 max-h-[250px] pr-2">
+                {pendingItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-white shadow-sm border border-primary/5 animate-in slide-in-from-right-2 duration-300">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="h-7 w-7 rounded-lg bg-primary/5 flex items-center justify-center text-primary shrink-0">
+                        {item.type === 'video' ? <Video className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                      </div>
+                      <p className="text-[10px] font-bold text-primary truncate max-w-[120px]">{item.title}</p>
+                    </div>
+                    <button onClick={() => removeFromQueue(item.id)} className="text-muted-foreground hover:text-red-500"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                ))}
+                {pendingItems.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-30 gap-2">
+                    <Sparkles className="h-8 w-8" />
+                    <p className="text-[9px] font-black uppercase">Nenhum item na fila</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button onClick={handleAddContent} disabled={isSubmitting || !contentForm.title} className="w-full h-14 bg-primary text-white font-black rounded-xl">
-              {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Anexar ao Capítulo"}
+
+          <DialogFooter className="pt-6 border-t mt-4">
+            <Button 
+              onClick={handleBatchSaveContent} 
+              disabled={isSubmitting || pendingItems.length === 0} 
+              className="w-full h-14 bg-primary text-white font-black text-lg rounded-2xl shadow-xl transition-all"
+            >
+              {isSubmitting ? (
+                <><Loader2 className="animate-spin h-6 w-6 mr-2" /> Publicando Rede...</>
+              ) : (
+                <><CheckCircle2 className="h-6 w-6 mr-2" /> Salvar Tudo e Publicar Aula</>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
