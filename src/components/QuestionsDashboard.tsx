@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -37,7 +38,9 @@ export function QuestionsDashboard() {
 
                 // 2. Processar agrupamento por matéria no cliente para máxima estabilidade
                 const subjectCounts: Record<string, number> = {};
-                (questions || []).forEach(q => {
+                const validQuestions = questions || [];
+                
+                validQuestions.forEach(q => {
                     const name = (q.subjects as any)?.name || 'Sem Categoria';
                     subjectCounts[name] = (subjectCounts[name] || 0) + 1;
                 });
@@ -53,26 +56,26 @@ export function QuestionsDashboard() {
                         .from('student_question_answers')
                         .select('question_id');
                     
-                    if (!aError && questions && questions.length > 0 && answers) {
+                    if (!aError && validQuestions.length > 0 && answers) {
                         const uniqueAnswered = new Set(answers.map(a => a.question_id));
-                        answeredRatio = Math.round((uniqueAnswered.size / questions.length) * 100);
+                        answeredRatio = Math.round((uniqueAnswered.size / validQuestions.length) * 100);
                     }
                 } catch (e) {
                     console.warn("Histórico de respostas ainda não disponível.");
                 }
 
                 setData({
-                    totalQuestions: questions?.length || 0,
+                    totalQuestions: validQuestions.length,
                     questionsBySubject,
                     answeredRatio
                 });
             } catch (error: any) {
                 console.error("Error fetching dashboard data:", error);
-                // Silenciar erros de tabela não encontrada durante o setup inicial
+                // Silenciar erros comuns de setup inicial
                 if (error.code !== 'PGRST116' && error.code !== '42P01') {
                     toast({
-                        title: "Erro ao Carregar Dashboard",
-                        description: "Certifique-se de que as tabelas de questões foram criadas.",
+                        title: "Erro de Conexão",
+                        description: "Não conseguimos sincronizar as estatísticas agora.",
                         variant: "destructive"
                     });
                 }

@@ -1,33 +1,50 @@
+
 "use client";
 
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /**
- * Componente VLibras adaptado para TypeScript e Next.js 15.
- * Usa data-attributes para evitar erros de compilação JSX.
+ * Componente VLibras adaptado para máxima estabilidade e evitar erros de hidratação.
  */
 export function Vlibras() {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
+    
     const initVlibras = () => {
       try {
         if (typeof window !== "undefined" && (window as any).VLibras) {
-          new (window as any).VLibras.Widget("https://vlibras.gov.br/app");
+          // Pequeno delay para garantir que o DOM está pronto para a injeção
+          setTimeout(() => {
+            new (window as any).VLibras.Widget("https://vlibras.gov.br/app");
+          }, 500);
         }
       } catch (e) {
-        // Falha silenciosa
+        console.warn("VLibras init failed:", e);
       }
     };
 
-    const timer = setTimeout(initVlibras, 2000);
-    return () => clearTimeout(timer);
+    if ((window as any).VLibras) {
+      initVlibras();
+    } else {
+      window.addEventListener("vlibras-loaded", initVlibras);
+    }
+
+    return () => window.removeEventListener("vlibras-loaded", initVlibras);
   }, []);
+
+  if (!mounted) return null;
 
   return (
     <>
       <Script 
         src="https://vlibras.gov.br/app/vlibras-plugin.js" 
         strategy="lazyOnload"
+        onLoad={() => {
+          window.dispatchEvent(new Event("vlibras-loaded"));
+        }}
       />
       <div data-vw="true" className="enabled">
         <div data-vw-access-button="true" className="active"></div>

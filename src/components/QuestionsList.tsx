@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -84,7 +85,7 @@ export function QuestionsList() {
             if (sError) throw sError;
             setSubjects(subjectsData || []);
         } catch (error: any) {
-            toast({ title: "Erro ao carregar banco", description: error.message, variant: "destructive" });
+            console.error("Fetch error:", error);
         } finally {
             setIsLoading(false);
         }
@@ -107,10 +108,10 @@ export function QuestionsList() {
     }, [questionToEdit]);
 
     const filteredQuestions = useMemo(() => {
+        const query = searchTerm.toLowerCase();
         return questions.filter(q => {
             const text = (q.question_text || '').toLowerCase();
-            const search = searchTerm.toLowerCase();
-            const matchesSearch = text.includes(search);
+            const matchesSearch = text.includes(query);
             const matchesSubject = subjectFilter === 'all' || q.subject_id === subjectFilter;
             return matchesSearch && matchesSubject;
         });
@@ -312,7 +313,7 @@ export function QuestionsList() {
                     </div>
                     <DialogFooter>
                         <Button onClick={handleUpdate} disabled={isProcessing} className="w-full h-14 bg-primary text-white font-black text-lg rounded-2xl shadow-xl">
-                            {isProcessing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : "Gravar Alterações"}
+                            {isProcessing ? <Loader2 className="h-5 w-5 mr-2" /> : "Gravar Alterações"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
