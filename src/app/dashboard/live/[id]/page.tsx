@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -25,7 +26,7 @@ import { supabase } from "@/app/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * Portal de Acesso à Mentoria - Visão do Aluno
+ * Portal de Acesso à Mentoria - Visão do Aluno (Educori 360)
  */
 export default function StudentLivePage() {
   const params = useParams();
@@ -41,39 +42,39 @@ export default function StudentLivePage() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function loadLiveData() {
-      if (!liveId) return;
-      
-      const { data, error } = await supabase
-        .from('lives')
-        .select(`*`)
-        .eq('id', liveId)
-        .single();
+    if (!liveId || !user) return;
 
-      if (error) {
+    async function loadLiveData() {
+      try {
+        const { data, error } = await supabase
+          .from('lives')
+          .select(`*`)
+          .eq('id', liveId)
+          .single();
+
+        if (error) throw error;
+        setLive(data);
+
+        const { data: msgs } = await supabase
+          .from('live_messages')
+          .select('*')
+          .eq('live_id', liveId)
+          .order('created_at', { ascending: true });
+
+        setMessages(msgs || []);
+      } catch (error: any) {
         console.error("Erro ao carregar live:", error);
         toast({ title: "Aula não encontrada", variant: "destructive" });
         router.push('/dashboard/live');
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      setLive(data);
-
-      const { data: msgs } = await supabase
-        .from('live_messages')
-        .select('*')
-        .eq('live_id', liveId)
-        .order('created_at', { ascending: true });
-
-      setMessages(msgs || []);
-      setLoading(false);
     }
 
     loadLiveData();
 
-    // Inscrição Real-time para mensagens e status da live
     const channel = supabase
-      .channel(`live_channel_${liveId}`)
+      .channel(`live_view_${liveId}`)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
@@ -95,7 +96,7 @@ export default function StudentLivePage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [liveId, router, toast]);
+  }, [liveId, user, router, toast]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +116,7 @@ export default function StudentLivePage() {
       });
 
     if (error) {
-      toast({ title: "Erro ao enviar", description: "Tente novamente.", variant: "destructive" });
+      toast({ title: "Erro ao enviar", description: "Verifique sua conexão.", variant: "destructive" });
     }
   };
 
@@ -135,11 +136,11 @@ export default function StudentLivePage() {
     </div>
   );
 
-  const isLive = live?.status === 'live';
+  const isLiveNow = live?.status === 'live';
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] space-y-4 animate-in fade-in duration-700 overflow-hidden">
-      {/* Header Industrial */}
+      {/* Header do Portal */}
       <div className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-white/20 shrink-0">
         <div className="flex items-center gap-3 overflow-hidden">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full h-10 w-10 shrink-0 hover:bg-primary/5 transition-colors">
@@ -153,8 +154,8 @@ export default function StudentLivePage() {
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <Badge className={`${isLive ? 'bg-red-600 animate-pulse' : 'bg-slate-400'} text-white border-none px-3 h-8 font-black text-[10px] flex items-center gap-2`}>
-            {isLive ? (
+          <Badge className={`${isLiveNow ? 'bg-red-600 animate-pulse' : 'bg-slate-400'} text-white border-none px-3 h-8 font-black text-[10px] flex items-center gap-2`}>
+            {isLiveNow ? (
               <><Signal className="h-3.5 w-3.5" /> ACONTECENDO AGORA</>
             ) : (
               <><CalendarClock className="h-3.5 w-3.5" /> SALA AGENDADA</>
@@ -164,36 +165,33 @@ export default function StudentLivePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0 overflow-hidden">
-        {/* Lado Esquerdo: Portal de Transmissão */}
+        {/* Portal de Transmissão */}
         <div className="lg:col-span-8 flex flex-col gap-4 min-h-0 overflow-hidden">
           <Card className="flex-1 bg-slate-950 rounded-[2.5rem] overflow-hidden shadow-2xl border-none relative flex items-center justify-center group">
             <div className="w-full h-full relative flex flex-col items-center justify-center p-8 text-center gap-8 bg-gradient-to-br from-slate-900 via-black to-slate-900">
-               {/* Sinais de Status */}
                <div className="absolute top-6 left-6 flex items-center gap-2">
-                  <div className={`h-2 w-2 rounded-full ${isLive ? 'bg-red-600 animate-ping' : 'bg-slate-600'}`} />
+                  <div className={`h-2 w-2 rounded-full ${isLiveNow ? 'bg-red-600 animate-ping' : 'bg-slate-600'}`} />
                   <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">
-                    {isLive ? 'Transmissão em Curso' : 'Aguardando o Mentor'}
+                    {isLiveNow ? 'Transmissão em Curso' : 'Aguardando o Mentor'}
                   </span>
                </div>
 
-               {/* Central Visual */}
-               <div className={`h-32 w-32 md:h-56 md:w-56 rounded-full bg-accent/5 border-4 ${isLive ? 'border-accent/40 shadow-[0_0_80px_rgba(245,158,11,0.2)]' : 'border-white/5'} flex items-center justify-center relative transition-all duration-700`}>
-                  <MonitorPlay className={`h-16 w-16 md:h-28 md:w-28 ${isLive ? 'text-accent' : 'text-white/10'} transition-colors`} />
-                  {isLive && (
+               <div className={`h-32 w-32 md:h-56 md:w-56 rounded-full bg-accent/5 border-4 ${isLiveNow ? 'border-accent/40 shadow-[0_0_80px_rgba(245,158,11,0.2)]' : 'border-white/5'} flex items-center justify-center relative transition-all duration-700`}>
+                  <MonitorPlay className={`h-16 w-16 md:h-28 md:w-28 ${isLiveNow ? 'text-accent' : 'text-white/10'} transition-colors`} />
+                  {isLiveNow && (
                     <div className="absolute -bottom-2 right-6 h-10 w-10 bg-green-500 rounded-full border-4 border-slate-950 flex items-center justify-center shadow-xl">
                        <Signal className="h-5 w-5 text-white animate-pulse" />
                     </div>
                   )}
                </div>
                
-               {/* Call to Action Central */}
                <div className="space-y-6 max-w-md">
                   <div className="space-y-2">
                     <h3 className="text-xl md:text-4xl font-black text-white italic leading-none uppercase tracking-tighter">
                       Portal de Mentoria
                     </h3>
-                    <p className="text-xs md:text-sm text-slate-400 font-medium italic">
-                      {isLive 
+                    <p className="text-xs md:text-sm text-slate-400 font-medium italic leading-relaxed">
+                      {isLiveNow 
                         ? "O mentor iniciou a aula! Clique abaixo para ingressar no ambiente seguro do Google Meet."
                         : "Esta aula está agendada. O link de acesso será habilitado assim que o mentor entrar na sala."}
                     </p>
@@ -203,19 +201,19 @@ export default function StudentLivePage() {
                     <div className="flex flex-col gap-4 animate-in zoom-in-95 duration-500">
                       <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 font-black h-16 md:h-20 px-12 rounded-2xl shadow-[0_20px_50px_rgba(245,158,11,0.3)] transition-all hover:scale-105 active:scale-95 group relative overflow-hidden border-none">
                         <a href={live.meeting_url} target="_blank" rel="noopener noreferrer">
-                          <span className="relative z-10 flex items-center gap-4 text-sm md:text-xl">
+                          <span className="relative z-10 flex items-center gap-4 text-sm md:text-xl uppercase tracking-tighter">
                             ACESSAR SALA DO GOOGLE MEET
                             <ExternalLink className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
                           </span>
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                         </a>
                       </Button>
-                      <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Conexão Externa Criptografada</p>
+                      <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.3em]">Ambiente Seguro Criptografado</p>
                     </div>
                   ) : (
                     <div className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
                       <p className="text-xs font-bold text-slate-500 italic">
-                        O mentor ainda não disponibilizou o link da sala. Fique atento ao chat!
+                        O mentor ainda não disponibilizou o link da sala. Fique atento ao chat ao lado!
                       </p>
                     </div>
                   )}
@@ -223,7 +221,6 @@ export default function StudentLivePage() {
             </div>
           </Card>
           
-          {/* Pauta da Aula (Desktop) */}
           <Card className="bg-white rounded-[2.5rem] shadow-xl p-8 border-none hidden md:block shrink-0 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-6 opacity-5">
               <Sparkles className="h-20 w-20 text-primary" />
@@ -240,14 +237,14 @@ export default function StudentLivePage() {
           </Card>
         </div>
 
-        {/* Lado Direito: Chat de Interatividade */}
+        {/* Chat de Interatividade */}
         <Card className="lg:col-span-4 border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col min-h-0">
           <div className="p-6 border-b bg-muted/5 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
                 <MessageCircle className="h-4 w-4 text-accent" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Chat da Aula</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Interatividade</span>
             </div>
             <Badge className="bg-primary/5 text-primary text-[8px] font-black border-none px-2 py-1">REAL-TIME</Badge>
           </div>
@@ -295,7 +292,7 @@ export default function StudentLivePage() {
               <Input 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Tirar dúvida com o mentor..."
+                placeholder="Tirar dúvida..."
                 className="flex-1 h-10 bg-transparent border-none text-primary font-medium italic focus-visible:ring-0 px-0 text-xs"
               />
               <Button type="submit" disabled={!input.trim()} className="h-10 w-10 bg-primary hover:bg-primary/95 text-white rounded-full shrink-0 shadow-lg flex items-center justify-center border-none">
