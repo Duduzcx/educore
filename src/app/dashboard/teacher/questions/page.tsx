@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FilePlus, CheckCircle, ListChecks, PlusCircle, AlertCircle } from 'lucide-react';
+import { Loader2, FilePlus, CheckCircle, ListChecks, PlusCircle, AlertCircle, FlaskConical, Sparkles } from 'lucide-react';
 import { QuestionsDashboard } from '@/components/QuestionsDashboard';
 import { QuestionsList } from '@/components/QuestionsList';
 import { createClient, isSupabaseConfigured } from '@/app/lib/supabase';
@@ -26,6 +26,7 @@ export default function QuestionBankPage() {
 
     const [entryMode, setEntryMode] = useState<'bulk' | 'manual'>('manual');
     const [isSaving, setIsSaving] = useState(false);
+    const [isSeeding, setIsSeeding] = useState(false);
     const [subjects, setSubjects] = useState<any[]>([]);
     const [rawText, setRawText] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -95,7 +96,7 @@ export default function QuestionBankPage() {
 
             if (error) {
                 if (error.message.includes("cache de esquema") || error.message.includes("column") || error.message.includes("not found")) {
-                    throw new Error("Sincronização Necessária: Execute o script SQL no Supabase para criar a coluna 'correct_answer'.");
+                    throw new Error("Sincronização Necessária: Execute o script SQL no Supabase para criar a coluna 'correct_answer' e 'options'.");
                 }
                 if (error.message.includes("row-level security")) {
                     throw new Error("Erro de Permissão (RLS): Certifique-se de executar o script SQL de políticas no Supabase.");
@@ -110,22 +111,49 @@ export default function QuestionBankPage() {
 
         } catch (e: any) {
             console.error("Erro Supabase Insert:", e);
-            
-            if (e.name === 'AbortError' || e.message?.includes('aborted')) {
-                toast({ 
-                    title: "Instabilidade de Rede", 
-                    description: "A requisição foi interrompida. Verifique sua internet e tente salvar novamente.", 
-                    variant: "destructive" 
-                });
-            } else {
-                toast({ 
-                    title: "Falha na Persistência", 
-                    description: e.message || "Verifique a conexão ou as permissões do banco.", 
-                    variant: "destructive" 
-                });
-            }
+            toast({ 
+                title: "Falha na Persistência", 
+                description: e.message || "Verifique a conexão ou as permissões do banco.", 
+                variant: "destructive" 
+            });
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleSeedExample = async () => {
+        if (!user || subjects.length === 0) {
+            toast({ title: "Aguarde", description: "Carregando matérias do banco para gerar exemplo...", variant: "default" });
+            return;
+        }
+
+        setIsSeeding(true);
+        const supabase = createClient();
+        try {
+            const example = {
+                question_text: "Qual é a principal função das mitocôndrias nas células eucarióticas?",
+                year: 2024,
+                subject_id: subjects[0].id,
+                correct_answer: "B",
+                options: [
+                    { letter: "A", text: "Síntese de proteínas nos ribossomos." },
+                    { letter: "B", text: "Produção de energia através da respiração celular." },
+                    { letter: "C", text: "Armazenamento de informações genéticas." },
+                    { letter: "D", text: "Digestão de partículas estranhas." },
+                    { letter: "E", text: "Transporte de substâncias pelo citoplasma." }
+                ],
+                teacher_id: user.id
+            };
+
+            const { error } = await supabase.from('questions').insert([example]);
+            if (error) throw error;
+
+            toast({ title: "Exemplo Adicionado! 🧬", description: "Uma questão de biologia foi criada para teste de uso." });
+            setTimeout(() => window.location.reload(), 1000);
+        } catch (e: any) {
+            toast({ title: "Erro no Teste", description: e.message, variant: "destructive" });
+        } finally {
+            setIsSeeding(false);
         }
     };
 
@@ -143,14 +171,25 @@ export default function QuestionBankPage() {
             <QuestionsDashboard />
 
             <div className="space-y-6">
-                <div className="flex items-center gap-4 px-2">
-                    <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg">
-                        <FilePlus className="h-6 w-6" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg">
+                            <FilePlus className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-black text-primary italic leading-none">Alimentar Banco</h1>
+                            <p className="text-muted-foreground font-medium text-sm italic">Adicione novos desafios pedagógicos para a rede.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-3xl font-black text-primary italic leading-none">Alimentar Banco</h1>
-                        <p className="text-muted-foreground font-medium text-sm italic">Adicione novos desafios pedagógicos para a rede.</p>
-                    </div>
+                    <Button 
+                        variant="outline" 
+                        onClick={handleSeedExample} 
+                        disabled={isSeeding || subjects.length === 0}
+                        className="rounded-xl h-12 border-dashed border-accent text-accent font-black hover:bg-accent/5 px-6"
+                    >
+                        {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                        Gerar Questão de Exemplo
+                    </Button>
                 </div>
 
                 <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
