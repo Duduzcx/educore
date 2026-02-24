@@ -1,7 +1,7 @@
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +18,7 @@ const studentItems = [
   { icon: Library, label: "Biblioteca Digital", href: "/dashboard/library" },
   { icon: Video, label: "Aulas ao Vivo", href: "/dashboard/live" },
   { icon: Calculator, label: "Simulador de Isenção", href: "/dashboard/financial-aid" },
+  { icon: Settings, label: "Configurações", href: "/dashboard/settings" },
 ];
 
 const teacherItems = [
@@ -28,6 +29,7 @@ const teacherItems = [
   { icon: MessagesSquare, label: "Fórum Pedagógico", href: "/dashboard/forum" },
   { icon: MessageSquare, label: "Chats com Alunos", href: "/dashboard/chat", badge: true },
   { icon: Bell, label: "Mural de Avisos", href: "/dashboard/teacher/communication" },
+  { icon: Settings, label: "Configurações", href: "/dashboard/settings" },
 ];
 
 const adminItems = [
@@ -37,6 +39,7 @@ const adminItems = [
   { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
   { icon: Bell, label: "Comunicados Globais", href: "/dashboard/teacher/communication" },
   { icon: MessagesSquare, label: "Fórum de Gestão", href: "/dashboard/forum" },
+  { icon: Settings, label: "Configurações", href: "/dashboard/settings" },
 ];
 
 function SwipeHandler({ children }: { children: React.ReactNode }) {
@@ -61,11 +64,9 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const absX = Math.abs(distanceX);
 
     // Menu na ESQUERDA (side="left")
-    // ABRIR: Deslizar para a DIREITA (distanceX positivo)
     if (!openMobile && distanceX > 45 && absX > 25) {
       setOpenMobile(true);
     } 
-    // FECHAR: Deslizar para a ESQUERDA (distanceX negativo)
     else if (openMobile && distanceX < -45) {
       setOpenMobile(false);
     }
@@ -135,6 +136,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!user) return null;
 
+  const userAvatar = profile?.avatar_url || `https://picsum.photos/seed/${user.id}/100/100`;
+
   return (
     <SidebarProvider>
       <Sidebar side="left" collapsible="icon" className="bg-sidebar border-none">
@@ -175,7 +178,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <span className="text-[8px] font-black text-accent uppercase tracking-widest">{role.toUpperCase()}</span>
             </div>
             <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl">
-              <AvatarImage src={`https://picsum.photos/seed/${user.id}/100/100`} />
+              <AvatarImage src={userAvatar} />
               <AvatarFallback className="bg-primary text-white text-xs">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
           </div>
