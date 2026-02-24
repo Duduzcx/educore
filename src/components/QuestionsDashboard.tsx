@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { FileQuestion, Percent, Loader2 } from "lucide-react";
-import { createClient } from '@/app/lib/supabase';
+import { supabase } from '@/app/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -23,7 +23,6 @@ export function QuestionsDashboard() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-    const supabase = createClient();
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -49,7 +48,7 @@ export function QuestionsDashboard() {
         };
 
         fetchDashboardData();
-    }, [supabase, toast]);
+    }, [toast]);
 
     if (isLoading) {
         return <DashboardSkeleton />;
