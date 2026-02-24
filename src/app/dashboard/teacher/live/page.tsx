@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio } from "lucide-react";
+import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ export default function ManageLivePage() {
     description: "",
     date: "",
     time: "",
+    meeting_url: "",
   });
 
   async function fetchLives() {
@@ -70,6 +71,7 @@ export default function ManageLivePage() {
           title: formData.title,
           description: formData.description,
           start_time,
+          meeting_url: formData.meeting_url,
           teacher_id: user.id,
           teacher_name: user.user_metadata?.full_name || "Mentor da Rede",
           status: "scheduled"
@@ -77,9 +79,9 @@ export default function ManageLivePage() {
 
       if (error) throw error;
 
-      toast({ title: "Sala Criada!", description: "A sala online já está na agenda." });
+      toast({ title: "Sala Criada!", description: "A reunião externa já está na agenda." });
       setIsCreateOpen(false);
-      setFormData({ title: "", description: "", date: "", time: "" });
+      setFormData({ title: "", description: "", date: "", time: "", meeting_url: "" });
       fetchLives();
     } catch (error: any) {
       toast({ title: "Erro ao agendar", description: error.message, variant: "destructive" });
@@ -104,13 +106,13 @@ export default function ManageLivePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div className="space-y-1 px-1">
           <h1 className="text-2xl md:text-3xl font-black text-primary italic leading-none uppercase tracking-tighter">Studio Virtual</h1>
-          <p className="text-muted-foreground text-xs md:text-base font-medium italic">Gerencie suas salas de mentoria.</p>
+          <p className="text-muted-foreground text-xs md:text-base font-medium italic">Gerencie o link de suas reuniões (Meet/YouTube).</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="rounded-xl md:rounded-2xl h-12 md:h-14 bg-accent text-accent-foreground font-black px-6 md:px-8 shadow-xl shadow-accent/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 border-none">
-              <PlusCircle className="h-5 w-5 md:h-6 md:w-6" /> Abrir Sala
+              <PlusCircle className="h-5 w-5 md:h-6 md:w-6" /> Agendar Aula
             </Button>
           </DialogTrigger>
           <DialogContent className="rounded-[1.5rem] md:rounded-[2.5rem] p-6 md:p-10 bg-white max-w-lg border-none shadow-2xl">
@@ -133,13 +135,20 @@ export default function ManageLivePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase opacity-40">Objetivo</Label>
-                <textarea placeholder="Pauta..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} disabled={isSubmitting} className="flex min-h-[80px] w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium resize-none" />
+                <Label className="text-[9px] font-black uppercase opacity-40">Link da Reunião (Meet / YouTube)</Label>
+                <div className="relative">
+                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/30" />
+                  <input placeholder="https://meet.google.com/..." value={formData.meeting_url} onChange={(e) => setFormData({...formData, meeting_url: e.target.value})} disabled={isSubmitting} className="flex h-11 w-full rounded-xl bg-muted/30 border-none pl-10 pr-3 text-sm font-bold focus:ring-2 focus:ring-accent" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase opacity-40">Pauta da Aula</Label>
+                <textarea placeholder="O que será discutido..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} disabled={isSubmitting} className="flex min-h-[80px] w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium resize-none" />
               </div>
             </div>
             <DialogFooter>
               <Button onClick={handleCreateLive} disabled={isSubmitting || !formData.title} className="w-full h-12 md:h-16 bg-primary text-white font-black text-base md:text-lg rounded-xl md:rounded-2xl shadow-xl">
-                {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Agendar Agora"}
+                {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Publicar na Agenda"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -152,7 +161,7 @@ export default function ManageLivePage() {
         ) : lives.length === 0 ? (
           <div className="py-20 text-center border-2 border-dashed rounded-[2rem] bg-white/50 opacity-40">
             <Calendar className="h-10 w-10 mx-auto mb-4 text-primary" />
-            <p className="font-black italic text-sm">Nenhuma sala agendada.</p>
+            <p className="font-black italic text-sm">Nenhuma aula agendada.</p>
           </div>
         ) : (
           lives.map((live) => (
@@ -169,6 +178,7 @@ export default function ManageLivePage() {
                       <Badge variant="secondary" className="text-[7px] md:text-[8px] font-black uppercase px-2 bg-muted/50 border-none">{live.status}</Badge>
                     </div>
                     <CardTitle className="text-base md:text-2xl font-black text-primary italic leading-none truncate">{live.title}</CardTitle>
+                    {live.meeting_url && <p className="text-[10px] text-accent font-bold truncate">Link: {live.meeting_url}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">

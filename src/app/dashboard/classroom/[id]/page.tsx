@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   HelpCircle,
   FileSearch,
-  Layout
+  Layout,
+  Layers
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -54,36 +55,41 @@ export default function ClassroomPage() {
       setLoading(true);
       
       const { data: trailData } = await supabase.from('trails').select('*').eq('id', trailId).single();
-      if (!trailData) return;
+      if (!trailData) {
+        toast({ title: "Trilha não encontrada", variant: "destructive" });
+        return;
+      }
       setTrail(trailData);
 
       const { data: modulesData } = await supabase.from('modules').select('*').eq('trail_id', trailId).order('order_index');
-      if (!modulesData) return;
+      if (!modulesData || modulesData.length === 0) {
+        setModules([]);
+        setLoading(false);
+        return;
+      }
       setModules(modulesData);
       
-      if (modulesData.length > 0) {
-        setActiveModuleId(modulesData[0].id);
-        
-        const moduleIds = modulesData.map(m => m.id);
-        const { data: contentsData } = await supabase.from('learning_contents').select('*').in('module_id', moduleIds).order('order_index');
-        
-        const contentMap: Record<string, any[]> = {};
-        contentsData?.forEach(c => {
-          if (!contentMap[c.module_id]) contentMap[c.module_id] = [];
-          contentMap[c.module_id].push(c);
-        });
-        setContents(contentMap);
+      setActiveModuleId(modulesData[0].id);
+      
+      const moduleIds = modulesData.map(m => m.id);
+      const { data: contentsData } = await supabase.from('learning_contents').select('*').in('module_id', moduleIds).order('order_index');
+      
+      const contentMap: Record<string, any[]> = {};
+      contentsData?.forEach(c => {
+        if (!contentMap[c.module_id]) contentMap[c.module_id] = [];
+        contentMap[c.module_id].push(c);
+      });
+      setContents(contentMap);
 
-        if (contentMap[modulesData[0].id]?.length > 0) {
-          setActiveContentId(contentMap[modulesData[0].id][0].id);
-        }
+      if (contentMap[modulesData[0].id]?.length > 0) {
+        setActiveContentId(contentMap[modulesData[0].id][0].id);
       }
     } catch (e) {
       console.error("Erro ao carregar aula:", e);
     } finally {
       setLoading(false);
     }
-  }, [trailId]);
+  }, [trailId, toast]);
 
   useEffect(() => {
     loadTrailData();
@@ -142,8 +148,13 @@ export default function ClassroomPage() {
         try { playerRef.current.destroy(); } catch (e) {}
       }
       
-      const vidId = activeContent.url?.includes('v=') ? activeContent.url.split('v=')[1] : activeContent.url;
+      const vidUrl = activeContent.url || '';
+      let vidId = '';
       
+      if (vidUrl.includes('v=')) vidId = vidUrl.split('v=')[1].split('&')[0];
+      else if (vidUrl.includes('youtu.be/')) vidId = vidUrl.split('youtu.be/')[1].split('?')[0];
+      else vidId = vidUrl;
+
       playerRef.current = new (window as any).YT.Player('youtube-player', {
         videoId: vidId,
         playerVars: { 'autoplay': 0, 'modestbranding': 1, 'rel': 0 },
@@ -152,7 +163,6 @@ export default function ClassroomPage() {
         }
       });
     } else {
-      // Se não for vídeo, libera progresso total instantâneo ou por leitura
       if (activeContent) setVideoProgress(100);
     }
   }, [activeContentId, activeContent]);
@@ -160,7 +170,16 @@ export default function ClassroomPage() {
   if (loading) return (
     <div className="flex flex-col h-screen items-center justify-center gap-4 bg-background">
       <Loader2 className="animate-spin h-12 w-12 text-accent" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Carregando Material...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Sintonizando Ambiente de Estudo...</p>
+    </div>
+  );
+
+  if (modules.length === 0) return (
+    <div className="flex flex-col h-screen items-center justify-center gap-6 bg-background p-10 text-center">
+      <Layers className="h-20 w-20 text-muted-foreground/20" />
+      <h2 className="text-2xl font-black text-primary italic">Trilha em Construção</h2>
+      <p className="text-muted-foreground max-w-sm">Esta jornada pedagógica ainda não possui capítulos publicados. Volte em breve!</p>
+      <Button onClick={() => router.back()} variant="outline" className="rounded-xl px-8 h-12 border-primary/20">Voltar para Trilhas</Button>
     </div>
   );
 
@@ -173,7 +192,7 @@ export default function ClassroomPage() {
           </button>
           <div className="min-w-0">
             <h1 className="text-lg font-black text-primary italic leading-none truncate max-w-[300px]">{trail?.title}</h1>
-            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Status: {activeContent?.type === 'video' ? 'Assistindo Vídeo' : 'Analisando Material'}</p>
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Capítulo Ativo: {modules.find(m => m.id === activeModuleId)?.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-4 w-full max-w-xs ml-auto">
@@ -196,8 +215,8 @@ export default function ClassroomPage() {
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950 text-white p-10 text-center">
                 <Layout className="h-16 w-16 text-accent/20 mb-4" />
-                <h3 className="text-xl font-black italic uppercase tracking-widest">{activeContent?.title}</h3>
-                <p className="text-sm text-slate-400 mt-2">Este é um material de leitura ou atividade. Use as abas abaixo para acessar o conteúdo completo.</p>
+                <h3 className="text-xl font-black italic uppercase tracking-widest">{activeContent?.title || "Selecione um Material"}</h3>
+                <p className="text-sm text-slate-400 mt-2">Este é um recurso pedagógico complementar. Use as abas abaixo para instruções.</p>
               </div>
             )}
           </div>
@@ -207,7 +226,7 @@ export default function ClassroomPage() {
               <TabsTrigger value="summary" className="gap-2 font-black text-[9px] uppercase tracking-widest"><BookOpen className="h-4 w-4 text-accent"/>Resumo</TabsTrigger>
               <TabsTrigger value="quiz" className="gap-2 font-black text-[9px] uppercase tracking-widest"><BrainCircuit className="h-4 w-4 text-accent"/>Atividade</TabsTrigger>
               <TabsTrigger value="live" className="gap-2 font-black text-[9px] uppercase tracking-widest"><Video className="h-4 w-4 text-red-500"/>Suporte</TabsTrigger>
-              <TabsTrigger value="materials" className="gap-2 font-black text-[9px] uppercase tracking-widest"><Paperclip className="h-4 w-4 text-blue-500"/>Material</TabsTrigger>
+              <TabsTrigger value="materials" className="gap-2 font-black text-[9px] uppercase tracking-widest"><Paperclip className="h-4 w-4 text-blue-500"/>Anexo</TabsTrigger>
             </TabsList>
             
             <div className="flex-1 overflow-y-auto p-6 md:p-10 scrollable-content" ref={scrollRef}>
@@ -220,8 +239,8 @@ export default function ClassroomPage() {
                       <h2 className="text-xl font-black text-primary italic">Orientações do Mentor</h2>
                     </div>
                     <Card className="border-none shadow-sm bg-muted/5 p-6 rounded-2xl">
-                      <p className="text-sm md:text-base leading-relaxed text-primary/80 font-medium italic">
-                        {activeContent?.description || "Inicie o vídeo ou material para ler as instruções detalhadas desta unidade pedagógica."}
+                      <p className="text-sm md:text-base leading-relaxed text-primary/80 font-medium italic whitespace-pre-line">
+                        {activeContent?.description || "Inicie o estudo analisando este material. Siga as orientações do seu mentor para fixar o conhecimento."}
                       </p>
                     </Card>
                   </div>
@@ -237,17 +256,19 @@ export default function ClassroomPage() {
                       </div>
                       <Badge className="bg-primary text-white border-none font-black text-[8px] px-3 uppercase tracking-widest">IA Aurora</Badge>
                     </div>
-                    {activeContent?.type === 'quiz' || activeContent?.url?.includes('quiz') ? (
+                    {activeContent?.type === 'quiz' || activeContent?.url?.includes('quiz') || activeContent?.url?.includes('form') ? (
                       <div className="grid gap-6">
                         <div className="p-8 bg-muted/5 border-2 border-dashed rounded-[2.5rem] text-center">
-                           <p className="text-sm font-bold text-primary italic mb-6">Este capítulo possui uma avaliação vinculada.</p>
-                           <Button className="w-full md:w-auto bg-primary h-14 rounded-2xl font-black shadow-xl px-10">Abrir Simulado Aurora</Button>
+                           <p className="text-sm font-bold text-primary italic mb-6">Este recurso requer interação em janela externa ou simulado integrado.</p>
+                           <Button asChild className="w-full md:w-auto bg-primary h-14 rounded-2xl font-black shadow-xl px-10">
+                             <a href={activeContent?.url} target="_blank" rel="noopener noreferrer">Abrir Atividade Prática</a>
+                           </Button>
                         </div>
                       </div>
                     ) : (
                       <div className="text-center py-12 bg-muted/5 rounded-[2.5rem] border-2 border-dashed border-muted/20">
                         <HelpCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-                        <p className="text-sm font-bold text-muted-foreground italic">Selecione um item de Quiz na lista lateral para começar.</p>
+                        <p className="text-sm font-bold text-muted-foreground italic">Nenhum quiz vinculado a este item específico.</p>
                       </div>
                     )}
                   </div>
@@ -256,21 +277,24 @@ export default function ClassroomPage() {
                   <div className="text-center py-20 bg-muted/5 rounded-[2.5rem]">
                     <Video className="h-12 w-12 mx-auto mb-4 text-red-500 opacity-30" />
                     <p className="font-black italic text-primary">Dúvidas sobre este conteúdo?</p>
-                    <p className="text-[10px] text-muted-foreground mt-2 uppercase font-black tracking-widest">Use o chat da Aurora ou aguarde a próxima live.</p>
+                    <p className="text-[10px] text-muted-foreground mt-2 uppercase font-black tracking-widest">Use o chat da Aurora ou consulte a agenda de encontros no menu principal.</p>
                   </div>
                </TabsContent>
                <TabsContent value="materials" className="mt-0 outline-none">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {activeContent?.type === 'pdf' || activeContent?.url?.includes('.pdf') ? (
+                    {activeContent?.type === 'pdf' || activeContent?.url?.includes('.pdf') || activeContent?.type === 'file' ? (
                       <Card className="p-6 border-none shadow-md bg-white rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-primary transition-all">
                         <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-white/10 group-hover:text-white"><FileText className="h-6 w-6" /></div>
                         <div>
-                          <p className="font-black text-xs text-primary group-hover:text-white uppercase tracking-widest">Anexo Pedagógico</p>
-                          <p className="text-[10px] text-muted-foreground group-hover:text-white/60">Baixar PDF de Apoio</p>
+                          <p className="font-black text-xs text-primary group-hover:text-white uppercase tracking-widest">Apoio Pedagógico</p>
+                          <p className="text-[10px] text-muted-foreground group-hover:text-white/60">Acessar Anexo</p>
                         </div>
+                        <Button asChild variant="ghost" size="icon" className="ml-auto text-primary group-hover:text-white">
+                          <a href={activeContent?.url} target="_blank" rel="noopener noreferrer"><Paperclip className="h-4 w-4" /></a>
+                        </Button>
                       </Card>
                     ) : (
-                      <div className="col-span-full py-10 text-center opacity-30 italic font-medium text-sm">Nenhum anexo adicional para este item específico.</div>
+                      <div className="col-span-full py-10 text-center opacity-30 italic font-medium text-sm">Nenhum anexo adicional para este recurso.</div>
                     )}
                   </div>
                </TabsContent>
@@ -281,7 +305,7 @@ export default function ClassroomPage() {
         {/* Sidebar de Conteúdos */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6 min-h-0">
            <Card className="bg-primary text-white shadow-2xl p-6 rounded-[2.5rem] border-none overflow-hidden relative shrink-0">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Capítulos da Trilha</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Capítulos da Jornada</h2>
             <div className="space-y-2 max-h-[180px] overflow-y-auto scrollbar-hide">
               {modules.map((module, idx) => (
                 <button 
@@ -313,6 +337,7 @@ export default function ClassroomPage() {
                          {content.type === 'quiz' && <BrainCircuit className="h-5 w-5" />}
                          {content.type === 'pdf' && <FileText className="h-5 w-5" />}
                          {content.type === 'text' && <FileSearch className="h-5 w-5" />}
+                         {content.type === 'file' && <Paperclip className="h-5 w-5" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className={`font-black text-[10px] uppercase tracking-widest truncate ${activeContentId === content.id ? 'text-accent' : 'text-primary/60'}`}>{content.title}</p>
@@ -321,6 +346,11 @@ export default function ClassroomPage() {
                       {activeContentId === content.id && <CheckCircle2 className="h-4 w-4 text-accent ml-auto shrink-0" />}
                   </button>
               ))}
+              {(!contents[activeModuleId || ""] || contents[activeModuleId || ""].length === 0) && (
+                <div className="text-center py-10 opacity-30">
+                  <p className="text-[10px] font-black uppercase tracking-widest italic">Capítulo vazio</p>
+                </div>
+              )}
              </div>
           </Card>
         </div>

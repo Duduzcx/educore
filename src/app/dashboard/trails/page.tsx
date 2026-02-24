@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -54,10 +55,11 @@ export default function LearningTrailsPage() {
       if (!user) return;
       setLoading(true);
       try {
+        // Busca trilhas publicadas ou ativas
         const { data: trails, error: trailsError } = await supabase
           .from('trails')
           .select('*')
-          .eq('status', 'active')
+          .or('status.eq.active,status.eq.published')
           .order('created_at', { ascending: false });
 
         if (trailsError) throw trailsError;
@@ -80,10 +82,13 @@ export default function LearningTrailsPage() {
 
   const filteredTrails = useMemo(() => {
     return dbTrails.filter(trail => {
-      const matchesSearch = trail.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            trail.category?.toLowerCase().includes(searchTerm.toLowerCase());
+      const trailTitle = (trail.title || '').toLowerCase();
+      const trailCategory = (trail.category || '').toLowerCase();
+      const query = searchTerm.toLowerCase();
+      
+      const matchesSearch = trailTitle.includes(query) || trailCategory.includes(query);
       const matchesCategory = activeCategory === "Todos" || trail.category === activeCategory;
-      const matchesAudience = activeAudience === "all" || trail.target_audience === activeAudience || trail.target_audience === "both";
+      const matchesAudience = activeAudience === "all" || trail.target_audience === activeAudience || trail.target_audience === "both" || !trail.target_audience;
       
       return matchesSearch && matchesCategory && matchesAudience;
     });
@@ -177,7 +182,7 @@ export default function LearningTrailsPage() {
                     <Link href={`/dashboard/classroom/${trail.id}`}>
                       <Image 
                         src={trail.image_url || `https://picsum.photos/seed/trail-${trail.id}/600/400`} 
-                        alt={trail.title} 
+                        alt={trail.title || "Trilha"} 
                         fill 
                         className="object-cover transition-transform duration-1000 group-hover/card:scale-110"
                         priority={index < 3}
@@ -186,14 +191,8 @@ export default function LearningTrailsPage() {
                         <div className="flex gap-2">
                           <Badge className="bg-white/80 backdrop-blur-md text-primary border-none shadow-lg flex items-center gap-2 px-4 py-1.5 rounded-xl">
                             <Layers className="h-4 w-4 text-accent" />
-                            <span className="text-[10px] font-black uppercase tracking-wider">{trail.modules_count || 0} Módulos</span>
+                            <span className="text-[10px] font-black uppercase tracking-wider">Acessar Jornada</span>
                           </Badge>
-                          {trail.is_new && (
-                            <Badge className="bg-orange-500 text-white border-none shadow-lg px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-bounce">
-                              <Zap className="h-3 w-3 fill-white" />
-                              <span className="text-[8px] font-black uppercase">NOVO</span>
-                            </Badge>
-                          )}
                         </div>
                       </div>
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex flex-col items-center justify-center gap-3 p-8 backdrop-blur-sm">
