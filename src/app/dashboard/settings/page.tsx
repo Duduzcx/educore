@@ -90,12 +90,12 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Aumentado para 10MB para maior flexibilidade do usuário
+    // LIMITE DE 10MB PARA FLEXIBILIDADE
     const MAX_SIZE = 10 * 1024 * 1024; 
     if (file.size > MAX_SIZE) {
       toast({ 
         title: "Arquivo muito grande", 
-        description: "O novo limite é 10MB. Tente uma imagem mais leve.", 
+        description: "O limite é de 10MB. Reduza a imagem e tente novamente.", 
         variant: "destructive" 
       });
       return;
@@ -105,7 +105,7 @@ export default function SettingsPage() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`; // Salvando na raiz do bucket para simplificar
+      const filePath = `${fileName}`;
 
       // 1. Enviar para o Storage
       const { error: uploadError } = await supabase.storage
@@ -116,32 +116,36 @@ export default function SettingsPage() {
         });
 
       if (uploadError) {
-        // Se der erro de bucket não encontrado ou permissão
-        if (uploadError.message.includes("not found") || uploadError.message.includes("bucket")) {
-          throw new Error("O bucket 'avatars' não foi encontrado. Crie-o no painel do Supabase e defina como 'Public'.");
+        // Tratamento específico para erro de RLS (Policies)
+        if (uploadError.message.includes("row-level security")) {
+          throw new Error("Erro de Permissão (RLS): Você precisa ativar as 'Policies' de INSERT e UPDATE para o bucket 'avatars' no console do Supabase.");
+        }
+        
+        if (uploadError.message.includes("not found")) {
+          throw new Error("O bucket 'avatars' não existe. Crie-o na aba Storage do Supabase.");
         }
         throw uploadError;
       }
 
-      // 2. Pegar a URL pública (Certifique-se que o bucket é público no Supabase)
+      // 2. Pegar a URL pública
       const { data } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      if (!data?.publicUrl) throw new Error("Falha ao gerar URL da imagem.");
+      if (!data?.publicUrl) throw new Error("Falha ao gerar URL pública.");
 
       // 3. Atualizar estado local
       setFormData(prev => ({ ...prev, avatar_url: data.publicUrl }));
       
       toast({ 
         title: "Foto processada! 📸", 
-        description: "Agora clique em 'Gravar Alterações' para salvar seu novo perfil." 
+        description: "Agora clique em 'Gravar Alterações' para salvar permanentemente." 
       });
     } catch (err: any) {
       console.error("Erro upload:", err);
       toast({ 
         title: "Falha no Upload", 
-        description: err.message || "Verifique se o bucket 'avatars' existe e é público no Supabase Storage.", 
+        description: err.message || "Verifique a configuração do Storage no Supabase.", 
         variant: "destructive" 
       });
     } finally {
@@ -180,7 +184,7 @@ export default function SettingsPage() {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
                 className="absolute bottom-0 right-0 h-10 w-10 bg-accent rounded-full border-4 border-white flex items-center justify-center text-accent-foreground shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer z-10"
-                title="Carregar da Galeria"
+                title="Carregar da Galeria (Máx 10MB)"
               >
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
               </button>
@@ -198,7 +202,7 @@ export default function SettingsPage() {
             
             <div className="mt-6 p-4 rounded-2xl bg-muted/10 border-2 border-dashed border-muted/20">
               <p className="text-[10px] text-muted-foreground italic leading-relaxed">
-                Clique no ícone de câmera (limite 10MB) ou escolha um avatar abaixo.
+                Clique na câmera para enviar da galeria (10MB) ou escolha um avatar abaixo.
               </p>
             </div>
           </Card>
@@ -210,7 +214,7 @@ export default function SettingsPage() {
                 Dica da Aurora
               </h4>
               <p className="text-xs font-medium italic opacity-80 leading-relaxed">
-                "Um perfil autêntico gera mais confiança nas mentorias e debates da rede."
+                "Fotos reais aumentam a credibilidade em fóruns e mentorias. Escolha sua melhor versão!"
               </p>
             </div>
             <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
@@ -221,7 +225,7 @@ export default function SettingsPage() {
           <Card className="border-none shadow-2xl bg-white rounded-[2.5rem] overflow-hidden">
             <CardHeader className="bg-muted/5 p-10">
               <CardTitle className="text-2xl font-black text-primary italic">Dados da Identidade</CardTitle>
-              <CardDescription className="font-medium">Atualize como você aparece para mentores e colegas.</CardDescription>
+              <CardDescription className="font-medium">Atualize seu nome público na rede.</CardDescription>
             </CardHeader>
             <CardContent className="p-10 space-y-10">
               <form onSubmit={handleUpdateProfile} className="space-y-8">
@@ -241,7 +245,7 @@ export default function SettingsPage() {
 
                   <div className="space-y-4">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-primary/50 flex items-center gap-2 px-2">
-                      <Palette className="h-4 w-4" /> Escolher Avatar Rápido
+                      <Palette className="h-4 w-4" /> Avatares Rápidos
                     </Label>
                     <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
                       {PRESET_AVATARS.map((url, i) => (
@@ -277,26 +281,15 @@ export default function SettingsPage() {
                     {isUpdating ? "Sincronizando..." : "Gravar Alterações"}
                   </Button>
                   
-                  <p className="text-[9px] text-center text-muted-foreground uppercase font-bold tracking-widest flex items-center justify-center gap-2">
-                    <AlertCircle className="h-3 w-3" /> 
-                    Certifique-se de ter criado o bucket 'avatars' como Público no Supabase Storage.
-                  </p>
+                  <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                    <p className="text-[9px] text-amber-800 uppercase font-black tracking-widest flex items-center gap-2">
+                      <AlertCircle className="h-3.5 w-3.5" /> 
+                      Aviso Técnico: Se o upload falhar com "RLS Policy", rode o script SQL fornecido no painel do Supabase.
+                    </p>
+                  </div>
                 </div>
               </form>
             </CardContent>
-          </Card>
-
-          <Card className="border-none shadow-xl bg-white rounded-[2rem] p-8 opacity-50 cursor-not-allowed">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center"><BellRing className="h-6 w-6 text-muted-foreground" /></div>
-                <div>
-                  <h4 className="font-black text-primary italic leading-none">Notificações Push</h4>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase mt-1">Breve: Alertas de novas lives e aulas.</p>
-                </div>
-              </div>
-              <Badge variant="outline" className="font-black text-[8px] uppercase">DESATIVADO</Badge>
-            </div>
           </Card>
         </div>
       </div>

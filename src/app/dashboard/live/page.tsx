@@ -26,6 +26,11 @@ export default function LiveClassesPage() {
           .order('start_time', { ascending: true });
 
         if (error) throw error;
+
+        // --- DEBUG: Log para inspecionar os dados recebidos ---
+        console.log("Dados recebidos do Supabase:", data);
+        // -----------------------------------------------------
+
         setLives(data || []);
       } catch (err) {
         console.error("Erro ao buscar lives:", err);
@@ -38,7 +43,8 @@ export default function LiveClassesPage() {
 
     const channel = supabase
       .channel('live_updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'lives' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lives' }, (payload) => {
+        console.log("Atualização em tempo real recebida:", payload);
         fetchLives();
       })
       .subscribe();
@@ -97,7 +103,7 @@ export default function LiveClassesPage() {
                   >
                      <a href={live.meet_link || '#' } target="_blank" rel="noopener noreferrer">
                         {live.meet_link ? 'Entrar na Sala' : 'Link Indisponível'}
-                        <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
+                        {live.meet_link && <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />}
                      </a>
                   </Button>
                 </CardContent>
