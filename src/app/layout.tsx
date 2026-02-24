@@ -1,52 +1,26 @@
-import type { Metadata, Viewport } from 'next';
-import { Inter, Lexend } from 'next/font/google';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/lib/AuthProvider'; 
-import { ClientWrapper } from '@/components/ClientWrapper';
+import { AuthProvider } from '@/lib/AuthProvider';
 import './globals.css';
+import { Toaster } from '@/components/ui/toaster';
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const lexend = Lexend({
-  subsets: ['latin'],
-  variable: '--font-lexend',
-  display: 'swap',
-});
-
-export const metadata: Metadata = {
-  title: 'Compromisso | Smart Education',
-  description: 'Um portal de educação moderno, acessível e inteligente para gestão municipal e vestibular.',
+export const metadata = {
+  title: 'Compromisso | Educação Inteligente',
+  description: 'Tecnologia a serviço da aprovação.',
 };
 
-export const viewport: Viewport = {
-  themeColor: '#1a2c4b',
-  initialScale: 1,
-  width: 'device-width',
-  maximumScale: 1,
-  userScalable: false,
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${lexend.variable}`}>
+    <html lang="pt-BR">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body suppressHydrationWarning={true}>
+      <body className="font-sans antialiased">
         <AuthProvider>
-          <ClientWrapper>
-            {children}
-          </ClientWrapper>
+          {children}
           <Toaster />
         </AuthProvider>
       </body>

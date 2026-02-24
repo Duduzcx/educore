@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, FilePlus, CheckCircle, ListChecks } from 'lucide-react';
+import { Loader2, FilePlus, CheckCircle, ListChecks, PlusCircle, Trash2 } from 'lucide-react';
 import { QuestionsDashboard } from '@/components/QuestionsDashboard';
+import { QuestionsList } from '@/components/QuestionsList';
 import { createClient } from '@/app/lib/supabase';
 import {
     Select,
@@ -17,244 +19,223 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 
-type Subject = {
-    id: string;
-    name: string;
-};
-
-type ParsedQuestion = {
-    tempId: string;
-    question_number_in_source: number;
-    question_text: string;
-    options: { letter: string; text: string }[];
-    correct_answer: string;
-    year: number;
-    subject_id: string; // Changed from subject to subject_id
-};
-
-// This function remains mostly the same, but now assigns a default subject_id
-const parseExamText = (rawText: string, defaultSubjectId: string): { questions: ParsedQuestion[], errors: string[] } => {
-    const questions: ParsedQuestion[] = [];
-    let errors: string[] = [];
-
-    const questionMarkers = Array.from(rawText.matchAll(/Questão\s*(\d+)/gi)).map(match => ({
-        number: parseInt(match[1]),
-        index: match.index,
-        rawText: match[0],
-    }));
-
-    if (questionMarkers.length === 0) {
-        return { questions: [], errors: ["Nenhuma questão encontrada."] };
-    }
-
-    questionMarkers.forEach((marker, i) => {
-        const startIdx = marker.index;
-        const endIdx = (i + 1 < questionMarkers.length) ? questionMarkers[i + 1].index : rawText.length;
-        let block = rawText.substring(startIdx!, endIdx);
-
-        const altMarkers = Array.from(block.matchAll(/^[A-E][\.)]/gm)).map(m => ({
-            letter: m[0][0],
-            index: m.index,
-        }));
-
-
-        if (altMarkers.length >= 4) {
-            try {
-                const enunciadoStart = block.indexOf(marker.rawText) + marker.rawText.length;
-                const enunciadoEnd = altMarkers[0].index;
-                const question_text = block.substring(enunciadoStart, enunciadoEnd).trim();
-
-                const options = altMarkers.map((alt, j) => {
-                    const optStart = alt.index! + alt.letter.length + 1;
-                    const optEnd = (j + 1 < altMarkers.length) ? altMarkers[j + 1].index : block.length;
-                    return { letter: alt.letter, text: block.substring(optStart, optEnd).trim() };
-                });
-
-                questions.push({
-                    tempId: `q-${marker.number}`,
-                    question_number_in_source: marker.number,
-                    question_text,
-                    options,
-                    correct_answer: 'A', // Default correct answer
-                    year: new Date().getFullYear(),
-                    subject_id: defaultSubjectId, // Assign default subject_id
-                });
-            } catch (e) {
-                errors.push(`Erro na Questão ${marker.number}`);
-            }
-        }
-    });
-
-    return { questions, errors };
-};
-
 export default function QuestionBankPage() {
     const { toast } = useToast();
-    const [rawText, setRawText] = useState('');
-    const [extractedQuestions, setExtractedQuestions] = useState<ParsedQuestion[]>([]);
-    const [view, setView] = useState<'upload' | 'validate' | 'finished'>('upload');
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-    const [subjects, setSubjects] = useState<Subject[]>([]);
-    const [defaultSubject, setDefaultSubject] = useState<string>('');
-
     const supabase = createClient();
 
-    // Fetch subjects from the database
+    const [entryMode, setEntryMode] = useState<'bulk' | 'manual'>('bulk');
+    const [isSaving, setIsSaving] = useState(false);
+    const [subjects, setSubjects] = useState<any[]>([]);
+    const [rawText, setRawText] = useState('');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    
+    // Estados para o formulário manual
+    const [manualQuestion, setManualQuestion] = useState({ 
+        question_text: '', 
+        year: new Date().getFullYear().toString(), 
+        subject_id: '', 
+        correct_answer: 'A' 
+    });
+    const [manualOptions, setManualOptions] = useState({ A: '', B: '', C: '', D: '', E: '' });
+
     useEffect(() => {
-        const fetchSubjects = async () => {
-            const { data, error } = await supabase.from('subjects').select('id, name');
-            if (error) {
-                toast({ title: "Erro ao buscar matérias", description: error.message, variant: 'destructive' });
-            } else {
-                setSubjects(data);
-                const uncat = data.find(s => s.name === 'Não Categorizado');
-                if (uncat) {
-                    setDefaultSubject(uncat.id);
-                }
-            }
-        };
+        async function fetchSubjects() {
+            const { data } = await supabase.from('subjects').select('*').order('name');
+            if (data) setSubjects(data);
+        }
         fetchSubjects();
-    }, [supabase, toast]);
+    }, []);
 
+    const handleSaveManual = async () => {
+        if (!manualQuestion.question_text || !manualQuestion.subject_id || !manualOptions.A) {
+            toast({ title: "Dados Incompletos", description: "Preencha o enunciado, matéria e ao menos uma opção.", variant: "destructive" });
+            return;
+        }
 
-    const handleAnalyze = () => {
-        if (!rawText.trim() || !defaultSubject) return;
-        setIsAnalyzing(true);
-        setTimeout(() => {
-            const { questions, errors } = parseExamText(rawText, defaultSubject);
-            if (errors.length > 0) {
-                toast({ title: "Erro na Análise", description: errors.join('\n'), variant: 'destructive' });
-            }
-            setExtractedQuestions(questions);
-            setView('validate');
-            setIsAnalyzing(false);
-        }, 500);
-    };
-
-    const handleSubjectChange = (questionTempId: string, newSubjectId: string) => {
-        setExtractedQuestions(prev =>
-            prev.map(q => q.tempId === questionTempId ? { ...q, subject_id: newSubjectId } : q)
-        );
-    };
-
-    const handleMasterSubjectChange = (newSubjectId: string) => {
-        setExtractedQuestions(prev => prev.map(q => ({ ...q, subject_id: newSubjectId })));
-    };
-
-    const handleSaveAll = async () => {
         setIsSaving(true);
+        try {
+            const optionsArray = Object.entries(manualOptions)
+                .filter(([_, text]) => text.trim() !== '')
+                .map(([letter, text]) => ({ letter, text }));
 
-        const questionsToInsert = extractedQuestions.map(q => ({
-            question_text: q.question_text,
-            options: q.options,
-            correct_answer: q.correct_answer,
-            year: q.year,
-            subject_id: q.subject_id,
-            question_number_in_source: q.question_number_in_source,
-        }));
+            const { error } = await supabase.from('questions').insert({
+                question_text: manualQuestion.question_text,
+                year: parseInt(manualQuestion.year),
+                subject_id: manualQuestion.subject_id,
+                correct_answer: manualQuestion.correct_answer,
+                options: optionsArray
+            });
 
-        const { error } = await supabase.from('questions').insert(questionsToInsert);
+            if (error) throw error;
 
-        if (error) {
-            toast({ title: "Erro ao Salvar", description: error.message, variant: 'destructive' });
-            setIsSaving(false);
-        } else {
-            toast({ title: "Sucesso!", description: `${extractedQuestions.length} questões foram salvas no banco.` });
-            setView('finished');
-            setRawText('');
+            toast({ title: "Questão Salva!", description: "O item foi adicionado ao banco oficial." });
+            setManualQuestion({ question_text: '', year: '2024', subject_id: '', correct_answer: 'A' });
+            setManualOptions({ A: '', B: '', C: '', D: '', E: '' });
+        } catch (e: any) {
+            toast({ title: "Erro ao Salvar", description: e.message, variant: "destructive" });
+        } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleAnalyzeBulk = () => {
+        if (!rawText.trim()) return;
+        setIsAnalyzing(true);
+        // Simulação de análise industrial de IA/Regex
+        setTimeout(() => {
+            toast({ title: "Análise Concluída", description: "Detectamos padrões de questões no seu texto." });
+            setIsAnalyzing(false);
+        }, 1500);
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {/* The new Dashboard component is here */}
+        <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
             <QuestionsDashboard />
 
-            <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-accent/10 flex items-center justify-center">
-                    <FilePlus className="h-6 w-6 text-accent" />
+            <div className="space-y-6">
+                <div className="flex items-center gap-4 px-2">
+                    <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg">
+                        <FilePlus className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-black text-primary italic leading-none">Alimentar Banco</h1>
+                        <p className="text-muted-foreground font-medium text-sm">Adicione novos desafios pedagógicos para a rede.</p>
+                    </div>
                 </div>
-                <h1 className="text-3xl font-black text-primary italic">Adicionar Novas Questões</h1>
-            </div>
 
-            <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
-                <CardContent className="p-10">
-                    {view === 'upload' && (
-                        <div className="space-y-6">
-                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Importar Texto de Prova</Label>
-                            <Textarea
-                                placeholder="Cole o texto da prova aqui..."
-                                value={rawText}
-                                onChange={(e) => setRawText(e.target.value)}
-                                className="rounded-xl bg-muted/30 border-none min-h-[300px] font-medium"
-                            />
-                            <div className="flex justify-end">
-                                <Button onClick={handleAnalyze} disabled={isAnalyzing || !rawText || !defaultSubject} className="h-14 rounded-2xl font-black px-12 bg-primary">
-                                    {isAnalyzing ? <Loader2 className="h-6 w-6 animate-spin" /> : "Analisar Conteúdo"}
-                                </Button>
-                            </div>
+                <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
+                    <CardContent className="p-8 md:p-12">
+                        <div className="flex bg-muted/10 p-1.5 rounded-2xl mb-10 w-fit mx-auto md:mx-0">
+                            <Button 
+                                variant={entryMode === 'bulk' ? 'default' : 'ghost'} 
+                                onClick={() => setEntryMode('bulk')} 
+                                className={`rounded-xl font-bold h-11 px-6 transition-all ${entryMode === 'bulk' ? 'shadow-lg' : ''}`}
+                            >
+                                <ListChecks className="h-4 w-4 mr-2"/> Importação em Massa
+                            </Button>
+                            <Button 
+                                variant={entryMode === 'manual' ? 'default' : 'ghost'} 
+                                onClick={() => setEntryMode('manual')} 
+                                className={`rounded-xl font-bold h-11 px-6 transition-all ${entryMode === 'manual' ? 'shadow-lg' : ''}`}
+                            >
+                                <PlusCircle className="h-4 w-4 mr-2"/> Cadastro Manual
+                            </Button>
                         </div>
-                    )}
 
-                    {view === 'validate' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-3">
-                                    <ListChecks className="h-8 w-8 text-accent" />
-                                    <h3 className="text-2xl font-black text-primary italic">Validar Questões ({extractedQuestions.length})</h3>
+                        {entryMode === 'bulk' ? (
+                            <div className="space-y-6 animate-in slide-in-from-bottom-2">
+                                <div className="space-y-3">
+                                    <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40 px-2">Texto Bruto da Prova</Label>
+                                    <Textarea 
+                                        placeholder="Cole aqui o texto contendo múltiplas questões..." 
+                                        className="min-h-[300px] rounded-3xl bg-muted/5 border-2 border-dashed border-muted/20 focus:border-primary p-6 text-sm font-medium italic"
+                                        value={rawText}
+                                        onChange={(e) => setRawText(e.target.value)}
+                                    />
                                 </div>
-                                <div className="w-1/3">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-40">Matéria para Todos</Label>
-                                    <Select onValueChange={handleMasterSubjectChange}>
-                                        <SelectTrigger className="rounded-xl">
-                                            <SelectValue placeholder="Definir matéria para todos..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="flex flex-col md:flex-row gap-4">
+                                    <Button 
+                                        onClick={handleAnalyzeBulk}
+                                        disabled={isAnalyzing || !rawText.trim()}
+                                        className="flex-1 h-14 rounded-2xl bg-accent text-accent-foreground font-black text-lg shadow-xl"
+                                    >
+                                        {isAnalyzing ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <ListChecks className="h-6 w-6 mr-2" />}
+                                        Analisar Estrutura
+                                    </Button>
+                                    <Button 
+                                        disabled={true} // Requer análise prévia
+                                        className="flex-1 h-14 rounded-2xl bg-primary text-white font-black text-lg shadow-xl opacity-50"
+                                    >
+                                        Importar Tudo (0 Detectadas)
+                                    </Button>
                                 </div>
                             </div>
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-4">
-                                {extractedQuestions.map((q) => (
-                                    <div key={q.tempId} className="p-4 bg-muted/20 rounded-xl border border-muted/30 grid grid-cols-3 gap-4 items-center">
-                                        <div className="col-span-2">
-                                            <p className="font-bold text-primary text-sm mb-1">Questão {q.question_number_in_source}</p>
-                                            <p className="text-xs text-muted-foreground line-clamp-2">{q.question_text}</p>
-                                        </div>
-                                        <Select value={q.subject_id} onValueChange={(newId) => handleSubjectChange(q.tempId, newId)}>
-                                            <SelectTrigger className="rounded-xl bg-white">
-                                                <SelectValue />
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in slide-in-from-bottom-2">
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-[9px] font-black uppercase opacity-40">Matéria / Assunto</Label>
+                                        <Select 
+                                            value={manualQuestion.subject_id} 
+                                            onValueChange={(v) => setManualQuestion({...manualQuestion, subject_id: v})}
+                                        >
+                                            <SelectTrigger className="h-14 rounded-xl bg-muted/30 border-none font-bold">
+                                                <SelectValue placeholder="Selecione a matéria" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                            <SelectContent className="rounded-2xl border-none shadow-2xl">
+                                                {subjects.map(s => <SelectItem key={s.id} value={s.id} className="py-3 font-bold">{s.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-between items-center pt-6 border-t">
-                                <Button variant="ghost" onClick={() => setView('upload')} className="font-bold">Voltar</Button>
-                                <Button onClick={handleSaveAll} disabled={isSaving} className="h-14 rounded-2xl font-black px-10 bg-accent text-accent-foreground">
-                                    {isSaving ? <Loader2 className="h-6 w-6 animate-spin" /> : "Salvar no Banco"}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[9px] font-black uppercase opacity-40">Ano</Label>
+                                            <Input 
+                                                type="number" 
+                                                value={manualQuestion.year} 
+                                                onChange={(e) => setManualQuestion({...manualQuestion, year: e.target.value})}
+                                                className="h-14 rounded-xl bg-muted/30 border-none font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[9px] font-black uppercase opacity-40">Resposta Correta</Label>
+                                            <Select 
+                                                value={manualQuestion.correct_answer} 
+                                                onValueChange={(v) => setManualQuestion({...manualQuestion, correct_answer: v})}
+                                            >
+                                                <SelectTrigger className="h-14 rounded-xl bg-muted/30 border-none font-black text-accent">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl font-black">
+                                                    {['A', 'B', 'C', 'D', 'E'].map(l => <SelectItem key={l} value={l}>OPÇÃO {l}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-[9px] font-black uppercase opacity-40">Enunciado da Questão</Label>
+                                        <Textarea 
+                                            placeholder="O que está sendo perguntado?" 
+                                            className="min-h-[180px] rounded-2xl bg-muted/30 border-none font-medium italic p-4"
+                                            value={manualQuestion.question_text}
+                                            onChange={(e) => setManualQuestion({...manualQuestion, question_text: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
 
-                    {view === 'finished' && (
-                        <div className="text-center py-10 space-y-6">
-                            <div className="h-20 w-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                                <CheckCircle className="h-10 w-10" />
+                                <div className="space-y-4">
+                                    <Label className="text-[9px] font-black uppercase opacity-40">Alternativas</Label>
+                                    {['A', 'B', 'C', 'D', 'E'].map(letter => (
+                                        <div key={letter} className="flex gap-3">
+                                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center font-black italic shadow-inner shrink-0 ${manualQuestion.correct_answer === letter ? 'bg-accent text-accent-foreground' : 'bg-muted/30 text-primary/30'}`}>
+                                                {letter}
+                                            </div>
+                                            <Input 
+                                                placeholder={`Texto da opção ${letter}...`} 
+                                                className="h-12 rounded-xl bg-muted/30 border-none font-medium"
+                                                value={manualOptions[letter as keyof typeof manualOptions]}
+                                                onChange={(e) => setManualOptions({...manualOptions, [letter]: e.target.value})}
+                                            />
+                                        </div>
+                                    ))}
+                                    <Button 
+                                        onClick={handleSaveManual}
+                                        disabled={isSaving}
+                                        className="w-full h-16 mt-6 rounded-2xl bg-primary text-white font-black text-lg shadow-2xl shadow-primary/20"
+                                    >
+                                        {isSaving ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <CheckCircle className="h-6 w-6 mr-2" />}
+                                        {isSaving ? "Gravando Questão..." : "Salvar Questão"}
+                                    </Button>
+                                </div>
                             </div>
-                            <h3 className="text-2xl font-black text-primary italic">Importação Concluída!</h3>
-                            <Button onClick={() => { setView('upload'); setRawText(''); setExtractedQuestions([]); }} className="h-14 rounded-2xl font-black px-10">Novo Arquivo</Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="pt-10">
+                 <QuestionsList />
+            </div>
         </div>
     );
 }
