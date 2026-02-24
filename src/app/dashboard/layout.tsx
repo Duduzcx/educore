@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -63,7 +64,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
     const distanceX = touchEnd.current - touchStart.current;
     const absX = Math.abs(distanceX);
 
-    // Menu na ESQUERDA (side="left")
+    // Menu na ESQUERDA (puxar da esquerda para direita abre)
     if (!openMobile && distanceX > 45 && absX > 25) {
       setOpenMobile(true);
     } 
@@ -172,16 +173,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-xl px-4 md:px-6 shrink-0">
           <SidebarTrigger className="h-9 w-9 rounded-full hover:bg-muted" />
           <div className="flex-1" />
-          <div className="flex items-center gap-3 md:gap-4">
+          <Link href="/dashboard/settings" className="flex items-center gap-3 md:gap-4 group hover:opacity-80 transition-all">
             <div className="hidden sm:flex flex-col items-end">
-              <span className="text-sm font-black text-primary italic leading-none">{profile?.name || "Usuário"}</span>
+              <span className="text-sm font-black text-primary italic leading-none group-hover:text-accent transition-colors">{profile?.name || "Usuário"}</span>
               <span className="text-[8px] font-black text-accent uppercase tracking-widest">{role.toUpperCase()}</span>
             </div>
-            <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl">
+            <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl group-hover:border-accent transition-all">
               <AvatarImage src={userAvatar} />
               <AvatarFallback className="bg-primary text-white text-xs">{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
-          </div>
+          </Link>
         </header>
         
         <SwipeHandler>
