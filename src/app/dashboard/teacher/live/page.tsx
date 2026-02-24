@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio, Link as LinkIcon } from "lucide-react";
+import { PlusCircle, Calendar, Clock, Loader2, Trash2, Radio, Link as LinkIcon, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -77,14 +77,21 @@ export default function ManageLivePage() {
           status: "scheduled"
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro Supabase Lives:", error);
+        throw new Error(error.message);
+      }
 
       toast({ title: "Sala Criada!", description: "A reunião externa já está na agenda." });
       setIsCreateOpen(false);
       setFormData({ title: "", description: "", date: "", time: "", meeting_url: "" });
       fetchLives();
     } catch (error: any) {
-      toast({ title: "Erro ao agendar", description: error.message, variant: "destructive" });
+      toast({ 
+        title: "Erro ao agendar", 
+        description: error.message.includes("status") ? "A coluna 'status' não existe no banco. Execute o script SQL." : error.message, 
+        variant: "destructive" 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -135,7 +142,7 @@ export default function ManageLivePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[9px] font-black uppercase opacity-40">Link da Reunião (Meet / YouTube)</Label>
+                <Label className="text-[9px] font-black uppercase opacity-40">Link da Reunião (Google Meet / Zoom)</Label>
                 <div className="relative">
                   <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/30" />
                   <input placeholder="https://meet.google.com/..." value={formData.meeting_url} onChange={(e) => setFormData({...formData, meeting_url: e.target.value})} disabled={isSubmitting} className="flex h-11 w-full rounded-xl bg-muted/30 border-none pl-10 pr-3 text-sm font-bold focus:ring-2 focus:ring-accent" />
@@ -146,10 +153,13 @@ export default function ManageLivePage() {
                 <textarea placeholder="O que será discutido..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} disabled={isSubmitting} className="flex min-h-[80px] w-full rounded-xl bg-muted/30 border-none px-3 py-2 text-sm font-medium resize-none" />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex-col gap-4">
               <Button onClick={handleCreateLive} disabled={isSubmitting || !formData.title} className="w-full h-12 md:h-16 bg-primary text-white font-black text-base md:text-lg rounded-xl md:rounded-2xl shadow-xl">
                 {isSubmitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : "Publicar na Agenda"}
               </Button>
+              <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                <AlertCircle className="h-3 w-3" /> Certifique-se de rodar o SQL no Supabase.
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -178,7 +188,7 @@ export default function ManageLivePage() {
                       <Badge variant="secondary" className="text-[7px] md:text-[8px] font-black uppercase px-2 bg-muted/50 border-none">{live.status}</Badge>
                     </div>
                     <CardTitle className="text-base md:text-2xl font-black text-primary italic leading-none truncate">{live.title}</CardTitle>
-                    {live.meeting_url && <p className="text-[10px] text-accent font-bold truncate">Link: {live.meeting_url}</p>}
+                    {live.meeting_url && <p className="text-[10px] text-accent font-bold truncate">Meet: {live.meeting_url}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">

@@ -21,7 +21,8 @@ import {
   HelpCircle,
   FileSearch,
   Layout,
-  Layers
+  Layers,
+  AlertCircle
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -61,19 +62,33 @@ export default function ClassroomPage() {
       }
       setTrail(trailData);
 
-      const { data: modulesData } = await supabase.from('modules').select('*').eq('trail_id', trailId).order('order_index');
+      // 1. Carregar Módulos
+      const { data: modulesData, error: modError } = await supabase
+        .from('modules')
+        .select('*')
+        .eq('trail_id', trailId)
+        .order('order_index');
+      
+      if (modError) throw modError;
+
       if (!modulesData || modulesData.length === 0) {
         setModules([]);
         setLoading(false);
         return;
       }
       setModules(modulesData);
-      
       setActiveModuleId(modulesData[0].id);
       
+      // 2. Carregar Conteúdos de todos os módulos
       const moduleIds = modulesData.map(m => m.id);
-      const { data: contentsData } = await supabase.from('learning_contents').select('*').in('module_id', moduleIds).order('order_index');
+      const { data: contentsData, error: contError } = await supabase
+        .from('learning_contents')
+        .select('*')
+        .in('module_id', moduleIds)
+        .order('order_index');
       
+      if (contError) throw contError;
+
       const contentMap: Record<string, any[]> = {};
       contentsData?.forEach(c => {
         if (!contentMap[c.module_id]) contentMap[c.module_id] = [];
@@ -84,8 +99,13 @@ export default function ClassroomPage() {
       if (contentMap[modulesData[0].id]?.length > 0) {
         setActiveContentId(contentMap[modulesData[0].id][0].id);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error("Erro ao carregar aula:", e);
+      toast({ 
+        title: "Erro de Sincronização", 
+        description: "Certifique-se de que as tabelas 'modules' e 'learning_contents' existem.",
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
@@ -106,8 +126,8 @@ export default function ClassroomPage() {
         last_accessed: new Date().toISOString()
       });
       toast({ 
-        title: "Conteúdo Concluído!", 
-        description: "Seu progresso industrial foi registrado." 
+        title: "Progresso Registrado!", 
+        description: "Continue assim para concluir a jornada." 
       });
     }
   }, [isCompleted, toast, user, trailId]);
@@ -133,9 +153,8 @@ export default function ClassroomPage() {
   }, [updateServerProgress]);
 
   useEffect(() => {
-    // Carregamento resiliente da API do YouTube
     const loadYoutubeApi = () => {
-      if (!(window as any).YT) {
+      if (typeof window !== "undefined" && !(window as any).YT) {
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -144,7 +163,7 @@ export default function ClassroomPage() {
         (window as any).onYouTubeIframeAPIReady = () => {
           setIsApiReady(true);
         };
-      } else if ((window as any).YT && (window as any).YT.Player) {
+      } else if (typeof window !== "undefined" && (window as any).YT && (window as any).YT.Player) {
         setIsApiReady(true);
       }
     };
@@ -198,16 +217,19 @@ export default function ClassroomPage() {
   if (loading) return (
     <div className="flex flex-col h-screen items-center justify-center gap-4 bg-background">
       <Loader2 className="animate-spin h-12 w-12 text-accent" />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Sintonizando Ambiente de Estudo...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">Carregando Material Pedagógico...</p>
     </div>
   );
 
   if (modules.length === 0) return (
     <div className="flex flex-col h-screen items-center justify-center gap-6 bg-background p-10 text-center">
       <Layers className="h-20 w-20 text-muted-foreground/20" />
-      <h2 className="text-2xl font-black text-primary italic">Trilha em Construção</h2>
-      <p className="text-muted-foreground max-w-sm">Esta jornada pedagógica ainda não possui capítulos publicados. Volte em breve!</p>
-      <Button onClick={() => router.back()} variant="outline" className="rounded-xl px-8 h-12 border-primary/20">Voltar para Trilhas</Button>
+      <h2 className="text-2xl font-black text-primary italic">Trilha Vazia</h2>
+      <p className="text-muted-foreground max-w-sm">Esta jornada ainda não possui conteúdos cadastrados. Verifique se as tabelas foram criadas no Supabase.</p>
+      <div className="flex flex-col gap-2">
+        <Button onClick={() => router.back()} variant="outline" className="rounded-xl px-8 h-12 border-primary/20">Voltar para Trilhas</Button>
+        <p className="text-[8px] font-black uppercase text-accent mt-4">Dica: Rode o script SQL de módulos e conteúdos.</p>
+      </div>
     </div>
   );
 
@@ -220,13 +242,13 @@ export default function ClassroomPage() {
           </button>
           <div className="min-w-0">
             <h1 className="text-lg font-black text-primary italic leading-none truncate max-w-[300px]">{trail?.title}</h1>
-            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Capítulo Ativo: {modules.find(m => m.id === activeModuleId)?.title}</p>
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1">Capítulo: {modules.find(m => m.id === activeModuleId)?.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-4 w-full max-w-xs ml-auto">
           <div className="flex-1">
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">Monitor de Engajamento</span>
+              <span className="text-[8px] font-black text-primary/40 uppercase tracking-widest">Seu Progresso</span>
               <span className="text-[10px] font-black text-accent italic">{Math.round(videoProgress)}%</span>
             </div>
             <Progress value={videoProgress} className="h-1.5 bg-muted rounded-full" />
@@ -244,7 +266,7 @@ export default function ClassroomPage() {
               <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950 text-white p-10 text-center">
                 <Layout className="h-16 w-16 text-accent/20 mb-4" />
                 <h3 className="text-xl font-black italic uppercase tracking-widest">{activeContent?.title || "Selecione um Material"}</h3>
-                <p className="text-sm text-slate-400 mt-2">Este é um recurso pedagógico complementar. Use as abas abaixo para instruções.</p>
+                <p className="text-sm text-slate-400 mt-2">Use as abas abaixo para acessar as instruções do mentor.</p>
               </div>
             )}
           </div>
@@ -268,7 +290,7 @@ export default function ClassroomPage() {
                     </div>
                     <Card className="border-none shadow-sm bg-muted/5 p-6 rounded-2xl">
                       <p className="text-sm md:text-base leading-relaxed text-primary/80 font-medium italic whitespace-pre-line">
-                        {activeContent?.description || "Inicie o estudo analisando este material. Siga as orientações do seu mentor para fixar o conhecimento."}
+                        {activeContent?.description || "Este conteúdo é fundamental para o seu desenvolvimento técnico. Analise os pontos principais e aplique nos simulados."}
                       </p>
                     </Card>
                   </div>
@@ -287,7 +309,7 @@ export default function ClassroomPage() {
                     {activeContent?.type === 'quiz' || activeContent?.url?.includes('quiz') || activeContent?.url?.includes('form') ? (
                       <div className="grid gap-6">
                         <div className="p-8 bg-muted/5 border-2 border-dashed rounded-[2.5rem] text-center">
-                           <p className="text-sm font-bold text-primary italic mb-6">Este recurso requer interação em janela externa ou simulado integrado.</p>
+                           <p className="text-sm font-bold text-primary italic mb-6">Este recurso requer interação em janela externa segura.</p>
                            <Button asChild className="w-full md:w-auto bg-primary h-14 rounded-2xl font-black shadow-xl px-10">
                              <a href={activeContent?.url} target="_blank" rel="noopener noreferrer">Abrir Atividade Prática</a>
                            </Button>
@@ -296,7 +318,7 @@ export default function ClassroomPage() {
                     ) : (
                       <div className="text-center py-12 bg-muted/5 rounded-[2.5rem] border-2 border-dashed border-muted/20">
                         <HelpCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-                        <p className="text-sm font-bold text-muted-foreground italic">Nenhum quiz vinculado a este item específico.</p>
+                        <p className="text-sm font-bold text-muted-foreground italic">Nenhum quiz vinculado a este item.</p>
                       </div>
                     )}
                   </div>
@@ -304,8 +326,8 @@ export default function ClassroomPage() {
                <TabsContent value="live" className="mt-0 outline-none">
                   <div className="text-center py-20 bg-muted/5 rounded-[2.5rem]">
                     <Video className="h-12 w-12 mx-auto mb-4 text-red-500 opacity-30" />
-                    <p className="font-black italic text-primary">Dúvidas sobre este conteúdo?</p>
-                    <p className="text-[10px] text-muted-foreground mt-2 uppercase font-black tracking-widest">Use o chat da Aurora ou consulte a agenda de encontros no menu principal.</p>
+                    <p className="font-black italic text-primary">Dúvidas?</p>
+                    <p className="text-[10px] text-muted-foreground mt-2 uppercase font-black tracking-widest">Use o chat da Aurora ou consulte a agenda de mentoria no menu.</p>
                   </div>
                </TabsContent>
                <TabsContent value="materials" className="mt-0 outline-none">
@@ -314,7 +336,7 @@ export default function ClassroomPage() {
                       <Card className="p-6 border-none shadow-md bg-white rounded-2xl flex items-center gap-4 group cursor-pointer hover:bg-primary transition-all">
                         <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-white/10 group-hover:text-white"><FileText className="h-6 w-6" /></div>
                         <div>
-                          <p className="font-black text-xs text-primary group-hover:text-white uppercase tracking-widest">Apoio Pedagógico</p>
+                          <p className="font-black text-xs text-primary group-hover:text-white uppercase tracking-widest">Apoio Técnico</p>
                           <p className="text-[10px] text-muted-foreground group-hover:text-white/60">Acessar Anexo</p>
                         </div>
                         <Button asChild variant="ghost" size="icon" className="ml-auto text-primary group-hover:text-white">
@@ -322,7 +344,7 @@ export default function ClassroomPage() {
                         </Button>
                       </Card>
                     ) : (
-                      <div className="col-span-full py-10 text-center opacity-30 italic font-medium text-sm">Nenhum anexo adicional para este recurso.</div>
+                      <div className="col-span-full py-10 text-center opacity-30 italic font-medium text-sm">Nenhum anexo disponível.</div>
                     )}
                   </div>
                </TabsContent>
@@ -330,10 +352,9 @@ export default function ClassroomPage() {
           </Tabs>
         </div>
 
-        {/* Sidebar de Conteúdos */}
         <div className="col-span-12 lg:col-span-4 flex flex-col gap-6 min-h-0">
            <Card className="bg-primary text-white shadow-2xl p-6 rounded-[2.5rem] border-none overflow-hidden relative shrink-0">
-            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Capítulos da Jornada</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40 mb-4">Capítulos</h2>
             <div className="space-y-2 max-h-[180px] overflow-y-auto scrollbar-hide">
               {modules.map((module, idx) => (
                 <button 
@@ -353,7 +374,7 @@ export default function ClassroomPage() {
           </Card>
 
           <Card className="bg-white shadow-2xl p-6 rounded-[2.5rem] flex-1 flex flex-col min-h-0 border">
-             <h2 className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mb-6 px-2">Material do Capítulo</h2>
+             <h2 className="text-[10px] font-black text-primary/40 uppercase tracking-[0.3em] mb-6 px-2">Itens do Capítulo</h2>
              <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-3 scrollbar-thin">
               {contents[activeModuleId || ""]?.map((content, idx) => (
                   <button 
@@ -376,7 +397,7 @@ export default function ClassroomPage() {
               ))}
               {(!contents[activeModuleId || ""] || contents[activeModuleId || ""].length === 0) && (
                 <div className="text-center py-10 opacity-30">
-                  <p className="text-[10px] font-black uppercase tracking-widest italic">Capítulo vazio</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest italic">Sem materiais</p>
                 </div>
               )}
              </div>
