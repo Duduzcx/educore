@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { MoreHorizontal, Pencil, Trash2, Loader2, Search, Filter } from 'lucide-react';
 import {
     Select,
@@ -294,7 +296,7 @@ export function QuestionsList() {
                             {Object.entries(editForm.options).map(([key, text]) => (
                                 <div key={key} className="space-y-1">
                                     <Label className="text-[9px] font-black uppercase opacity-40 ml-4">Opção {key}</Label>
-                                    <Input key={key} placeholder={`Alternativa ${key}`} value={text} onChange={e => handleOptionChange(key, e.target.value)} className="h-12 rounded-xl bg-muted/30 border-none font-medium" />
+                                    <Input key={key} placeholder={`Alternativa ${key}`} value={text as string} onChange={e => handleOptionChange(key, e.target.value)} className="h-12 rounded-xl bg-muted/30 border-none font-medium" />
                                 </div>
                             ))}
                         </div>
