@@ -7,24 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
 import { 
   Search, 
   AlertCircle, 
   UserCircle, 
   Send, 
-  Filter, 
   ShieldCheck, 
-  Clock, 
-  Download, 
   Loader2, 
-  FlaskConical,
-  GraduationCap,
   Mail,
   ArrowUpRight
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 
 const mockStudents = [
@@ -113,7 +106,7 @@ export default function TeacherStudentsPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Button onClick={() => setActiveFilter("all")} variant={activeFilter === "all" ? "default" : "outline"} className={`h-16 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all ${activeFilter === 'all' ? 'bg-primary scale-105' : 'bg-white'}`}>
+        <Button onClick={() => setActiveFilter("all")} variant={activeFilter === "all" ? "default" : "outline"} className={`h-16 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all ${activeFilter === 'all' ? 'bg-primary scale-105 shadow-primary/20' : 'bg-white'}`}>
           <UserCircle className="h-5 w-5 mr-2" /> Total Rede
         </Button>
         <Button onClick={() => setActiveFilter("at_risk")} variant={activeFilter === "at_risk" ? "default" : "outline"} className={`h-16 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all ${activeFilter === 'at_risk' ? 'bg-red-600 scale-105 text-white' : 'bg-white text-red-600 border-red-100'}`}>
@@ -126,96 +119,107 @@ export default function TeacherStudentsPage() {
 
       <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
         <CardContent className="p-0">
-          <div className="hidden md:block overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-slate-50 border-b border-muted/10">
-                <TableRow className="border-none h-16">
-                  <TableHead className="px-8 font-black uppercase text-[10px] tracking-widest text-primary/40">Estudante</TableHead>
-                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Instituição / Curso</TableHead>
-                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Status</TableHead>
-                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Evolução</TableHead>
-                  <TableHead className="text-right px-8 font-black uppercase text-[10px] tracking-widest text-primary/40">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredStudents.map((student) => {
-                  const isAtRisk = activeFilter === 'at_risk' || (student.last_access && new Date(student.last_access) < new Date(Date.now() - 7 * 86400000));
-                  return (
-                    <TableRow key={student.id} className="border-b last:border-0 hover:bg-accent/5 transition-all group h-24">
-                      <TableCell className="px-8">
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center font-black text-primary text-sm shadow-inner group-hover:bg-primary group-hover:text-white transition-all">{student.name.charAt(0)}</div>
-                          <div className="flex flex-col">
-                            <span className="font-black text-primary text-sm italic">{student.name}</span>
-                            <span className="text-[10px] text-muted-foreground font-bold flex items-center gap-1"><Mail className="h-3 w-3"/> {student.email}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-black text-primary/70">{student.institution}</span>
-                          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{student.course}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`border-none font-black text-[8px] uppercase h-6 px-3 ${isAtRisk ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                          {isAtRisk ? 'Risco Detectado' : 'Ativo'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="w-24 space-y-1">
-                          <div className="flex justify-between text-[8px] font-black text-primary/40 uppercase">
-                            <span>{student.progress}%</span>
-                          </div>
-                          <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-accent" style={{ width: `${student.progress}%` }} />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right px-8">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-accent hover:bg-accent/10"><Send className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-primary hover:bg-primary/5"><ArrowUpRight className="h-4 w-4" /></Button>
-                        </div>
-                      </TableCell>
+          {loading ? (
+            <div className="py-20 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-accent" /></div>
+          ) : (
+            <>
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50 border-b border-muted/10">
+                    <TableRow className="border-none h-16">
+                      <TableHead className="px-8 font-black uppercase text-[10px] tracking-widest text-primary/40">Estudante</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Instituição / Curso</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Status</TableHead>
+                      <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Evolução</TableHead>
+                      <TableHead className="text-right px-8 font-black uppercase text-[10px] tracking-widest text-primary/40">Ações</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="md:hidden grid grid-cols-1 divide-y divide-muted/10">
-            {filteredStudents.map((student) => (
-              <div key={student.id} className="p-6 space-y-4 hover:bg-accent/5 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs shadow-lg">{student.name.charAt(0)}</div>
-                    <div className="flex flex-col">
-                      <span className="font-black text-primary text-sm italic">{student.name}</span>
-                      <Badge className="w-fit bg-muted/50 text-[7px] font-black uppercase text-primary/40 border-none mt-1">{student.profile_type}</Badge>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="rounded-xl text-accent"><Send className="h-5 w-5" /></Button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Instituição</p>
-                    <p className="text-[10px] font-bold text-primary italic leading-tight">{student.institution}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Progresso</p>
-                    <div className="flex items-center gap-2">
-                      <Progress value={student.progress} className="h-1.5 flex-1" />
-                      <span className="text-[9px] font-black text-accent">{student.progress}%</span>
-                    </div>
-                  </div>
-                </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredStudents.map((student) => {
+                      const sevenDaysAgo = new Date();
+                      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                      const isAtRisk = student.last_access && new Date(student.last_access) < sevenDaysAgo;
+                      
+                      return (
+                        <TableRow key={student.id} className="border-b last:border-0 hover:bg-accent/5 transition-all group h-24">
+                          <TableCell className="px-8">
+                            <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center font-black text-primary text-sm shadow-inner group-hover:bg-primary group-hover:text-white transition-all">{student.name.charAt(0)}</div>
+                              <div className="flex flex-col">
+                                <span className="font-black text-primary text-sm italic">{student.name}</span>
+                                <span className="text-[10px] text-muted-foreground font-bold flex items-center gap-1"><Mail className="h-3 w-3"/> {student.email}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black text-primary/70">{student.institution}</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{student.course}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`border-none font-black text-[8px] uppercase h-6 px-3 ${isAtRisk ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                              {isAtRisk ? 'Risco Detectado' : 'Ativo'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="w-24 space-y-1">
+                              <div className="flex justify-between text-[8px] font-black text-primary/40 uppercase">
+                                <span>{student.progress}%</span>
+                              </div>
+                              <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-accent transition-all duration-1000" style={{ width: `${student.progress}%` }} />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right px-8">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-accent hover:bg-accent/10"><Send className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-primary hover:bg-primary/5"><ArrowUpRight className="h-4 w-4" /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
-            ))}
-          </div>
 
-          {filteredStudents.length === 0 && (
+              <div className="md:hidden grid grid-cols-1 divide-y divide-muted/10">
+                {filteredStudents.map((student) => (
+                  <div key={student.id} className="p-6 space-y-4 hover:bg-accent/5 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-primary text-white flex items-center justify-center font-black text-xs shadow-lg">{student.name.charAt(0)}</div>
+                        <div className="flex flex-col">
+                          <span className="font-black text-primary text-sm italic">{student.name}</span>
+                          <Badge className="w-fit bg-muted/50 text-[7px] font-black uppercase text-primary/40 border-none mt-1">{student.profile_type}</Badge>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="rounded-xl text-accent"><Send className="h-5 w-5" /></Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Instituição</p>
+                        <p className="text-[10px] font-bold text-primary italic leading-tight">{student.institution}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Progresso</p>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-accent transition-all duration-1000" style={{ width: `${student.progress}%` }} />
+                          </div>
+                          <span className="text-[9px] font-black text-accent">{student.progress}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {filteredStudents.length === 0 && !loading && (
             <div className="py-24 text-center">
               <UserCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground/20" />
               <p className="font-black italic text-xl text-primary/40 uppercase tracking-widest">Rede Vazia</p>
