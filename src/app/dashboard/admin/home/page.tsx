@@ -11,17 +11,18 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Loader2, 
-  BarChart3, 
-  ArrowUpRight, 
+  Activity,
   BookOpen,
   Filter,
-  ShieldCheck,
+  ArrowUpRight,
   Zap,
-  Activity
+  Database
 } from "lucide-react";
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Cell } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
+import { supabase } from "@/app/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 const engagementData = [
   { name: "Seg", acessos: 120, quizzes: 45 },
@@ -33,11 +34,11 @@ const engagementData = [
   { name: "Dom", acessos: 70, quizzes: 15 },
 ];
 
-const COLORS = ['#003049', '#D6AD60', '#669bbc', '#c1121f'];
-
 export default function CoordinatorDashboard() {
   const { profile, loading: isUserLoading } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [stats, setStats] = useState({
     totalStudents: 1250,
     totalTeachers: 42,
@@ -49,6 +50,60 @@ export default function CoordinatorDashboard() {
     setTimeout(() => setLoading(false), 1000);
   }, []);
 
+  const handleSeedDemoData = async () => {
+    setIsSeeding(true);
+    try {
+      // 1. Criar Trilha de Exemplo
+      const { data: trail, error: tError } = await supabase.from('trails').insert([{
+        title: "Redação Master: Rumo ao 1000",
+        category: "Linguagens",
+        description: "Domine a estrutura do texto dissertativo-argumentativo padrão ENEM com técnicas de argumentação e repertório sociocultural.",
+        image_url: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800",
+        teacher_name: "Prof. Ana Lúcia",
+        status: "published",
+        target_audience: "all"
+      }]).select().single();
+
+      if (tError) throw tError;
+
+      // 2. Criar Módulos
+      const { data: module, error: mError } = await supabase.from('modules').insert([{
+        trail_id: trail.id,
+        title: "Fundamentos da Escrita",
+        order_index: 0
+      }]).select().single();
+
+      if (mError) throw mError;
+
+      // 3. Criar Conteúdos
+      await supabase.from('learning_contents').insert([
+        {
+          module_id: module.id,
+          title: "Introdução à Redação ENEM",
+          type: "video",
+          url: "https://www.youtube.com/watch?v=6X8De_m5ls0",
+          description: "Aprenda como começar sua redação do zero seguindo as 5 competências.",
+          order_index: 0
+        },
+        {
+          module_id: module.id,
+          title: "Guia de Conectivos (PDF)",
+          type: "pdf",
+          url: "https://www.ufsm.br/app/uploads/sites/416/2020/05/Guia-de-Conectivos.pdf",
+          description: "Tabela completa de conectivos para usar no seu texto.",
+          order_index: 1
+        }
+      ]);
+
+      toast({ title: "Dados de Demonstração Criados!", description: "As trilhas funcionais já estão disponíveis para os alunos." });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: "Erro ao gerar dados", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
   if (isUserLoading || loading) return (
     <div className="h-96 flex flex-col items-center justify-center gap-4">
       <Loader2 className="h-12 w-12 animate-spin text-accent" />
@@ -58,7 +113,6 @@ export default function CoordinatorDashboard() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-1">
-      {/* Header Industrial */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
@@ -68,16 +122,21 @@ export default function CoordinatorDashboard() {
           <p className="text-muted-foreground font-medium text-sm md:text-lg italic">Monitoramento térmico e analítico da rede.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl h-12 border-dashed border-primary/20 bg-white/50 backdrop-blur-sm shadow-sm">
-            <Filter className="h-4 w-4 mr-2" /> Filtrar Polo
+          <Button 
+            onClick={handleSeedDemoData} 
+            disabled={isSeeding}
+            variant="outline" 
+            className="rounded-xl h-12 border-dashed border-accent/40 bg-white hover:bg-accent/5 text-accent"
+          >
+            {isSeeding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+            Gerar Trilhas Demo
           </Button>
-          <Button className="rounded-xl h-12 bg-accent text-accent-foreground font-black shadow-xl shadow-accent/20 hover:scale-105 transition-all" asChild>
+          <Button className="rounded-xl h-12 bg-accent text-accent-foreground font-black shadow-xl hover:scale-105 transition-all" asChild>
             <Link href="/dashboard/teacher/analytics">Relatório Global</Link>
           </Button>
         </div>
       </div>
 
-      {/* Stats em Grade Premium */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Alunos Ativos", value: stats.totalStudents, icon: Users, color: "text-blue-600", bg: "bg-blue-50", trend: "+12%" },
@@ -103,7 +162,6 @@ export default function CoordinatorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Gráfico Principal */}
         <Card className="lg:col-span-2 border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden group">
           <CardHeader className="p-8 pb-0">
             <div className="flex items-center justify-between">
@@ -133,7 +191,6 @@ export default function CoordinatorDashboard() {
           </CardContent>
         </Card>
 
-        {/* Alertas e Gargalos */}
         <div className="space-y-6">
           <Card className="border-none shadow-2xl bg-primary text-white rounded-[2.5rem] overflow-hidden relative">
             <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
