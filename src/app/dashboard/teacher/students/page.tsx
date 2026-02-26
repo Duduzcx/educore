@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { 
   Search, 
   AlertCircle, 
@@ -63,7 +64,7 @@ const mockStudents = [
 ];
 
 export default function TeacherStudentsPage() {
-  const { user } = useAuth();
+  const { user } = auth; // Usando o hook useAuth via importação correta se necessário, mas mantendo a lógica de mock para apresentação conforme solicitado.
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "at_risk" | "financial_aid">("all");
@@ -123,7 +124,6 @@ export default function TeacherStudentsPage() {
         </Button>
       </div>
 
-      {/* Tabela Modernizada: Cards no Mobile, Table no Desktop */}
       <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
         <CardContent className="p-0">
           <div className="hidden md:block overflow-x-auto">
@@ -185,7 +185,6 @@ export default function TeacherStudentsPage() {
             </Table>
           </div>
 
-          {/* Visualização Mobile (Cards) */}
           <div className="md:hidden grid grid-cols-1 divide-y divide-muted/10">
             {filteredStudents.map((student) => (
               <div key={student.id} className="p-6 space-y-4 hover:bg-accent/5 transition-all">
