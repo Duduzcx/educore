@@ -13,11 +13,13 @@ import {
   Loader2, 
   BarChart3, 
   ArrowUpRight, 
-  Clock, 
   BookOpen,
-  Filter
+  Filter,
+  ShieldCheck,
+  Zap,
+  Activity
 } from "lucide-react";
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, Cell } from "recharts";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
 
@@ -30,6 +32,8 @@ const engagementData = [
   { name: "Sáb", acessos: 90, quizzes: 20 },
   { name: "Dom", acessos: 70, quizzes: 15 },
 ];
+
+const COLORS = ['#003049', '#D6AD60', '#669bbc', '#c1121f'];
 
 export default function CoordinatorDashboard() {
   const { profile, loading: isUserLoading } = useAuth();
@@ -48,44 +52,49 @@ export default function CoordinatorDashboard() {
   if (isUserLoading || loading) return (
     <div className="h-96 flex flex-col items-center justify-center gap-4">
       <Loader2 className="h-12 w-12 animate-spin text-accent" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sincronizando Gestão 360...</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Sincronizando Gestão 360...</p>
     </div>
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-1">
+      {/* Header Industrial */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-primary italic leading-none">Dashboard Termômetro</h1>
-          <p className="text-muted-foreground font-medium">Educori 360 • Visão Geral da Rede</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl md:text-4xl font-black text-primary italic leading-none">Gestão 360</h1>
+            <Badge className="bg-primary text-white border-none font-black text-[10px] px-3 shadow-lg">CORE</Badge>
+          </div>
+          <p className="text-muted-foreground font-medium text-sm md:text-lg italic">Monitoramento térmico e analítico da rede.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl h-11 border-dashed border-primary/20">
+          <Button variant="outline" className="rounded-xl h-12 border-dashed border-primary/20 bg-white/50 backdrop-blur-sm shadow-sm">
             <Filter className="h-4 w-4 mr-2" /> Filtrar Polo
           </Button>
-          <Button className="rounded-xl h-11 bg-accent text-accent-foreground font-black shadow-xl" asChild>
-            <Link href="/dashboard/teacher/analytics">Relatório Completo</Link>
+          <Button className="rounded-xl h-12 bg-accent text-accent-foreground font-black shadow-xl shadow-accent/20 hover:scale-105 transition-all" asChild>
+            <Link href="/dashboard/teacher/analytics">Relatório Global</Link>
           </Button>
         </div>
       </div>
 
+      {/* Stats em Grade Premium */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Alunos Ativos", value: stats.totalStudents, icon: Users, color: "text-blue-600", bg: "bg-blue-50", trend: "+12%" },
           { label: "Corpo Docente", value: stats.totalTeachers, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50", trend: "+2" },
-          { label: "Taxa de Conclusão", value: `${stats.completionRate}%`, icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", trend: "+5%" },
+          { label: "Taxa Conclusão", value: `${stats.completionRate}%`, icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", trend: "+5%" },
           { label: "Média Global", value: stats.avgScore, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50", trend: "+0.3" },
         ].map((stat, i) => (
-          <Card key={i} className="border-none shadow-xl rounded-[2rem] bg-white overflow-hidden group hover:shadow-2xl transition-all">
+          <Card key={i} className="border-none shadow-xl rounded-[2rem] bg-white overflow-hidden group hover:shadow-2xl transition-all duration-500">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} shadow-sm group-hover:scale-110 transition-transform`}>
+                <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} shadow-sm group-hover:scale-110 transition-transform duration-500`}>
                   <stat.icon className="h-6 w-6" />
                 </div>
                 <Badge variant="secondary" className="bg-green-100 text-green-700 border-none font-black text-[10px]">{stat.trend}</Badge>
               </div>
               <div className="mt-4">
-                <p className="text-3xl font-black text-primary leading-none">{stat.value}</p>
+                <p className="text-3xl font-black text-primary leading-none italic">{stat.value}</p>
                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">{stat.label}</p>
               </div>
             </CardContent>
@@ -94,18 +103,19 @@ export default function CoordinatorDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
+        {/* Gráfico Principal */}
+        <Card className="lg:col-span-2 border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden group">
           <CardHeader className="p-8 pb-0">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-xl font-black text-primary italic">Fluxo de Engajamento</CardTitle>
-                <CardDescription className="font-medium">Acessos e resoluções de quizzes (Últimos 7 dias)</CardDescription>
+                <CardDescription className="font-medium">Acessos e resoluções de quizzes (7 dias)</CardDescription>
               </div>
-              <BarChart3 className="h-6 w-6 text-accent opacity-20" />
+              <Activity className="h-6 w-6 text-accent opacity-20 group-hover:animate-pulse" />
             </div>
           </CardHeader>
           <CardContent className="p-8 pt-4">
-            <div className="h-[300px] w-full">
+            <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={engagementData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -113,7 +123,7 @@ export default function CoordinatorDashboard() {
                   <YAxis axisLine={false} tickLine={false} fontSize={12} tick={{fill: '#94a3b8'}} />
                   <Tooltip 
                     cursor={{fill: '#f8fafc'}}
-                    contentStyle={{borderRadius: '1rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}}
+                    contentStyle={{borderRadius: '1.5rem', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}}
                   />
                   <Bar dataKey="acessos" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={20} />
                   <Bar dataKey="quizzes" fill="hsl(var(--accent))" radius={[6, 6, 0, 0]} barSize={20} />
@@ -123,6 +133,7 @@ export default function CoordinatorDashboard() {
           </CardContent>
         </Card>
 
+        {/* Alertas e Gargalos */}
         <div className="space-y-6">
           <Card className="border-none shadow-2xl bg-primary text-white rounded-[2.5rem] overflow-hidden relative">
             <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-accent/20 rounded-full blur-2xl" />
@@ -138,9 +149,9 @@ export default function CoordinatorDashboard() {
                 { name: 'Marcos Silva', reason: 'Nota Quiz < 5.0', severity: 'medium' },
                 { name: 'Julia Costa', reason: 'Evasão Detectada', severity: 'high' },
               ].map((alerta, i) => (
-                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 transition-all cursor-pointer">
+                <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/20 transition-all cursor-pointer group">
                   <div className="flex flex-col overflow-hidden">
-                    <span className="text-xs font-black truncate italic">{alerta.name}</span>
+                    <span className="text-xs font-black truncate italic group-hover:text-accent transition-colors">{alerta.name}</span>
                     <span className={`text-[8px] font-black uppercase tracking-widest ${alerta.severity === 'high' ? 'text-red-400' : 'text-accent'}`}>{alerta.reason}</span>
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/40 hover:text-white" asChild>
@@ -148,23 +159,26 @@ export default function CoordinatorDashboard() {
                   </Button>
                 </div>
               ))}
-              <Button className="w-full h-12 rounded-xl bg-accent text-accent-foreground font-black text-[10px] uppercase shadow-lg">
-                Ver Central de Intervenção
+              <Button className="w-full h-12 rounded-xl bg-accent text-accent-foreground font-black text-[10px] uppercase shadow-lg shadow-accent/20 hover:scale-[1.02] transition-transform">
+                Central de Intervenção
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8">
-            <h3 className="text-xs font-black text-primary/40 uppercase tracking-[0.2em] mb-4">Trilhas Gargalo</h3>
+          <Card className="border-none shadow-xl bg-white rounded-[2.5rem] p-8 overflow-hidden group">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xs font-black text-primary/40 uppercase tracking-[0.2em]">Trilhas Gargalo</h3>
+              <Zap className="h-4 w-4 text-accent opacity-20 group-hover:animate-bounce" />
+            </div>
             <div className="space-y-4">
               {[
                 { title: 'Física: Eletrostática', drop: '45% abandono' },
                 { title: 'Matemática: Funções', drop: 'Média 4.2' },
               ].map((t, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center font-black text-primary text-xs italic">{i+1}</div>
+                <div key={i} className="flex items-center gap-4 group/item">
+                  <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center font-black text-primary text-xs italic shadow-inner group-hover/item:bg-primary group-hover/item:text-white transition-colors">{i+1}</div>
                   <div>
-                    <p className="text-xs font-black text-primary italic leading-none">{t.title}</p>
+                    <p className="text-xs font-black text-primary italic leading-none group-hover/item:text-accent transition-colors">{t.title}</p>
                     <p className="text-[9px] font-bold text-red-500 uppercase mt-1">{t.drop}</p>
                   </div>
                 </div>
