@@ -25,7 +25,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider"; 
-import { supabase } from "@/app/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/app/lib/supabase";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -62,10 +62,10 @@ export default function DashboardHome() {
   const [isStarting, setIsStarting] = useState<string | null>(null);
 
   const fetchProgress = useCallback(async () => {
-    if (!user) return;
+    if (!user || !isSupabaseConfigured) return;
     setLoadingProgress(true);
     try {
-      // O Join com 'trail:trails' depende da Foreign Key no SQL
+      // Query otimizada para buscar o progresso e os detalhes da trilha vinculada
       const { data: progress, error } = await supabase
         .from('user_progress')
         .select(`
@@ -73,7 +73,7 @@ export default function DashboardHome() {
           percentage, 
           last_accessed, 
           trail_id,
-          trail:trails (
+          trails (
             title, 
             category, 
             image_url
@@ -83,10 +83,20 @@ export default function DashboardHome() {
         .order('last_accessed', { ascending: false })
         .limit(5);
       
-      if (error) throw error;
-      setRecentProgress(progress?.filter(p => p.trail) || []);
-    } catch (e) {
-      console.error("Erro ao buscar progresso:", e);
+      if (error) {
+        console.error("Erro Supabase Progresso:", error.message, error.details);
+        throw error;
+      }
+
+      // Mapeia os dados para garantir que a estrutura seja plana e fácil de renderizar
+      const mappedProgress = progress?.map(p => ({
+        ...p,
+        trail: p.trails // Supabase retorna como objeto ou array dependendo da FK
+      })).filter(p => p.trail);
+
+      setRecentProgress(mappedProgress || []);
+    } catch (e: any) {
+      console.error("Erro fatal ao buscar progresso:", e.message || e);
     } finally {
       setLoadingProgress(false);
     }
@@ -104,19 +114,24 @@ export default function DashboardHome() {
       setLoadingAnnouncements(false);
 
       setLoadingLibrary(true);
-      const { data: featured } = await supabase
-        .from('trails')
-        .select('*')
-        .eq('status', 'active')
-        .limit(3);
-      
-      setLibraryItems(featured?.map(f => ({ 
-        id: f.id, 
-        title: f.title, 
-        description: f.description, 
-        category: f.category 
-      })) || []);
-      setLoadingLibrary(false);
+      try {
+        const { data: featured } = await supabase
+          .from('trails')
+          .select('*')
+          .eq('status', 'active')
+          .limit(3);
+        
+        setLibraryItems(featured?.map(f => ({ 
+          id: f.id, 
+          title: f.title, 
+          description: f.description, 
+          category: f.category 
+        })) || []);
+      } catch (e) {
+        console.error("Erro ao buscar biblioteca recomendada");
+      } finally {
+        setLoadingLibrary(false);
+      }
 
       await fetchProgress();
     }
@@ -124,7 +139,7 @@ export default function DashboardHome() {
   }, [user, fetchProgress]);
 
   const handleQuickStart = async (trailId: string) => {
-    if (!user || isStarting) return;
+    if (!user || isStarting || !isSupabaseConfigured) return;
     
     setIsStarting(trailId);
     try {
@@ -156,8 +171,8 @@ export default function DashboardHome() {
 
       await fetchProgress();
     } catch (e: any) {
-      console.error("Erro ao iniciar trilha:", e);
-      toast({ title: "Erro ao sincronizar", description: e.message, variant: "destructive" });
+      console.error("Erro ao iniciar trilha:", e.message || e);
+      toast({ title: "Erro ao sincronizar", description: "Verifique se a tabela de progresso foi criada no Supabase.", variant: "destructive" });
     } finally {
       setIsStarting(null);
     }
@@ -242,7 +257,7 @@ export default function DashboardHome() {
               <div className="grid grid-cols-1 gap-4">
                 {recentProgress.map((prog) => {
                   const isFinished = prog.percentage === 100;
-                  const trailData = prog.trail;
+                  const trailData = Array.isArray(prog.trails) ? prog.trails[0] : prog.trails;
                   
                   if (!trailData) return null;
 
