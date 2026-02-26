@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -79,21 +78,13 @@ export default function FinancialAidPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (members.some(m => !m.income)) {
-      toast({
-        title: "Dados Incompletos",
-        description: "Por favor, preencha a renda de todos os integrantes ou remova os campos vazios.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setLoading(true);
 
     // Simulação de processamento de IA/Cálculo
     await new Promise(r => setTimeout(r, 1200));
 
     const familySize = members.length;
+    // Se a renda estiver vazia, Number() retorna 0, o que é o comportamento desejado
     const perCapita = totalFamilyIncome / familySize;
     const eligible = perCapita <= THRESHOLD;
 
@@ -187,7 +178,7 @@ export default function FinancialAidPage() {
               <HelpCircle className="h-3.5 w-3.5 text-accent" /> Dica da Aurora
             </h3>
             <p className="text-xs font-medium italic text-primary/70 leading-relaxed">
-              "Muitos alunos perdem a isenção porque esquecem de incluir moradores sem renda no cálculo. Lembre-se: quanto mais pessoas dividindo o bolo, menor a renda per capita!"
+              "Muitos alunos perdem a isenção porque esquecem de incluir moradores sem renda no cálculo. Deixe o campo de renda vazio para esses integrantes!"
             </p>
           </Card>
         </div>
@@ -202,7 +193,7 @@ export default function FinancialAidPage() {
                     Calculadora de Renda
                     <Sparkles className="h-5 w-5 text-accent" />
                   </CardTitle>
-                  <CardDescription className="font-medium italic">Adicione cada integrante que mora com você.</CardDescription>
+                  <CardDescription className="font-medium italic">Adicione cada integrante que mora com você (campos opcionais).</CardDescription>
                 </div>
                 <div className="text-right hidden sm:block">
                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Soma Atual</p>
