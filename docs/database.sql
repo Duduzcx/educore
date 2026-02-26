@@ -1,8 +1,13 @@
 
--- 1. LIMPEZA TOTAL (Opcional - Use para resetar o banco)
--- TRUNCATE public.student_checklists, public.user_progress, public.learning_contents, public.modules, public.trails, public.library_resources, public.lives, public.direct_messages, public.profiles CASCADE;
+-- ==========================================================
+-- COMPROMISSO | SMART EDUCATION - BANCO DE DADOS (SUPABASE)
+-- Versão: 2.5.0 (Full Premium + Demo Seeds)
+-- ==========================================================
 
--- 2. TABELAS (Caso ainda não existam)
+-- 1. ESTRUTURA DE TABELAS
+-- ==========================================================
+
+-- Perfis de Usuário
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT,
@@ -19,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- Trilhas de Estudo
 CREATE TABLE IF NOT EXISTS public.trails (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -27,12 +33,13 @@ CREATE TABLE IF NOT EXISTS public.trails (
     image_url TEXT,
     teacher_id UUID REFERENCES public.profiles(id),
     teacher_name TEXT,
-    status TEXT DEFAULT 'published', 
+    status TEXT DEFAULT 'draft', -- draft, review, published, active
     target_audience TEXT DEFAULT 'all',
     average_rating NUMERIC DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- Módulos da Trilha
 CREATE TABLE IF NOT EXISTS public.modules (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     trail_id UUID REFERENCES public.trails(id) ON DELETE CASCADE,
@@ -41,6 +48,7 @@ CREATE TABLE IF NOT EXISTS public.modules (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- Conteúdos de Aprendizagem
 CREATE TABLE IF NOT EXISTS public.learning_contents (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     module_id UUID REFERENCES public.modules(id) ON DELETE CASCADE,
@@ -52,52 +60,126 @@ CREATE TABLE IF NOT EXISTS public.learning_contents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- Progresso do Aluno
+CREATE TABLE IF NOT EXISTS public.user_progress (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    trail_id UUID REFERENCES public.trails(id) ON DELETE CASCADE,
+    percentage INTEGER DEFAULT 0,
+    last_accessed TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, trail_id)
+);
+
+-- Biblioteca Digital
 CREATE TABLE IF NOT EXISTS public.library_resources (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
     category TEXT,
-    type TEXT, 
+    type TEXT, -- PDF, Video, E-book, Artigo
     url TEXT,
     image_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 3. SEED: TRILHAS E CONTEÚDOS (Exemplos Reais)
+-- Mensagens Diretas
+CREATE TABLE IF NOT EXISTS public.direct_messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
 
--- Trilha 1: Redação Master
-INSERT INTO public.trails (id, title, category, description, image_url, teacher_name, status)
-VALUES ('a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d', 'Redação Master: Rumo ao 1000', 'Linguagens', 'Domine a estrutura do texto dissertativo-argumentativo padrão ENEM com técnicas de argumentação e repertório sociocultural.', 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800', 'Prof. Ana Lúcia', 'published')
-ON CONFLICT (id) DO NOTHING;
+-- Checklist de Documentos
+CREATE TABLE IF NOT EXISTS public.student_checklists (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    item_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, item_id)
+);
 
-INSERT INTO public.modules (id, trail_id, title, order_index)
-VALUES ('m1-redacao', 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d', 'Fundamentos da Escrita', 0)
-ON CONFLICT (id) DO NOTHING;
+-- Lives / Transmissões
+CREATE TABLE IF NOT EXISTS public.lives (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    start_time TIMESTAMP WITH TIME ZONE,
+    meet_link TEXT,
+    teacher_id UUID REFERENCES public.profiles(id),
+    teacher_name TEXT,
+    status TEXT DEFAULT 'scheduled', -- live, scheduled, finished
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
 
-INSERT INTO public.learning_contents (module_id, title, type, url, description, order_index)
-VALUES 
-('m1-redacao', 'Introdução à Redação ENEM', 'video', 'https://www.youtube.com/watch?v=6X8De_m5ls0', 'Aprenda como começar sua redação do zero seguindo as 5 competências.', 0),
-('m1-redacao', 'Guia de Conectivos (PDF)', 'pdf', 'https://www.ufsm.br/app/uploads/sites/416/2020/05/Guia-de-Conectivos.pdf', 'Tabela completa de conectivos para usar no seu texto.', 1)
-ON CONFLICT (id) DO NOTHING;
+-- 2. POLÍTICAS DE ACESSO (RLS - MODO DEMO)
+-- ==========================================================
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trails ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.learning_contents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.library_resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_checklists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lives ENABLE ROW LEVEL SECURITY;
 
--- Trilha 2: Matemática do Zero
-INSERT INTO public.trails (id, title, category, description, image_url, teacher_name, status)
-VALUES ('b2c3d4e5-f6g7-4a5b-8c9d-0e1f2a3b4c5e', 'Matemática: O Terror das Exatas', 'Matemática', 'Aprenda matemática básica, razão, proporção e funções de forma prática e aplicada aos vestibulares.', 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=800', 'Prof. Marcos Silva', 'published')
-ON CONFLICT (id) DO NOTHING;
+CREATE POLICY "Acesso Total Demo" ON public.profiles FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.trails FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.modules FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.learning_contents FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.user_progress FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.library_resources FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.direct_messages FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.student_checklists FOR ALL USING (true);
+CREATE POLICY "Acesso Total Demo" ON public.lives FOR ALL USING (true);
 
-INSERT INTO public.modules (id, trail_id, title, order_index)
-VALUES ('m1-mat', 'b2c3d4e5-f6g7-4a5b-8c9d-0e1f2a3b4c5e', 'Aritmética e Razão', 0)
-ON CONFLICT (id) DO NOTHING;
+-- 3. DADOS DE DEMONSTRAÇÃO (SEEDS)
+-- ==========================================================
 
-INSERT INTO public.learning_contents (module_id, title, type, url, description, order_index)
-VALUES 
-('m1-mat', 'Regra de Três Simples e Composta', 'video', 'https://www.youtube.com/watch?v=nP_7nzsyXYY', 'Domine o assunto que mais cai no ENEM e na FATEC.', 0),
-('m1-mat', 'Lista de Exercícios Resolvidos', 'pdf', 'https://www.pucrs.br/edipucrs/online/matematica/lista1.pdf', 'Pratique com questões reais de anos anteriores.', 1)
-ON CONFLICT (id) DO NOTHING;
+-- Limpa dados antigos para evitar duplicidade no seed
+TRUNCATE public.library_resources CASCADE;
+TRUNCATE public.trails CASCADE;
 
--- 4. SEED: BIBLIOTECA
+-- Inserindo Materiais na Biblioteca
 INSERT INTO public.library_resources (title, description, category, type, url, image_url)
 VALUES 
-('Manual do Candidato 2024', 'Tudo o que você precisa saber sobre prazos e documentos.', 'Geral', 'PDF', 'https://www.vunesp.com.br', 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=400'),
-('Aulão de Revisão SiSU', 'Vídeo completo sobre como usar sua nota para entrar na faculdade.', 'Carreira', 'Video', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=400')
-ON CONFLICT DO NOTHING;
+('Guia de Isenção 2024', 'Manual completo sobre como solicitar isenção no ENEM e SiSU.', 'Documentação', 'PDF', 'https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/manuais/manual-do-participante-enem-2023', 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=800'),
+('Checklist de Documentos', 'Lista técnica para não esquecer nada no dia da matrícula.', 'Carreira', 'PDF', 'https://placehold.co/600x400', 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&q=80&w=800');
+
+-- Inserindo Trilha de Redação (100% Funcional)
+WITH new_trail AS (
+    INSERT INTO public.trails (title, category, description, image_url, teacher_name, status, target_audience)
+    VALUES ('Redação Master: Rumo ao 1000', 'Linguagens', 'Domine a estrutura do texto dissertativo-argumentativo padrão ENEM com técnicas reais.', 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800', 'Prof. Ana Lúcia', 'published', 'all')
+    RETURNING id
+),
+new_module AS (
+    INSERT INTO public.modules (trail_id, title, order_index)
+    SELECT id, 'Fundamentos e Estrutura', 0 FROM new_trail
+    RETURNING id
+)
+INSERT INTO public.learning_contents (module_id, title, type, url, description, order_index)
+SELECT id, 'Introdução ao Texto Nota 1000', 'video', 'https://www.youtube.com/watch?v=6X8De_m5ls0', 'Aprenda os 5 pilares da competência do ENEM.', 0 FROM new_module
+UNION ALL
+SELECT id, 'Guia de Conectivos (PDF)', 'pdf', 'https://www.ufsm.br/app/uploads/sites/416/2020/05/Guia-de-Conectivos.pdf', 'Tabela completa para melhorar sua coesão textual.', 1 FROM new_module;
+
+-- Inserindo Trilha de Matemática
+WITH new_trail_mat AS (
+    INSERT INTO public.trails (title, category, description, image_url, teacher_name, status, target_audience)
+    VALUES ('Matemática: A Base de Tudo', 'Matemática', 'Do zero à aprovação em exatas. Focado em lógica e cálculo rápido.', 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=800', 'Prof. Ricardo Exatas', 'published', 'all')
+    RETURNING id
+),
+new_module_mat AS (
+    INSERT INTO public.modules (trail_id, title, order_index)
+    SELECT id, 'Aritmética e Proporção', 0 FROM new_trail_mat
+    RETURNING id
+)
+INSERT INTO public.learning_contents (module_id, title, type, url, description, order_index)
+SELECT id, 'Regra de Três sem Segredos', 'video', 'https://www.youtube.com/watch?v=NIn_8vokjtQ', 'Domine proporcionalidade em 15 minutos.', 0 FROM new_module_mat;
+
+-- NOTA IMPORTANTE:
+-- Para os perfis de LOGIN (gestor@, mentor@, aluno@), você deve criá-los na aba 'Authentication' 
+-- do Supabase com a senha '123456789' para que o sistema consiga autenticar.
+-- Após criar no Auth, o sistema criará o registro na tabela Profiles automaticamente se os Triggers estiverem ativos,
+-- ou você pode usar o botão "Gerar Trilhas Demo" no painel de Gestor para forçar a sincronização de dados.
