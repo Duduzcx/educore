@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ import {
   Clock,
   PlayCircle,
   ChevronRight,
-  CheckCircle2
+  CheckCircle2,
+  Plus
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,6 +28,7 @@ import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/app/lib/supabase";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useToast } from "@/hooks/use-toast";
 
 interface LibraryItem {
   id: string;
@@ -50,45 +52,86 @@ const priorityStyles = {
 
 export default function DashboardHome() {
   const { user, profile, loading: isUserLoading } = useAuth();
+  const { toast } = useToast();
   const [libraryItems, setLibraryItems] = useState<LibraryItem[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [recentProgress, setRecentProgress] = useState<any[]>([]);
   const [loadingProgress, setLoadingProgress] = useState(true);
+  const [isStarting, setIsStarting] = useState<string | null>(null);
+
+  const fetchProgress = useCallback(async () => {
+    if (!user) return;
+    setLoadingProgress(true);
+    const { data: progress } = await supabase
+      .from('user_progress')
+      .select('*, trail:trails(title, category, image_url)')
+      .eq('user_id', user.id)
+      .order('last_accessed', { ascending: false })
+      .limit(5);
+    
+    setRecentProgress(progress || []);
+    setLoadingProgress(false);
+  }, [user]);
 
   useEffect(() => {
     async function fetchHomeData() {
       if (!user) return;
 
       setLoadingAnnouncements(true);
-      // Simulação de avisos (geralmente fixos do polo)
       setAnnouncements([
-           { id: 2, title: 'Manutenção Programada', message: 'A plataforma passará por uma manutenção rápida na próxima sexta-feira às 23h.', priority: 'medium' },
-           { id: 1, title: 'Boas-vindas à Plataforma Compromisso!', message: 'Explore as trilhas de estudo e não hesite em usar o fórum para tirar dúvidas.', priority: 'low' },
+           { id: 2, title: 'Simulados de Março', message: 'Os novos simulados de Biologia e Química já estão disponíveis no banco de questões.', priority: 'medium' },
+           { id: 1, title: 'Boas-vindas à Rede Compromisso!', message: 'Explore as trilhas de estudo e use o simulador de isenção para garantir seus direitos.', priority: 'low' },
       ]);
       setLoadingAnnouncements(false);
 
       setLoadingLibrary(true);
-      // Busca trilhas em destaque como acervo
-      const { data: featured } = await supabase.from('trails').select('*').limit(4);
+      // Busca 3 trilhas em destaque como exemplos
+      const { data: featured } = await supabase.from('trails').select('*').limit(3);
       setLibraryItems(featured?.map(f => ({ id: f.id, title: f.title, description: f.description, category: f.category })) || []);
       setLoadingLibrary(false);
 
-      setLoadingProgress(true);
-      // Busca as últimas 5 trilhas acessadas pelo usuário
-      const { data: progress } = await supabase
-        .from('user_progress')
-        .select('*, trail:trails(title, category, image_url)')
-        .eq('user_id', user.id)
-        .order('last_accessed', { ascending: false })
-        .limit(5);
-      
-      setRecentProgress(progress || []);
-      setLoadingProgress(false);
+      await fetchProgress();
     }
     fetchHomeData();
-  }, [user]);
+  }, [user, fetchProgress]);
+
+  const handleQuickStart = async (trailId: string) => {
+    if (!user || isStarting) return;
+    
+    setIsStarting(trailId);
+    try {
+      // Verifica se já existe progresso para não sobrescrever
+      const { data: existing } = await supabase
+        .from('user_progress')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('trail_id', trailId)
+        .single();
+
+      if (!existing) {
+        const { error } = await supabase.from('user_progress').insert({
+          user_id: user.id,
+          trail_id: trailId,
+          percentage: 0,
+          last_accessed: new Date().toISOString()
+        });
+
+        if (error) throw error;
+        toast({ title: "Trilha Iniciada!", description: "Ela agora aparece na sua lista de atividades." });
+      } else {
+        // Apenas atualiza a data de acesso para subir na lista
+        await supabase.from('user_progress').update({ last_accessed: new Date().toISOString() }).eq('id', existing.id);
+      }
+
+      await fetchProgress();
+    } catch (e) {
+      console.error("Erro ao iniciar trilha:", e);
+    } finally {
+      setIsStarting(null);
+    }
+  };
 
   if (isUserLoading) {
     return (
@@ -113,7 +156,7 @@ export default function DashboardHome() {
              </Badge>
            </div>
            <p className="text-sm md:text-lg text-primary-foreground/80 font-medium leading-relaxed italic max-w-2xl">
-             Transforme dedicação em conquistas reais. O futuro começa com o que você aprende hoje.
+             Transforme dedicação em conquistas reais. Suas trilhas ativas estão logo abaixo.
            </p>
          </div>
       </section>
@@ -155,7 +198,7 @@ export default function DashboardHome() {
               </h2>
               {recentProgress.length > 0 && (
                 <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest bg-muted/20 px-3 py-1 rounded-full">
-                  Exibindo {recentProgress.length} mais recentes
+                  Últimas 5 trilhas ativas
                 </span>
               )}
             </div>
@@ -207,10 +250,7 @@ export default function DashboardHome() {
             ) : (
               <div className="py-12 text-center border-4 border-dashed rounded-[2.5rem] bg-muted/5 opacity-40">
                 <PlayCircle className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                <p className="font-black italic text-primary">Inicie sua primeira trilha!</p>
-                <Button asChild variant="ghost" className="text-[10px] uppercase font-black mt-2 text-accent">
-                  <Link href="/dashboard/trails">Explorar Trilhas</Link>
-                </Button>
+                <p className="font-black italic text-primary">Inicie sua primeira trilha ao lado!</p>
               </div>
             )}
           </div>
@@ -233,7 +273,7 @@ export default function DashboardHome() {
                     <Sparkles className="h-4 w-4 animate-pulse" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Dica da Aurora</span>
                   </div>
-                  <p className="text-[11px] font-medium leading-relaxed italic opacity-80">"Complete seus simulados semanais para ganhar badges de elite."</p>
+                  <p className="text-[11px] font-medium leading-relaxed italic opacity-80">"Comece uma das recomendações abaixo e veja seu dashboard ganhar vida."</p>
                 </div>
                 <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-black h-12 rounded-2xl shadow-xl transition-all border-none">
                   <Link href="/dashboard/chat">Falar com Mentor</Link>
@@ -241,23 +281,38 @@ export default function DashboardHome() {
               </div>
             </Card>
 
-            <h3 className="text-xl font-black text-primary italic px-2">Acervo Recomendado</h3>
+            <h3 className="text-xl font-black text-primary italic px-2">Sugestões de Início</h3>
             <div className="space-y-4">
-              {libraryItems.map((item) => (
-                <Link key={item.id} href={`/dashboard/classroom/${item.id}`} className="block">
-                  <Card className="p-4 border-none shadow-lg bg-white rounded-2xl hover:shadow-xl transition-all group">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-muted/30 relative overflow-hidden shrink-0">
-                        <Image src={`https://picsum.photos/seed/${item.id}/100/100`} alt={item.title} fill className="object-cover" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <Badge className="bg-primary/5 text-primary text-[7px] border-none font-black uppercase mb-1">{item.category}</Badge>
-                        <h4 className="font-black text-xs text-primary truncate italic">{item.title}</h4>
-                      </div>
+              {libraryItems.length > 0 ? libraryItems.map((item) => (
+                <Card key={item.id} className="p-4 border-none shadow-lg bg-white rounded-2xl hover:shadow-xl transition-all group overflow-hidden relative">
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="h-12 w-12 rounded-xl bg-muted/30 relative overflow-hidden shrink-0">
+                      <Image src={`https://picsum.photos/seed/${item.id}/100/100`} alt={item.title} fill className="object-cover" />
                     </div>
-                  </Card>
-                </Link>
-              ))}
+                    <div className="min-w-0 flex-1">
+                      <Badge className="bg-primary/5 text-primary text-[7px] border-none font-black uppercase mb-1">{item.category}</Badge>
+                      <h4 className="font-black text-xs text-primary truncate italic">{item.title}</h4>
+                    </div>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      onClick={() => handleQuickStart(item.id)}
+                      disabled={isStarting === item.id}
+                      className="h-8 w-8 rounded-full bg-accent/10 text-accent hover:bg-accent hover:text-white shrink-0"
+                    >
+                      {isStarting === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </Card>
+              )) : (
+                <div className="text-center py-10 opacity-20">
+                  <Library className="mx-auto mb-2" />
+                  <p className="text-[10px] font-black uppercase">Carregando Acervo...</p>
+                </div>
+              )}
+              <Button asChild variant="ghost" className="w-full text-[10px] font-black uppercase text-accent hover:bg-accent/5">
+                <Link href="/dashboard/trails">Ver Catálogo Completo <ChevronRight className="ml-1 h-3 w-3"/></Link>
+              </Button>
             </div>
         </div>
       </div>
