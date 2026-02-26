@@ -1,10 +1,10 @@
 
 -- ==========================================================
 -- ESTRUTURA COMPLETA COMPROMISSO | SMART EDUCATION
--- Versão: 3.0.0 (Gestão Industrial)
+-- Versão: 3.5.0 (Gestão Industrial de Simulados)
 -- ==========================================================
 
--- 1. TABELA DE PERFIS (Profiles)
+-- 1. PERFIS DE USUÁRIO
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT,
@@ -21,7 +21,37 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 2. TABELA DE TRILHAS (Trails)
+-- 2. MATÉRIAS / DISCIPLINAS
+CREATE TABLE IF NOT EXISTS public.subjects (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 3. BANCO DE QUESTÕES
+CREATE TABLE IF NOT EXISTS public.questions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    teacher_id UUID REFERENCES public.profiles(id),
+    subject_id UUID REFERENCES public.subjects(id),
+    question_text TEXT NOT NULL,
+    options JSONB NOT NULL, -- Format: [{"key": "A", "text": "..."}, ...]
+    correct_answer TEXT NOT NULL, -- 'A', 'B', etc.
+    explanation TEXT,
+    year INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 4. TENTATIVAS DE SIMULADO (NOVA - Relatórios de Desempenho)
+CREATE TABLE IF NOT EXISTS public.simulation_attempts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES public.subjects(id) ON DELETE SET NULL,
+    score INTEGER NOT NULL,
+    total_questions INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 5. TRILHAS E CONTEÚDO
 CREATE TABLE IF NOT EXISTS public.trails (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -36,7 +66,6 @@ CREATE TABLE IF NOT EXISTS public.trails (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 3. TABELA DE MÓDULOS (Modules)
 CREATE TABLE IF NOT EXISTS public.modules (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     trail_id UUID REFERENCES public.trails(id) ON DELETE CASCADE,
@@ -45,47 +74,18 @@ CREATE TABLE IF NOT EXISTS public.modules (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 4. TABELA DE CONTEÚDOS (Learning Contents)
 CREATE TABLE IF NOT EXISTS public.learning_contents (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     module_id UUID REFERENCES public.modules(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
-    type TEXT, 
+    type TEXT,
     url TEXT,
     description TEXT,
     order_index INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 5. TABELA DE PROGRESSO (User Progress)
-CREATE TABLE IF NOT EXISTS public.user_progress (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    trail_id UUID REFERENCES public.trails(id) ON DELETE CASCADE,
-    percentage INTEGER DEFAULT 0,
-    last_accessed TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    UNIQUE(user_id, trail_id)
-);
-
--- 6. TABELA DE CHECKLIST DE DOCUMENTOS
-CREATE TABLE IF NOT EXISTS public.student_checklists (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
-    item_id TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    UNIQUE(user_id, item_id)
-);
-
--- 7. TABELA DE TURMAS (Classes/Cohorts)
-CREATE TABLE IF NOT EXISTS public.classes (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    name TEXT NOT NULL,
-    description TEXT,
-    coordinator_id UUID REFERENCES public.profiles(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 8. TABELA DE COMUNICADOS (Announcements)
+-- 6. COMUNICADOS E TURMAS
 CREATE TABLE IF NOT EXISTS public.announcements (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title TEXT NOT NULL,
@@ -95,27 +95,52 @@ CREATE TABLE IF NOT EXISTS public.announcements (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 9. TABELA DE LOGS DE ATIVIDADE (Audit)
-CREATE TABLE IF NOT EXISTS public.activity_logs (
+CREATE TABLE IF NOT EXISTS public.classes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id),
-    user_name TEXT,
-    action TEXT NOT NULL,
-    entity_type TEXT,
-    entity_id UUID,
+    name TEXT NOT NULL,
+    description TEXT,
+    coordinator_id UUID REFERENCES public.profiles(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 10. POLÍTICAS DE SEGURANÇA (RLS)
+-- 7. PROGRESSO E DOCUMENTOS
+CREATE TABLE IF NOT EXISTS public.user_progress (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    trail_id UUID REFERENCES public.trails(id) ON DELETE CASCADE,
+    percentage INTEGER DEFAULT 0,
+    last_accessed TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, trail_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.student_checklists (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    item_id TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, item_id)
+);
+
+-- 8. COMUNICAÇÃO
+CREATE TABLE IF NOT EXISTS public.direct_messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    sender_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    receiver_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 9. SEGURANÇA (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.trails ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.modules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.learning_contents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_checklists ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.direct_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.simulation_attempts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Acesso Demo" ON public.profiles FOR ALL USING (true);
 CREATE POLICY "Acesso Demo" ON public.trails FOR ALL USING (true);
@@ -123,16 +148,17 @@ CREATE POLICY "Acesso Demo" ON public.modules FOR ALL USING (true);
 CREATE POLICY "Acesso Demo" ON public.learning_contents FOR ALL USING (true);
 CREATE POLICY "Acesso Demo" ON public.user_progress FOR ALL USING (true);
 CREATE POLICY "Acesso Demo" ON public.student_checklists FOR ALL USING (true);
-CREATE POLICY "Acesso Demo" ON public.classes FOR ALL USING (true);
+CREATE POLICY "Acesso Demo" ON public.direct_messages FOR ALL USING (true);
 CREATE POLICY "Acesso Demo" ON public.announcements FOR ALL USING (true);
-CREATE POLICY "Acesso Demo" ON public.activity_logs FOR ALL USING (true);
+CREATE POLICY "Acesso Demo" ON public.classes FOR ALL USING (true);
+CREATE POLICY "Acesso Demo" ON public.simulation_attempts FOR ALL USING (true);
 
--- 11. GATILHO PARA CRIAÇÃO DE PERFIL AUTOMÁTICO
+-- 10. GATILHO DE PERFIL AUTOMÁTICO
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, name, email, profile_type)
-  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.email, COALESCE(new.raw_user_meta_data->>'role', 'student'));
+  INSERT INTO public.profiles (id, email, name, profile_type)
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'full_name', COALESCE(new.raw_user_meta_data->>'role', 'student'));
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -140,3 +166,8 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 11. SEMENTES INICIAIS (Materiais e Matérias)
+INSERT INTO public.subjects (name) VALUES 
+('Matemática'), ('Linguagens'), ('Ciências Humanas'), ('Ciências da Natureza'), ('Redação')
+ON CONFLICT DO NOTHING;

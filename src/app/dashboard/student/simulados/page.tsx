@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -45,6 +46,7 @@ export default function SimuladoPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
+  const [activeSubjectId, setActiveSubjectId] = useState<string | null>(null);
 
   const fetchSubjects = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -57,7 +59,6 @@ export default function SimuladoPage() {
       const { data, error } = await supabase.rpc('get_subjects_with_question_count');
       
       if (error) {
-        console.warn('RPC get_subjects_with_question_count não encontrada, usando fallback.');
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('subjects')
           .select('id, name')
@@ -79,8 +80,20 @@ export default function SimuladoPage() {
     fetchSubjects();
   }, [fetchSubjects]);
 
+  const saveSimulationResult = async (score: number, total: number) => {
+    if (!user || !activeSubjectId) return;
+    
+    await supabase.from('simulation_attempts').insert({
+      user_id: user.id,
+      subject_id: activeSubjectId,
+      score: score,
+      total_questions: total
+    });
+  };
+
   const fetchQuestions = useCallback(async (subjectId: string) => {
     setGameState('loading_questions');
+    setActiveSubjectId(subjectId);
     try {
         const { data, error } = await supabase.rpc('get_random_questions_for_subject', {
             p_subject_id: subjectId,
@@ -146,6 +159,8 @@ export default function SimuladoPage() {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      const finalScore = newAnswers.filter(a => a.selected === a.correct).length;
+      saveSimulationResult(finalScore, questions.length);
       setGameState('finished');
     }
   };
@@ -165,17 +180,7 @@ export default function SimuladoPage() {
 
   if (gameState === 'active') {
     const currentQuestion = questions[currentQuestionIndex];
-    
-    // Proteção extra contra estado inconsistente
-    if (!currentQuestion) {
-        return (
-            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-                <AlertCircle className="h-12 w-12 text-amber-500" />
-                <p className="text-amber-600 font-bold italic">Erro ao carregar a questão atual.</p>
-                <Button onClick={() => setGameState('idle')} variant="outline">Voltar ao Início</Button>
-            </div>
-        );
-    }
+    if (!currentQuestion) return null;
 
     const progress = ((currentQuestionIndex) / questions.length) * 100;
 
@@ -194,7 +199,7 @@ export default function SimuladoPage() {
                 <Progress value={progress} className="h-1.5 bg-muted rounded-full" />
             </div>
 
-            <Card className="border-none shadow-xl rounded-[1.5rem] md:rounded-[2.5rem] bg-white overflow-hidden">
+            <Card className="border-none shadow-xl rounded-[2.5rem] md:rounded-[2.5rem] bg-white overflow-hidden">
             <CardHeader className='p-6 md:p-12 bg-muted/5'>
                 <CardDescription className="text-sm md:text-xl font-medium text-slate-800 leading-relaxed italic">
                 "{currentQuestion.question_text}"
@@ -245,7 +250,11 @@ export default function SimuladoPage() {
               <Award className="h-10 w-10 text-green-600" />
             </div>
             <CardTitle className="text-3xl font-black text-primary italic">Simulado Concluído!</CardTitle>
-            <CardDescription className="text-lg font-medium mt-2">Você acertou {score} de {questions.length} questões.</CardDescription>
+            <CardDescription className="text-lg font-medium mt-2">Sua pontuação foi registrada no banco de dados para acompanhamento pedagógico.</CardDescription>
+            <div className="mt-4 p-6 bg-slate-50 rounded-2xl">
+                <p className="text-5xl font-black text-primary italic">{score} / {questions.length}</p>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-2">Acertos Totais</p>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
               <Button onClick={() => setGameState('idle')} className="w-full h-14 rounded-xl bg-primary font-black">
@@ -262,7 +271,6 @@ export default function SimuladoPage() {
         <div className='flex flex-col items-center justify-center h-[60vh] gap-4'>
             <AlertCircle className="h-12 w-12 text-red-500" />
             <p className='text-red-500 font-bold italic'>Ocorreu um erro ao carregar os dados do simulado.</p>
-            <p className='text-xs text-muted-foreground'>Verifique sua conexão e tente novamente.</p>
             <Button onClick={() => fetchSubjects()} variant="outline">Tentar Novamente</Button>
         </div>
     )
@@ -279,17 +287,17 @@ export default function SimuladoPage() {
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
             {subjects.map(subject => (
-                <Card key={subject.id} className={`border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col justify-between`}>
-                    <CardHeader>
-                        <CardTitle className='text-2xl font-black text-primary'>{subject.name}</CardTitle>
-                        <CardDescription className='font-medium'>
+                <Card key={subject.id} className={`border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden flex flex-col justify-between group hover:shadow-2xl transition-all`}>
+                    <CardHeader className="p-8">
+                        <CardTitle className='text-2xl font-black text-primary group-hover:text-accent transition-colors'>{subject.name}</CardTitle>
+                        <CardDescription className='font-medium mt-2'>
                           {Number(subject.question_count) > 0 ? `${subject.question_count} questões disponíveis` : 'Matéria disponível para estudo'}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-8 pt-0">
                         <Button 
                             onClick={() => fetchQuestions(subject.id)}
-                            className='w-full h-12 rounded-xl bg-primary font-black'
+                            className='w-full h-12 rounded-xl bg-primary font-black shadow-lg'
                         >
                             Começar Simulado
                         </Button>
