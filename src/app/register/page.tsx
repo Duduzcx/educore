@@ -48,6 +48,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (profileType === 'teacher' && !formData.subject) {
+      toast({ variant: "destructive", title: "Disciplina Obrigatória", description: "Mentores precisam informar sua área de atuação." });
+      return;
+    }
+
     if (!isSupabaseConfigured) {
       toast({ variant: "destructive", title: "Erro de Configuração", description: "O sistema não está conectado ao banco de dados Supabase." });
       return;
@@ -59,7 +64,6 @@ export default function RegisterPage() {
       const fullName = `${formData.firstName} ${formData.lastName}`.trim();
       const role = profileType === 'teacher' ? 'teacher' : 'student';
 
-      // 1. Criar Auth User no Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -71,13 +75,13 @@ export default function RegisterPage() {
         }
       });
 
-      if (authError) {
-        console.error("Erro Supabase Auth:", authError.message);
-        throw authError;
-      }
+      if (authError) throw authError;
 
       if (authData.user) {
-        // 2. Criar registro na tabela 'profiles'
+        // Para mentores, salvamos a disciplina em 'institution' para exibição rápida no chat
+        const institutionValue = profileType === 'teacher' ? formData.subject : (profileType === 'etec' ? formData.school : formData.university);
+        const courseValue = profileType === 'etec' ? formData.course : (profileType === 'uni' ? formData.major : `Mentor ${formData.subject}`);
+
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
@@ -86,33 +90,20 @@ export default function RegisterPage() {
             username: formData.username.replace('@', '').toLowerCase(),
             email: formData.email,
             profile_type: profileType,
-            institution: profileType === 'etec' ? formData.school : (profileType === 'uni' ? formData.university : null),
-            course: profileType === 'etec' ? formData.course : (profileType === 'uni' ? formData.major : null),
+            institution: institutionValue,
+            course: courseValue,
             interests: formData.interests,
             last_access: new Date().toISOString()
           }]);
 
-        if (profileError) {
-          console.error("Erro ao criar perfil na tabela:", profileError.message);
-          toast({ 
-            title: "Conta criada com observação", 
-            description: "Seu acesso foi criado, mas houve um erro ao salvar dados extras. Você pode completar seu perfil no dashboard.",
-            variant: "destructive"
-          });
-        } else {
-          toast({ title: "Bem-vindo ao Compromisso!", description: "Sua jornada de estudos começa agora." });
-        }
+        if (profileError) throw profileError;
 
-        // Redireciona
+        toast({ title: "Bem-vindo ao Compromisso!", description: "Sua conta foi criada com sucesso." });
         router.push(role === 'teacher' ? "/dashboard/teacher/home" : "/dashboard/home");
       }
     } catch (err: any) {
-      console.error("Erro geral no cadastro:", err);
-      toast({ 
-        title: "Falha no Cadastro", 
-        description: err.message || "Tente um e-mail diferente ou verifique sua conexão.", 
-        variant: "destructive" 
-      });
+      console.error("Erro no cadastro:", err);
+      toast({ title: "Falha no Cadastro", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -125,8 +116,7 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 sm:p-8 relative overflow-hidden">
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
-
+      
       <div className="w-full max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">
         <div className="space-y-2 text-center">
           <h1 className="text-4xl font-black tracking-tight text-primary flex items-center justify-center gap-3 italic">
@@ -169,7 +159,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="username" className="font-bold text-primary/60">Nome de Usuário</Label>
+                  <Label htmlFor="username" className="font-bold text-primary/60">Nome de Usuário (@)</Label>
                   <div className="relative group">
                     <User className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input id="username" placeholder="ex: joaosilva" value={formData.username} onChange={(e) => updateField("username", e.target.value)} className="pl-11 h-12 bg-white/50 rounded-xl" />
@@ -253,8 +243,8 @@ export default function RegisterPage() {
                 {profileType === "teacher" && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="subject" className="font-bold text-primary/60">Área de Atuação</Label>
-                      <Input id="subject" placeholder="Ex: Exatas ou Linguagens" value={formData.subject} onChange={(e) => updateField("subject", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
+                      <Label htmlFor="subject" className="font-bold text-primary/60">Disciplina / Área de Atuação</Label>
+                      <Input id="subject" placeholder="Ex: Matemática, Física, Redação..." value={formData.subject} onChange={(e) => updateField("subject", e.target.value)} className="h-12 bg-white/50 rounded-xl" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="exp" className="font-bold text-primary/60">Anos de Docência</Label>
@@ -291,10 +281,6 @@ export default function RegisterPage() {
             )}
           </CardFooter>
         </Card>
-
-        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          O Compromisso respeita a sua privacidade. Seus dados estão seguros.
-        </p>
       </div>
     </div>
   );

@@ -5,14 +5,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Loader2, Bot, User, BookOpen, GraduationCap, AlertCircle, AtSign } from "lucide-react";
+import { Search, Loader2, Bot, User, BookOpen, GraduationCap, AlertCircle, AtSign, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/lib/AuthProvider";
 import { supabase } from "@/app/lib/supabase";
 
 export default function ChatListPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,33 +20,37 @@ export default function ChatListPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!user) return;
+      if (!user || !profile) return;
       setLoading(true);
       setErrorMsg(null);
       
       try {
-        // Busca perfis que NÃO são o usuário atual
-        const { data, error } = await supabase
+        const userType = profile.profile_type || 'student';
+        
+        // Regra de Negócio: Estudantes veem apenas Mentores.
+        // Mentores e Admins veem todos para suporte.
+        let query = supabase
           .from('profiles')
           .select('*')
-          .neq('id', user.id)
-          .order('created_at', { ascending: false }); // Novos usuários primeiro
-        
-        if (error) {
-          console.error("Erro Supabase:", error);
-          setErrorMsg(error.message || "Falha ao carregar mentores. Verifique as políticas de RLS no Supabase.");
-        } else {
-          setContacts(data || []);
+          .neq('id', user.id);
+
+        if (userType === 'etec' || userType === 'uni') {
+          query = query.eq('profile_type', 'teacher');
         }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setContacts(data || []);
       } catch (err: any) {
-        console.error("Erro inesperado:", err);
-        setErrorMsg("Erro de conexão com o servidor de rede.");
+        console.error("Erro ao carregar rede:", err);
+        setErrorMsg("Falha ao sintonizar rede de mentores.");
       } finally {
         setLoading(false);
       }
     }
     fetchData();
-  }, [user]);
+  }, [user, profile]);
 
   const filteredContacts = contacts.filter(c => 
     c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -59,14 +63,14 @@ export default function ChatListPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-4xl font-black text-primary italic leading-none">Mentoria</h1>
-          <p className="text-muted-foreground font-medium text-sm italic">Conecte-se com especialistas e colegas da rede.</p>
+          <p className="text-muted-foreground font-medium text-sm italic">Consulte especialistas da rede para acelerar seus estudos.</p>
         </div>
       </div>
 
       <div className="relative max-w-xl group w-full">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors" />
         <Input 
-          placeholder="Pesquisar por nome ou @usuario..." 
+          placeholder="Buscar por mentor ou disciplina..." 
           className="pl-12 h-12 md:h-14 bg-white border-none shadow-xl rounded-2xl text-sm md:text-lg font-medium italic focus-visible:ring-accent transition-all"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -96,13 +100,12 @@ export default function ChatListPage() {
         {loading ? (
           <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
             <Loader2 className="h-12 w-12 animate-spin text-accent" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sintonizando Rede...</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sintonizando Mentores...</p>
           </div>
         ) : errorMsg ? (
-          <div className="col-span-full py-10 px-6 bg-red-50 border-2 border-dashed border-red-200 rounded-[2rem] text-center animate-in zoom-in-95">
+          <div className="col-span-full py-10 px-6 bg-red-50 border-2 border-dashed border-red-200 rounded-[2rem] text-center">
             <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-4" />
-            <p className="text-red-800 font-black italic">Acesso à Rede Pendente</p>
-            <p className="text-red-600 text-xs mt-2 font-medium">Não conseguimos carregar os perfis dos mentores.</p>
+            <p className="text-red-800 font-black italic">{errorMsg}</p>
           </div>
         ) : filteredContacts.length > 0 ? (
           filteredContacts.map((contact) => (
@@ -125,8 +128,10 @@ export default function ChatListPage() {
                       </div>
                     )}
                     <div className="flex items-center justify-center gap-2 mt-2">
-                      {contact.profile_type === 'teacher' ? <BookOpen className="h-3 w-3 text-accent" /> : <GraduationCap className="h-3 w-3 text-primary" />}
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{contact.institution || (contact.profile_type === 'teacher' ? 'Mentor' : 'Estudante')}</p>
+                      <Badge className="bg-primary/5 text-primary border-none font-black text-[8px] uppercase px-3 py-1 flex items-center gap-1.5">
+                        <BookOpen className="h-3 w-3" />
+                        {contact.institution || "Mentor Geral"}
+                      </Badge>
                     </div>
                   </div>
                   <Button className="w-full bg-primary text-white hover:bg-primary/95 font-black h-12 rounded-2xl shadow-xl border-none" asChild>
@@ -137,9 +142,9 @@ export default function ChatListPage() {
             </Card>
           ))
         ) : (
-          <div className="col-span-full py-20 text-center opacity-30">
+          <div className="col-span-full py-24 text-center opacity-30">
             <User className="h-12 w-12 mx-auto mb-4" />
-            <p className="font-black italic">Nenhum mentor ou colega encontrado.</p>
+            <p className="font-black italic text-xl">Nenhum mentor disponível no momento.</p>
           </div>
         )}
       </div>
