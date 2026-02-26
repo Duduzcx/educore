@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { conceptExplanationAssistantFlow } from '@/ai/flows/concept-explanation-assistant';
 import { financialAidDeterminationFlow } from '@/ai/flows/financial-aid-determination';
@@ -21,7 +22,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'flowId é obrigatório.' }, { status: 400 });
     }
 
-    // Mapeamento explícito para evitar erros de registro dinâmico
+    console.log(`[AURORA API] Iniciando flow: ${flowId}`);
+
+    // Mapeamento explícito para garantir que o Next.js encontre as funções
     const flows: Record<string, any> = {
       conceptExplanationAssistant: conceptExplanationAssistantFlow,
       financialAidDetermination: financialAidDeterminationFlow,
@@ -31,7 +34,7 @@ export async function POST(req: NextRequest) {
     const targetFlow = flows[flowId];
 
     if (!targetFlow) {
-      console.error(`Flow não encontrado: ${flowId}`);
+      console.error(`[AURORA API] Flow não encontrado: ${flowId}`);
       return NextResponse.json({ error: `Flow '${flowId}' não cadastrado.` }, { status: 404 });
     }
 
@@ -39,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
-    console.error(`Erro ao executar Aurora IA:`, error);
+    console.error(`[AURORA API] Erro fatal:`, error);
     return NextResponse.json(
       { error: `Falha na Aurora: ${error.message || 'Erro interno'}` },
       { status: 500 }
