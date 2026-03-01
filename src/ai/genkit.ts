@@ -8,7 +8,7 @@ import { googleAI } from '@genkit-ai/google-genai';
  */
 
 // Chave de teste prioritária fornecida pelo usuário
-const TEST_KEY = "AIzaSyD1gSZdRe0bW5Y7aWTMBQk0nM8RoMnaE4A";
+const TEST_KEY = "AIzaSyAh2ClldUdbLvDXH9O3USELgPb3GCOrHBA";
 
 export const ai = genkit({
   plugins: [
