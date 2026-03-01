@@ -1,7 +1,8 @@
 'use server';
 
 /**
- * @fileOverview Aurora - Gerador de Temas de Redação.
+ * @fileOverview Aurora - Gerador de Temas de Redação Estilo ENEM.
+ * Gera temas completos com textos motivadores/influência.
  */
 
 import { ai } from '@/ai/genkit';
@@ -14,7 +15,12 @@ const EssayTopicInputSchema = z.object({
 
 const EssayTopicOutputSchema = z.object({
   title: z.string().describe('O título do tema da redação.'),
-  background_text: z.string().describe('Breve texto motivador.'),
+  context: z.string().describe('Breve introdução ao problema.'),
+  supporting_texts: z.array(z.object({
+    id: z.number(),
+    content: z.string().describe('Conteúdo do texto motivador.'),
+    source: z.string().describe('Fonte do texto (ex: G1, Folha, IBGE).')
+  })).describe('Lista de textos motivadores para o aluno se basear (mínimo 3).'),
 });
 
 const prompt = ai.definePrompt({
@@ -23,8 +29,13 @@ const prompt = ai.definePrompt({
   input: { schema: EssayTopicInputSchema },
   output: { schema: EssayTopicOutputSchema },
   system: `Você é a Aurora, mentora de redação nota 1000. 
-  Crie um tema de redação estilo ENEM sobre problemas sociais brasileiros.`,
-  prompt: `Gere um tema desafiador{{#if category}} focado em {{{category}}}{{/if}}.`,
+  Sua missão é criar propostas de redação IDÊNTICAS às do ENEM.
+  REGRAS:
+  1. O tema deve ser um problema social brasileiro atual.
+  2. Inclua EXATAMENTE 3 ou 4 textos motivadores curtos e impactantes.
+  3. Os textos devem conter dados estatísticos fictícios mas verossímeis ou citações.
+  4. O tom deve ser formal e pedagógico.`,
+  prompt: `Gere uma proposta de redação desafiadora{{#if category}} focado em {{{category}}}{{/if}}.`,
 });
 
 export const essayTopicGeneratorFlow = ai.defineFlow(
@@ -35,7 +46,7 @@ export const essayTopicGeneratorFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await prompt(input);
-    if (!output) throw new Error("A IA falhou ao gerar o tema.");
+    if (!output) throw new Error("A IA falhou ao gerar o tema completo.");
     return output;
   }
 );
