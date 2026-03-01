@@ -8,6 +8,7 @@ import { essayEvaluatorFlow } from '@/ai/flows/essay-evaluator';
 
 /**
  * @fileOverview Gateway de API para os fluxos da Aurora IA.
+ * Centraliza as chamadas para garantir que todos os fluxos usem a mesma infraestrutura.
  */
 
 export async function POST(req: NextRequest) {
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'flowId é obrigatório.' }, { status: 400 });
     }
 
+    // MAPA DE FLUXOS: Garanta que os IDs aqui correspondam aos enviados pelo Frontend
     const flows: Record<string, any> = {
       conceptExplanationAssistant: conceptExplanationAssistantFlow,
       financialAidDetermination: financialAidDeterminationFlow,
@@ -35,16 +37,20 @@ export async function POST(req: NextRequest) {
     const targetFlow = flows[flowId];
 
     if (!targetFlow) {
-      return NextResponse.json({ error: `Flow '${flowId}' não cadastrado.` }, { status: 404 });
+      console.error(`[AURORA API] Flow não encontrado: ${flowId}`);
+      return NextResponse.json(
+        { error: `O motor '${flowId}' não está mapeado no servidor.` },
+        { status: 404 }
+      );
     }
 
     const result = await targetFlow(input);
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
-    console.error(`[AURORA API] Erro:`, error);
+    console.error(`[AURORA API] Erro Crítico:`, error);
     return NextResponse.json(
-      { error: error.message || 'Falha na comunicação com a Aurora.' },
+      { error: error.message || 'A Aurora encontrou uma instabilidade na rede neural.' },
       { status: 500 }
     );
   }
