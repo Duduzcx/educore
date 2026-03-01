@@ -1,8 +1,7 @@
-
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users, Settings, Loader2, Eye, FileCheck } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users, Settings, Loader2, Eye, FileCheck, FilePenLine } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,6 +12,7 @@ import { useAuth } from "@/lib/AuthProvider";
 const studentItems = [
   { icon: Home, label: "Página Inicial", href: "/dashboard/home" },
   { icon: Compass, label: "Trilhas de Estudo", href: "/dashboard/trails" },
+  { icon: FilePenLine, label: "Redação Master", href: "/dashboard/student/essays" },
   { icon: FileText, label: "Simulados", href: "/dashboard/student/simulados" },
   { icon: Video, label: "Aulas ao Vivo", href: "/dashboard/live" },
   { icon: Library, label: "Biblioteca Digital", href: "/dashboard/library" },

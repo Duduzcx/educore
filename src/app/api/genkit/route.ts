@@ -3,10 +3,11 @@ import { conceptExplanationAssistantFlow } from '@/ai/flows/concept-explanation-
 import { financialAidDeterminationFlow } from '@/ai/flows/financial-aid-determination';
 import { quizGeneratorFlow } from '@/ai/flows/quiz-generator';
 import { bulkQuestionParserFlow } from '@/ai/flows/bulk-question-parser';
+import { essayTopicGeneratorFlow } from '@/ai/flows/essay-topic-generator';
+import { essayEvaluatorFlow } from '@/ai/flows/essay-evaluator';
 
 /**
  * @fileOverview Gateway de API para os fluxos da Aurora IA.
- * Mapeia as chamadas do front-end para os fluxos do Genkit.
  */
 
 export async function POST(req: NextRequest) {
@@ -22,20 +23,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'flowId é obrigatório.' }, { status: 400 });
     }
 
-    console.log(`[AURORA API] Iniciando flow: ${flowId}`);
-
-    // Mapeamento explícito de fluxos registrados
     const flows: Record<string, any> = {
       conceptExplanationAssistant: conceptExplanationAssistantFlow,
       financialAidDetermination: financialAidDeterminationFlow,
       quizGenerator: quizGeneratorFlow,
       bulkQuestionParser: bulkQuestionParserFlow,
+      essayTopicGenerator: essayTopicGeneratorFlow,
+      essayEvaluator: essayEvaluatorFlow,
     };
 
     const targetFlow = flows[flowId];
 
     if (!targetFlow) {
-      console.error(`[AURORA API] Flow não encontrado: ${flowId}`);
       return NextResponse.json({ error: `Flow '${flowId}' não cadastrado.` }, { status: 404 });
     }
 
@@ -43,9 +42,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {
-    console.error(`[AURORA API] Erro fatal:`, error);
+    console.error(`[AURORA API] Erro:`, error);
     return NextResponse.json(
-      { error: `Falha na Aurora: ${error.message || 'Erro interno'}` },
+      { error: error.message || 'Falha na comunicação com a Aurora.' },
       { status: 500 }
     );
   }
