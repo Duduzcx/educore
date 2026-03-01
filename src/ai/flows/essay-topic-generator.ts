@@ -1,21 +1,31 @@
+
 'use server';
 
 /**
  * @fileOverview Aurora - Gerador de Temas de Redação.
- * Cria temas inéditos baseados em eixos temáticos do ENEM.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 
 const EssayTopicInputSchema = z.object({
-  category: z.string().optional().describe('Eixo temático opcional (ex: Saúde, Educação, Tecnologia).'),
+  category: z.string().optional().describe('Eixo temático opcional.'),
 });
 
 const EssayTopicOutputSchema = z.object({
   title: z.string().describe('O título do tema da redação.'),
-  background_text: z.string().describe('Um breve texto motivador ou contexto para o aluno.'),
-  keywords: z.array(z.string()).describe('Palavras-chave essenciais para a abordagem.'),
+  background_text: z.string().describe('Breve texto motivador.'),
+});
+
+const prompt = ai.definePrompt({
+  name: 'essayTopicGeneratorPrompt',
+  model: googleAI.model('gemini-1.5-flash'),
+  input: { schema: EssayTopicInputSchema },
+  output: { schema: EssayTopicOutputSchema },
+  system: `Você é a Aurora, mentora de redação nota 1000. 
+  Crie um tema de redação estilo ENEM sobre problemas sociais brasileiros.`,
+  prompt: `Gere um tema desafiador{{#if category}} focado em {{{category}}}{{/if}}.`,
 });
 
 export const essayTopicGeneratorFlow = ai.defineFlow(
@@ -25,22 +35,8 @@ export const essayTopicGeneratorFlow = ai.defineFlow(
     outputSchema: EssayTopicOutputSchema,
   },
   async (input) => {
-    const { output } = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
-      input: {
-        schema: EssayTopicInputSchema,
-        data: input,
-      },
-      output: {
-        schema: EssayTopicOutputSchema,
-      },
-      system: `Você é a Aurora, mentora especialista em Redação nota 1000. 
-      Sua tarefa é criar temas de redação inéditos no estilo ENEM. 
-      O tema deve ser um problema social brasileiro relevante.`,
-      prompt: `Gere um tema de redação desafiador{{#if category}} focado no eixo de {{{category}}}{{/if}}.`,
-    });
-
-    if (!output) throw new Error("Falha ao gerar tema.");
+    const { output } = await prompt(input);
+    if (!output) throw new Error("A IA falhou ao gerar o tema.");
     return output;
   }
 );
