@@ -55,9 +55,9 @@ export default function CoordinatorDashboard() {
       await checkHealth();
       
       try {
-        console.log("[ADMIN DEBUG] Iniciando coleta de dados...");
+        console.log("[ADMIN DEBUG] Iniciando coleta de dados robusta...");
 
-        // 1. Buscar todos os perfis
+        // 1. Buscar todos os perfis sem filtros SQL (para evitar problemas com nulls)
         const { data: allProfiles, error: pErr } = await supabase
           .from('profiles')
           .select('id, profile_type, name');
@@ -65,26 +65,40 @@ export default function CoordinatorDashboard() {
         if (pErr) {
           console.error("[ADMIN DEBUG] Erro Supabase:", pErr.message);
         } else {
-          console.log("[ADMIN DEBUG] Dados Brutos Recebidos:", allProfiles);
+          // Log de diagnóstico para descobrir o que está escrito no banco
+          const uniqueTypes = Array.from(new Set(allProfiles?.map(p => p.profile_type) || []));
+          console.log("[ADMIN DEBUG] Tipos encontrados no banco:", uniqueTypes);
+          console.log("[ADMIN DEBUG] Perfis brutos:", allProfiles);
           
-          // Classificação Inclusiva:
-          // Professor: Apenas quem está marcado como 'teacher'
-          // Aluno: Todo mundo que não é 'teacher' nem 'admin' (inclui quem está com campo nulo)
+          // Classificação via JavaScript (Muito mais estável que o filtro .neq do Supabase para campos nulos)
           
+          // 1. Identificar Professores (Mentores)
           const teachers = allProfiles?.filter(p => {
-            const type = (p.profile_type || '').toLowerCase().trim();
-            return type === 'teacher';
+            const t = (p.profile_type || '').toLowerCase().trim();
+            // Aceita variações comuns de cadastro
+            return t === 'teacher' || t === 'mentor' || t === 'professor';
           }) || [];
 
+          // 2. Identificar Admins
+          const admins = allProfiles?.filter(p => {
+            const t = (p.profile_type || '').toLowerCase().trim();
+            return t === 'admin' || t === 'coordenador';
+          }) || [];
+
+          // 3. Todo o resto é Aluno (Inclusivo para campos null ou em branco)
           const students = allProfiles?.filter(p => {
-            const type = (p.profile_type || '').toLowerCase().trim();
-            return type !== 'teacher' && type !== 'admin';
+            const t = (p.profile_type || '').toLowerCase().trim();
+            // Se não é professor nem admin, é aluno
+            const isTeacher = t === 'teacher' || t === 'mentor' || t === 'professor';
+            const isAdmin = t === 'admin' || t === 'coordenador';
+            return !isTeacher && !isAdmin;
           }) || [];
           
-          console.log("[ADMIN DEBUG] Resultado da Classificação:", {
+          console.log("[ADMIN DEBUG] Resultado Final:", {
             total: allProfiles?.length || 0,
             alunos: students.length,
-            professores: teachers.length
+            professores: teachers.length,
+            admins: admins.length
           });
           
           setStats(prev => ({
@@ -116,21 +130,25 @@ export default function CoordinatorDashboard() {
         }
 
         // 4. Média Global de Simulados
-        const { data: scoreData } = await supabase
-          .from('simulation_attempts')
-          .select('score, total_questions');
-        
-        if (scoreData && scoreData.length > 0) {
-          const validAttempts = scoreData.filter(s => s.total_questions > 0);
-          if (validAttempts.length > 0) {
-            const sumGrades = validAttempts.reduce((acc, curr) => acc + (curr.score / curr.total_questions), 0);
-            const avgScore = (sumGrades / validAttempts.length) * 10;
-            setStats(prev => ({ ...prev, avgScore: Number(avgScore.toFixed(1)) }));
+        try {
+          const { data: scoreData } = await supabase
+            .from('simulation_attempts')
+            .select('score, total_questions');
+          
+          if (scoreData && scoreData.length > 0) {
+            const validAttempts = scoreData.filter(s => s.total_questions > 0);
+            if (validAttempts.length > 0) {
+              const sumGrades = validAttempts.reduce((acc, curr) => acc + (curr.score / curr.total_questions), 0);
+              const avgScore = (sumGrades / validAttempts.length) * 10;
+              setStats(prev => ({ ...prev, avgScore: Number(avgScore.toFixed(1)) }));
+            }
           }
+        } catch (e) {
+          console.log("[ADMIN DEBUG] Tabela simulation_attempts vazia ou ausente.");
         }
 
       } catch (err) {
-        console.error("[ADMIN DEBUG] Erro fatal:", err);
+        console.error("[ADMIN DEBUG] Erro fatal no processamento:", err);
       } finally {
         setLoading(false);
       }
