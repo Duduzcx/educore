@@ -55,9 +55,9 @@ export default function CoordinatorDashboard() {
       await checkHealth();
       
       try {
-        console.log("[ADMIN DEBUG] Iniciando coleta de métricas reais...");
+        console.log("[ADMIN DEBUG] Iniciando coleta de métricas robustas...");
 
-        // 1. Buscar Todos os Perfis para contagem manual (Estratégia Inclusiva)
+        // 1. Buscar todos os perfis sem filtros SQL (para evitar bloqueios de RLS/Nulos)
         const { data: allProfiles, error: pErr } = await supabase
           .from('profiles')
           .select('id, profile_type, name');
@@ -65,19 +65,31 @@ export default function CoordinatorDashboard() {
         if (pErr) {
           console.error("[ADMIN DEBUG] Erro ao buscar perfis:", pErr.message);
         } else {
-          console.log("[ADMIN DEBUG] Total de perfis localizados:", allProfiles?.length || 0);
+          console.log("[ADMIN DEBUG] Total de registros brutos:", allProfiles?.length || 0);
           
-          // Classificação robusta no cliente
-          const students = allProfiles?.filter(p => 
-            p.profile_type !== 'teacher' && 
-            p.profile_type !== 'admin'
-          ) || [];
+          // Classificação inteligente no Cliente (JS)
+          // Normalizamos para minúsculo e removemos espaços para evitar erros de digitação no banco
+          const students = allProfiles?.filter(p => {
+            const type = (p.profile_type || '').toLowerCase().trim();
+            return type !== 'teacher' && type !== 'admin' && type !== '';
+          }) || [];
           
-          const teachers = allProfiles?.filter(p => 
-            p.profile_type === 'teacher'
-          ) || [];
+          const teachers = allProfiles?.filter(p => {
+            const type = (p.profile_type || '').toLowerCase().trim();
+            return type === 'teacher';
+          }) || [];
+
+          const admins = allProfiles?.filter(p => {
+            const type = (p.profile_type || '').toLowerCase().trim();
+            return type === 'admin';
+          }) || [];
           
-          console.log("[ADMIN DEBUG] Professores identificados:", teachers.length);
+          console.log("[ADMIN DEBUG] Classificação final:", {
+            alunos: students.length,
+            professores: teachers.length,
+            admins: admins.length,
+            tipos_encontrados: Array.from(new Set(allProfiles?.map(p => p.profile_type)))
+          });
           
           setStats(prev => ({
             ...prev,
@@ -122,7 +134,7 @@ export default function CoordinatorDashboard() {
         }
 
       } catch (err) {
-        console.error("[ADMIN DEBUG] Erro fatal no processamento das estatísticas:", err);
+        console.error("[ADMIN DEBUG] Erro fatal no processamento:", err);
       } finally {
         setLoading(false);
       }
