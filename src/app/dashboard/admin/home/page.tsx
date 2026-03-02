@@ -55,40 +55,36 @@ export default function CoordinatorDashboard() {
       await checkHealth();
       
       try {
-        console.log("[ADMIN DEBUG] Iniciando coleta de métricas robustas...");
+        console.log("[ADMIN DEBUG] Iniciando coleta de dados...");
 
-        // 1. Buscar todos os perfis sem filtros SQL (para evitar bloqueios de RLS/Nulos)
+        // 1. Buscar todos os perfis
         const { data: allProfiles, error: pErr } = await supabase
           .from('profiles')
           .select('id, profile_type, name');
         
         if (pErr) {
-          console.error("[ADMIN DEBUG] Erro ao buscar perfis:", pErr.message);
+          console.error("[ADMIN DEBUG] Erro Supabase:", pErr.message);
         } else {
-          console.log("[ADMIN DEBUG] Total de registros brutos:", allProfiles?.length || 0);
+          console.log("[ADMIN DEBUG] Dados Brutos Recebidos:", allProfiles);
           
-          // Classificação inteligente no Cliente (JS)
-          // Normalizamos para minúsculo e removemos espaços para evitar erros de digitação no banco
-          const students = allProfiles?.filter(p => {
-            const type = (p.profile_type || '').toLowerCase().trim();
-            return type !== 'teacher' && type !== 'admin' && type !== '';
-          }) || [];
+          // Classificação Inclusiva:
+          // Professor: Apenas quem está marcado como 'teacher'
+          // Aluno: Todo mundo que não é 'teacher' nem 'admin' (inclui quem está com campo nulo)
           
           const teachers = allProfiles?.filter(p => {
             const type = (p.profile_type || '').toLowerCase().trim();
             return type === 'teacher';
           }) || [];
 
-          const admins = allProfiles?.filter(p => {
+          const students = allProfiles?.filter(p => {
             const type = (p.profile_type || '').toLowerCase().trim();
-            return type === 'admin';
+            return type !== 'teacher' && type !== 'admin';
           }) || [];
           
-          console.log("[ADMIN DEBUG] Classificação final:", {
+          console.log("[ADMIN DEBUG] Resultado da Classificação:", {
+            total: allProfiles?.length || 0,
             alunos: students.length,
-            professores: teachers.length,
-            admins: admins.length,
-            tipos_encontrados: Array.from(new Set(allProfiles?.map(p => p.profile_type)))
+            professores: teachers.length
           });
           
           setStats(prev => ({
@@ -98,7 +94,7 @@ export default function CoordinatorDashboard() {
           }));
         }
 
-        // 2. Buscar Logs de Atividade
+        // 2. Logs de Atividade
         const { data: logData } = await supabase
           .from('activity_logs')
           .select('*')
@@ -134,7 +130,7 @@ export default function CoordinatorDashboard() {
         }
 
       } catch (err) {
-        console.error("[ADMIN DEBUG] Erro fatal no processamento:", err);
+        console.error("[ADMIN DEBUG] Erro fatal:", err);
       } finally {
         setLoading(false);
       }
