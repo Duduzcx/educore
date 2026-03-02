@@ -59,7 +59,6 @@ export default function AdminStudentsPage() {
         .select(`
           id, 
           name, 
-          email, 
           profile_type, 
           class_id,
           favorite_subject,
@@ -69,7 +68,6 @@ export default function AdminStudentsPage() {
 
       if (pError) throw pError;
 
-      // Lógica de Aluno consistente com o Dashboard
       const studentKeywords = ['etec', 'uni', 'enem', 'cpop', 'student', 'aluno'];
       const studentProfiles = allProfiles?.filter(p => {
         const type = (p.profile_type || '').toLowerCase().trim();
@@ -142,8 +140,7 @@ export default function AdminStudentsPage() {
   };
 
   const filteredStudents = students.filter(s => {
-    const matchesSearch = s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          s.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = s.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSubject = subjectFilter === "all" || s.favorite_subject === subjectFilter;
     return matchesSearch && matchesSubject;
   });
@@ -217,16 +214,6 @@ export default function AdminStudentsPage() {
         <CardHeader className="p-8 border-b border-muted/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <CardTitle className="text-xl font-black text-primary italic">Lista Mestra de Alunos ({filteredStudents.length})</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-              <SelectTrigger className="w-40 h-11 bg-muted/30 border-none rounded-xl font-bold">
-                <Filter className="h-3 w-3 mr-2 opacity-40" />
-                <SelectValue placeholder="Matéria" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-none shadow-2xl max-h-60">
-                <SelectItem value="all" className="font-bold">Todos</SelectItem>
-                {subjects.map(s => <SelectItem key={s.name} value={s.name} className="font-bold">{s.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
             <div className="relative w-64 group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-accent" />
               <Input placeholder="Pesquisar..." className="pl-10 h-11 bg-muted/30 border-none rounded-xl font-medium italic" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />

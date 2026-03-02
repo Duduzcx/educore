@@ -77,7 +77,6 @@ export default function RegisterPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Mapeamento de instituições e cursos baseado no tipo
         let institutionValue = "";
         let courseValue = "";
 
@@ -104,7 +103,6 @@ export default function RegisterPage() {
             id: authData.user.id,
             name: fullName,
             username: formData.username.replace('@', '').toLowerCase(),
-            email: formData.email,
             profile_type: profileType,
             institution: institutionValue,
             course: courseValue,

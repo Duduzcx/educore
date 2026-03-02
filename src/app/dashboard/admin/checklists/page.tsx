@@ -22,7 +22,6 @@ import Link from "next/link";
 interface StudentProgress {
   id: string;
   name: string;
-  email: string;
   count: number;
   total: number;
   status: 'low' | 'medium' | 'high';
@@ -41,12 +40,11 @@ export default function AdminChecklistAuditPage() {
       try {
         const { data: allProfiles, error: pError } = await supabase
           .from('profiles')
-          .select('id, name, email, profile_type')
+          .select('id, name, profile_type')
           .order('name');
 
         if (pError) throw pError;
 
-        // Lógica de Aluno consistente com o Dashboard
         const studentKeywords = ['etec', 'uni', 'enem', 'cpop', 'student', 'aluno'];
         const profiles = allProfiles?.filter(p => {
           const type = (p.profile_type || '').toLowerCase().trim();
@@ -65,7 +63,6 @@ export default function AdminChecklistAuditPage() {
           return {
             id: p.id,
             name: p.name || 'Estudante',
-            email: p.email,
             count,
             total: TOTAL_REQUIRED_DOCS,
             status: percent < 30 ? 'low' : percent < 80 ? 'medium' : 'high'
@@ -83,8 +80,7 @@ export default function AdminChecklistAuditPage() {
   }, []);
 
   const filtered = students.filter(s => 
-    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    s.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -155,7 +151,6 @@ export default function AdminChecklistAuditPage() {
                           <div className="h-10 w-10 rounded-xl bg-primary text-white flex items-center justify-center font-black italic shadow-md">{student.name.charAt(0)}</div>
                           <div className="flex flex-col">
                             <span className="font-black text-primary text-sm italic">{student.name}</span>
-                            <span className="text-[9px] font-bold text-muted-foreground uppercase">{student.email}</span>
                           </div>
                         </div>
                       </TableCell>

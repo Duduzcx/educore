@@ -59,31 +59,26 @@ export default function CoordinatorDashboard() {
 
         const { data: allProfiles, error: pErr } = await supabase
           .from('profiles')
-          .select('id, profile_type, name, email');
+          .select('id, profile_type, name');
         
         if (pErr) {
           console.error("[ADMIN DEBUG] Erro Supabase:", pErr.message);
         } else {
-          // LÓGICA INDUSTRIAL: Definir quem é ALUNO. 
-          // O resto (que não for vazio) é STAFF/DOCENTE.
           const studentKeywords = ['etec', 'uni', 'enem', 'cpop', 'student', 'aluno'];
           
           const students = allProfiles?.filter(p => {
             const type = (p.profile_type || '').toLowerCase().trim();
-            // Se o tipo contém palavras de aluno OU está vazio (default aluno), entra aqui
             return studentKeywords.some(key => type.includes(key)) || type === '';
           }) || [];
 
           const teachers = allProfiles?.filter(p => {
             const type = (p.profile_type || '').toLowerCase().trim();
-            // Se NÃO é aluno e NÃO está vazio, é Corpo Docente/Staff
             const isNotStudent = !studentKeywords.some(key => type.includes(key));
             return isNotStudent && type !== '';
           }) || [];
           
           console.table(allProfiles?.map(p => ({
             Nome: p.name,
-            Email: p.email,
             TipoOriginal: p.profile_type || "NULO",
             Classificacao: studentKeywords.some(key => (p.profile_type || '').toLowerCase().includes(key)) || (p.profile_type || '') === '' ? "ALUNO" : "DOCENTE/STAFF"
           })));
@@ -95,7 +90,6 @@ export default function CoordinatorDashboard() {
           }));
         }
 
-        // 2. Logs de Atividade
         const { data: logData } = await supabase
           .from('activity_logs')
           .select('*')
@@ -103,7 +97,6 @@ export default function CoordinatorDashboard() {
           .limit(5);
         if (logData) setLogs(logData);
 
-        // 3. Taxa de Conclusão Média
         const { data: progressData } = await supabase
           .from('user_progress')
           .select('percentage');
@@ -116,7 +109,6 @@ export default function CoordinatorDashboard() {
           setStats(prev => ({ ...prev, completionRate: avgCompletion }));
         }
 
-        // 4. Média Global de Simulados
         try {
           const { data: scoreData } = await supabase
             .from('simulation_attempts')
