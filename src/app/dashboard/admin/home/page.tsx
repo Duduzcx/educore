@@ -57,7 +57,7 @@ export default function CoordinatorDashboard() {
       try {
         console.log("[ADMIN DEBUG] Coletando dados da rede...");
 
-        // 1. Buscar todos os perfis (Estratégia Robusta: Filtro no Cliente)
+        // 1. Buscar todos os perfis
         const { data: allProfiles, error: pErr } = await supabase
           .from('profiles')
           .select('id, profile_type, name');
@@ -65,43 +65,27 @@ export default function CoordinatorDashboard() {
         if (pErr) {
           console.error("[ADMIN DEBUG] Erro Supabase:", pErr.message);
         } else {
-          // Classificação via JavaScript (Resiliente a nulos e variações de texto)
+          // LÓGICA INVERSA: Definir quem é ALUNO. Todo o resto (que não for vazio) é STAFF.
+          const studentKeywords = ['etec', 'uni', 'enem', 'cpop', 'student', 'aluno'];
           
-          // Identificar Professores (Mentoria/Gestão Técnica)
-          const teachers = allProfiles?.filter(p => {
-            const t = (p.profile_type || '').toLowerCase().trim();
-            return (
-              t === 'teacher' || 
-              t === 'mentor' || 
-              t === 'professor' || 
-              t === 'docente' || 
-              t === 'instrutor' || 
-              t === 'coordenador'
-            );
-          }) || [];
-
-          // Identificar Admins
-          const admins = allProfiles?.filter(p => {
-            const t = (p.profile_type || '').toLowerCase().trim();
-            return t === 'admin' || t === 'gestor' || t === 'diretor';
-          }) || [];
-
-          // Todo o resto é Aluno (Estratégia Inclusiva)
           const students = allProfiles?.filter(p => {
-            const t = (p.profile_type || '').toLowerCase().trim();
-            const isTeacher = (
-              t === 'teacher' || t === 'mentor' || t === 'professor' || 
-              t === 'docente' || t === 'instrutor' || t === 'coordenador'
-            );
-            const isAdmin = t === 'admin' || t === 'gestor' || t === 'diretor';
-            return !isTeacher && !isAdmin;
+            const type = (p.profile_type || '').toLowerCase().trim();
+            // Se o tipo contém palavras de aluno OU está vazio (default aluno), entra aqui
+            return studentKeywords.some(key => type.includes(key)) || type === '';
+          }) || [];
+
+          const teachers = allProfiles?.filter(p => {
+            const type = (p.profile_type || '').toLowerCase().trim();
+            // Se NÃO é aluno e NÃO está vazio, é Corpo Docente/Staff
+            const isNotStudent = !studentKeywords.some(key => type.includes(key));
+            return isNotStudent && type !== '';
           }) || [];
           
-          console.log("[ADMIN DEBUG] Classificação finalizada:", {
+          console.log("[ADMIN DEBUG] Classificação Industrial:", {
             total: allProfiles?.length || 0,
             alunos: students.length,
-            professores: teachers.length,
-            admins: admins.length
+            corpoDocente: teachers.length,
+            tiposEncontrados: Array.from(new Set(allProfiles?.map(p => p.profile_type)))
           });
           
           setStats(prev => ({
@@ -184,7 +168,7 @@ export default function CoordinatorDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: "Alunos Ativos", value: stats.totalStudents, icon: Users, color: "text-blue-600", bg: "bg-blue-50", trend: "REDE" },
-          { label: "Corpo Docente", value: stats.totalTeachers, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50", trend: "ATIVO" },
+          { label: "Corpo Docente", value: stats.totalTeachers, icon: BookOpen, color: "text-purple-600", bg: "bg-purple-50", trend: "EQUIPE" },
           { label: "Taxa Conclusão", value: `${stats.completionRate}%`, icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50", trend: "MÉDIA" },
           { label: "Média Global", value: stats.avgScore, icon: TrendingUp, color: "text-orange-600", bg: "bg-orange-50", trend: "NOTAS" },
         ].map((stat, i) => (

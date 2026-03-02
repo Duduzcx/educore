@@ -54,7 +54,6 @@ export default function AdminStudentsPage() {
       
       if (classData) setCohorts(classData);
 
-      // Busca todos os perfis e filtra no cliente para ser resiliente a nulls
       const { data: allProfiles, error: pError } = await supabase
         .from('profiles')
         .select(`
@@ -70,7 +69,12 @@ export default function AdminStudentsPage() {
 
       if (pError) throw pError;
 
-      const studentProfiles = allProfiles?.filter(p => p.profile_type !== 'teacher' && p.profile_type !== 'admin') || [];
+      // Lógica de Aluno consistente com o Dashboard
+      const studentKeywords = ['etec', 'uni', 'enem', 'cpop', 'student', 'aluno'];
+      const studentProfiles = allProfiles?.filter(p => {
+        const type = (p.profile_type || '').toLowerCase().trim();
+        return studentKeywords.some(key => type.includes(key)) || type === '';
+      }) || [];
 
       const { data: progressData } = await supabase
         .from('user_progress')
@@ -145,7 +149,7 @@ export default function AdminStudentsPage() {
   });
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-1">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-primary italic leading-none">Gestão de Cohorts</h1>

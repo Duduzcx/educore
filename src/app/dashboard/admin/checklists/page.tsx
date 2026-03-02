@@ -39,7 +39,6 @@ export default function AdminChecklistAuditPage() {
     async function fetchChecklists() {
       setLoading(true);
       try {
-        // Busca todos os perfis e filtra no cliente para evitar problemas com nulls
         const { data: allProfiles, error: pError } = await supabase
           .from('profiles')
           .select('id, name, email, profile_type')
@@ -47,7 +46,12 @@ export default function AdminChecklistAuditPage() {
 
         if (pError) throw pError;
 
-        const profiles = allProfiles?.filter(p => p.profile_type !== 'teacher' && p.profile_type !== 'admin') || [];
+        // Lógica de Aluno consistente com o Dashboard
+        const studentKeywords = ['etec', 'uni', 'enem', 'cpop', 'student', 'aluno'];
+        const profiles = allProfiles?.filter(p => {
+          const type = (p.profile_type || '').toLowerCase().trim();
+          return studentKeywords.some(key => type.includes(key)) || type === '';
+        }) || [];
 
         const { data: checklists, error: cError } = await supabase
           .from('student_checklists')
