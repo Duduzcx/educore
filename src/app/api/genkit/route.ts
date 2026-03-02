@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { conceptExplanationAssistantFlow } from '@/ai/flows/concept-explanation-assistant';
 import { financialAidDeterminationFlow } from '@/ai/flows/financial-aid-determination';
@@ -6,6 +5,7 @@ import { quizGeneratorFlow } from '@/ai/flows/quiz-generator';
 import { bulkQuestionParserFlow } from '@/ai/flows/bulk-question-parser';
 import { essayTopicGeneratorFlow } from '@/ai/flows/essay-topic-generator';
 import { essayEvaluatorFlow } from '@/ai/flows/essay-evaluator';
+import { trailStructureGeneratorFlow } from '@/ai/flows/trail-structure-generator';
 
 /**
  * @fileOverview Gateway de API para os fluxos da Aurora IA.
@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
       bulkQuestionParser: bulkQuestionParserFlow,
       essayTopicGenerator: essayTopicGeneratorFlow,
       essayEvaluator: essayEvaluatorFlow,
+      trailStructureGenerator: trailStructureGeneratorFlow,
     };
 
     const targetFlow = flows[flowId];
