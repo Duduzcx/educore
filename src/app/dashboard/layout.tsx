@@ -137,6 +137,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { user, profile, loading: isUserLoading, signOut } = useAuth();
   
+  // SOLUÇÃO PARA ERRO DE HIDRATAÇÃO: Garantir que o servidor e o cliente renderizem a mesma coisa no início
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
   const role = profile?.profile_type === 'teacher' ? 'teacher' : (profile?.profile_type === 'admin' ? 'admin' : 'student');
   const navItems = useMemo(() => {
     if (role === 'admin') return adminItems;
@@ -145,22 +152,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [role]);
 
   useEffect(() => {
-    if (!isUserLoading && !user) router.replace("/login");
-  }, [user, isUserLoading, router]);
+    if (hasHydrated && !isUserLoading && !user) router.replace("/login");
+  }, [user, isUserLoading, router, hasHydrated]);
 
   const isFullBleedPage = useMemo(() => {
     return pathname.includes('/chat/') || pathname.includes('/forum/') || pathname.includes('/classroom/') || pathname.includes('/live/');
   }, [pathname]);
 
-  if (isUserLoading) return (
-    <div className="h-screen w-full flex flex-col items-center justify-center bg-primary gap-6">
+  // Se ainda não hidratou ou está buscando o usuário, exibe o loading shell estável
+  if (!hasHydrated || isUserLoading) return (
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-primary gap-4">
       <div className="relative">
-        <div className="h-24 w-24 rounded-3xl bg-accent flex items-center justify-center shadow-2xl animate-pulse">
-          <BookOpen className="h-12 w-12 text-accent-foreground" />
+        <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center shadow-2xl animate-pulse">
+          <BookOpen className="h-8 w-8 text-accent-foreground" />
         </div>
-        <Sparkles className="absolute -top-4 -right-4 h-8 w-8 text-accent animate-bounce" />
+        <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent animate-bounce" />
       </div>
-      <h2 className="text-2xl font-black text-white italic">Compromisso</h2>
+      <h2 className="text-xl font-black text-white italic tracking-tight">Compromisso</h2>
+      <div className="flex items-center gap-2 opacity-40">
+        <Loader2 className="h-3 w-3 animate-spin text-white" />
+        <span className="text-[8px] font-black uppercase text-white tracking-widest">Sincronizando...</span>
+      </div>
     </div>
   );
 

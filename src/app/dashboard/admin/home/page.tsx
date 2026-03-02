@@ -55,9 +55,9 @@ export default function CoordinatorDashboard() {
       await checkHealth();
       
       try {
-        console.log("[ADMIN DEBUG] Iniciando coleta de dados robusta...");
+        console.log("[ADMIN DEBUG] Coletando dados da rede...");
 
-        // 1. Buscar todos os perfis sem filtros SQL (para evitar problemas com nulls)
+        // 1. Buscar todos os perfis (Estratégia Robusta: Filtro no Cliente)
         const { data: allProfiles, error: pErr } = await supabase
           .from('profiles')
           .select('id, profile_type, name');
@@ -65,36 +65,39 @@ export default function CoordinatorDashboard() {
         if (pErr) {
           console.error("[ADMIN DEBUG] Erro Supabase:", pErr.message);
         } else {
-          // Log de diagnóstico para descobrir o que está escrito no banco
-          const uniqueTypes = Array.from(new Set(allProfiles?.map(p => p.profile_type) || []));
-          console.log("[ADMIN DEBUG] Tipos encontrados no banco:", uniqueTypes);
-          console.log("[ADMIN DEBUG] Perfis brutos:", allProfiles);
+          // Classificação via JavaScript (Resiliente a nulos e variações de texto)
           
-          // Classificação via JavaScript (Muito mais estável que o filtro .neq do Supabase para campos nulos)
-          
-          // 1. Identificar Professores (Mentores)
+          // Identificar Professores (Mentoria/Gestão Técnica)
           const teachers = allProfiles?.filter(p => {
             const t = (p.profile_type || '').toLowerCase().trim();
-            // Aceita variações comuns de cadastro
-            return t === 'teacher' || t === 'mentor' || t === 'professor';
+            return (
+              t === 'teacher' || 
+              t === 'mentor' || 
+              t === 'professor' || 
+              t === 'docente' || 
+              t === 'instrutor' || 
+              t === 'coordenador'
+            );
           }) || [];
 
-          // 2. Identificar Admins
+          // Identificar Admins
           const admins = allProfiles?.filter(p => {
             const t = (p.profile_type || '').toLowerCase().trim();
-            return t === 'admin' || t === 'coordenador';
+            return t === 'admin' || t === 'gestor' || t === 'diretor';
           }) || [];
 
-          // 3. Todo o resto é Aluno (Inclusivo para campos null ou em branco)
+          // Todo o resto é Aluno (Estratégia Inclusiva)
           const students = allProfiles?.filter(p => {
             const t = (p.profile_type || '').toLowerCase().trim();
-            // Se não é professor nem admin, é aluno
-            const isTeacher = t === 'teacher' || t === 'mentor' || t === 'professor';
-            const isAdmin = t === 'admin' || t === 'coordenador';
+            const isTeacher = (
+              t === 'teacher' || t === 'mentor' || t === 'professor' || 
+              t === 'docente' || t === 'instrutor' || t === 'coordenador'
+            );
+            const isAdmin = t === 'admin' || t === 'gestor' || t === 'diretor';
             return !isTeacher && !isAdmin;
           }) || [];
           
-          console.log("[ADMIN DEBUG] Resultado Final:", {
+          console.log("[ADMIN DEBUG] Classificação finalizada:", {
             total: allProfiles?.length || 0,
             alunos: students.length,
             professores: teachers.length,
@@ -144,11 +147,11 @@ export default function CoordinatorDashboard() {
             }
           }
         } catch (e) {
-          console.log("[ADMIN DEBUG] Tabela simulation_attempts vazia ou ausente.");
+          console.log("[ADMIN DEBUG] Tabela simulation_attempts não localizada.");
         }
 
       } catch (err) {
-        console.error("[ADMIN DEBUG] Erro fatal no processamento:", err);
+        console.error("[ADMIN DEBUG] Falha no carregamento:", err);
       } finally {
         setLoading(false);
       }
@@ -158,7 +161,7 @@ export default function CoordinatorDashboard() {
 
   if (isUserLoading || loading) return (
     <div className="h-96 flex flex-col items-center justify-center gap-4">
-      <Loader2 className="h-12 w-12 animate-spin text-accent" />
+      <Loader2 className="h-10 w-10 animate-spin text-accent" />
       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Sincronizando Auditoria Global...</p>
     </div>
   );
