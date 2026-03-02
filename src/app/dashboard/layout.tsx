@@ -1,3 +1,4 @@
+
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
@@ -216,7 +217,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
         
         <SwipeHandler>
-          <main className={`flex-1 flex flex-col min-h-0 ${isFullBleedPage ? 'p-0' : 'p-4 md:p-8 overflow-y-auto'}`}>
+          <main className={`flex-1 flex flex-col min-h-0 overflow-y-auto ${isFullBleedPage ? 'p-0' : 'p-4 md:p-8'}`}>
             <div className={isFullBleedPage ? 'flex-1 flex flex-col min-h-0' : 'max-w-7xl mx-auto w-full'}>
               <Suspense fallback={<LoadingFallback />}>
                 {children}

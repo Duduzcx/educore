@@ -222,14 +222,14 @@ export default function ClassroomPage({ params }: { params: Promise<{ id: string
   }, [activeContentId, activeContent, isApiReady, onPlayerStateChange]);
 
   if (loading) return (
-    <div className="flex flex-col h-screen items-center justify-center gap-6 bg-slate-900">
+    <div className="flex flex-col min-h-screen items-center justify-center gap-6 bg-slate-900">
       <Loader2 className="animate-spin h-12 w-12 text-accent" />
       <p className="text-sm font-black uppercase tracking-[0.3em] text-white animate-pulse">Sintonizando Estúdio</p>
     </div>
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 animate-in fade-in duration-500">
+    <div className="flex flex-col bg-slate-50 animate-in fade-in duration-500 min-h-full">
       
       {/* CABEÇALHO FIXO */}
       <header className="sticky top-0 bg-primary text-white px-6 h-16 flex items-center justify-between shrink-0 z-50 shadow-xl border-b border-white/5">
@@ -271,15 +271,15 @@ export default function ClassroomPage({ params }: { params: Promise<{ id: string
         </div>
       </header>
 
-      <div className="flex flex-1 relative">
+      <div className="flex flex-1 relative items-start">
         
         {/* CONTEÚDO PRINCIPAL (EXPANSÍVEL) */}
-        <main className={`flex-1 flex flex-col bg-white min-w-0 shadow-inner transition-all duration-500 ease-in-out`}>
+        <main className="flex-1 flex flex-col bg-white min-w-0 shadow-inner transition-all duration-500 ease-in-out">
           <div className="w-full aspect-video bg-black relative group shadow-2xl shrink-0 overflow-hidden">
             {activeContent?.type === 'video' ? (
               <div id="youtube-player" className="w-full h-full" />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800 to-primary text-white p-10 text-center">
+              <div className="w-full h-full flex flex-col items-center justify-center bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800 to-primary text-white p-10 text-center min-h-[400px]">
                 <div className="h-20 w-20 rounded-3xl bg-white/10 backdrop-blur-xl flex items-center justify-center mb-6 relative border border-white/10 shadow-2xl">
                   <Layout className="h-10 w-10 text-accent" />
                 </div>
@@ -289,7 +289,7 @@ export default function ClassroomPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          {/* CONSOLE DE ESTUDOS - ROLAGEM DO NAVEGADOR */}
+          {/* CONSOLE DE ESTUDOS */}
           <Tabs defaultValue="summary" className="flex flex-col bg-white">
             <TabsList className="sticky top-16 grid w-full grid-cols-4 h-14 bg-slate-950 p-0 gap-0 shrink-0 shadow-2xl border-b border-white/5 z-40">
               {[
@@ -309,7 +309,7 @@ export default function ClassroomPage({ params }: { params: Promise<{ id: string
               ))}
             </TabsList>
             
-            <div className="p-6 md:p-10 bg-slate-50/30 min-h-[400px]">
+            <div className="p-6 md:p-10 bg-slate-50/30">
                <TabsContent value="summary" className="mt-0 outline-none animate-in fade-in duration-500">
                   <div className="max-w-5xl mx-auto space-y-10 pb-12">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -377,7 +377,7 @@ export default function ClassroomPage({ params }: { params: Promise<{ id: string
                </TabsContent>
 
                <TabsContent value="quiz" className="mt-0 outline-none animate-in slide-in-from-bottom-4 duration-500">
-                  <div className="max-w-4xl mx-auto space-y-6">
+                  <div className="max-w-4xl mx-auto space-y-6 pb-12">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl rotate-3">
                         <BrainCircuit className="h-6 w-6" />
@@ -414,7 +414,7 @@ export default function ClassroomPage({ params }: { params: Promise<{ id: string
                </TabsContent>
 
                <TabsContent value="attachments" className="mt-0 outline-none animate-in slide-in-from-bottom-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto pb-12">
                     {activeContent?.type === 'pdf' || activeContent?.url?.includes('.pdf') ? (
                       <Card className="p-6 border-none shadow-xl bg-white rounded-3xl flex items-center gap-6 group hover:bg-primary transition-all duration-500 cursor-pointer overflow-hidden relative">
                         <div className="h-14 w-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-white/10 group-hover:text-white shadow-inner transition-all">
@@ -439,91 +439,87 @@ export default function ClassroomPage({ params }: { params: Promise<{ id: string
           </Tabs>
         </main>
 
-        {/* EMENTA LATERAL (DIREITA) - RELATIVA PARA EMPURRAR O CONTEÚDO NO DESKTOP */}
-        <aside className={`
-          bg-white border-l transition-all duration-500 ease-in-out flex flex-col shrink-0 overflow-hidden
-          ${sidebarOpen ? 'w-full lg:w-[320px] opacity-100' : 'w-0 border-l-0 opacity-0'}
-          fixed inset-y-0 right-0 z-30 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)]
-        `}>
-          <div className="flex flex-col h-full overflow-hidden">
-            {/* SELETOR DE MÓDULOS */}
-            <div className="p-6 bg-slate-50 border-b shrink-0">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">Ementa da Jornada</h2>
-                <Badge className="bg-primary text-white text-[10px] font-black border-none px-3 h-6 rounded-full">{modules.length} Módulos</Badge>
-              </div>
-              
-              <div className="space-y-2 max-h-[30vh] overflow-y-auto pr-2 scrollbar-thin">
-                {modules.map((module, idx) => (
-                  <button 
-                    key={module.id}
-                    onClick={() => {
-                      setActiveModuleId(module.id);
-                      if (contents[module.id]?.length > 0) setActiveContentId(contents[module.id][0].id);
-                      if (window.innerWidth < 1024) setSidebarOpen(false);
-                    }}
-                    className={`w-full text-left p-4 rounded-2xl transition-all border-2 relative overflow-hidden group ${
-                      activeModuleId === module.id 
-                        ? 'bg-primary text-white border-primary shadow-xl' 
-                        : 'bg-white border-transparent hover:border-accent/20 text-primary/60'
-                    }`}>
-                    <div className="flex items-center gap-4 relative z-10">
-                      <span className={`text-base font-black italic transition-colors ${activeModuleId === module.id ? 'text-accent' : 'text-primary/20'}`}>
-                        {(idx + 1).toString().padStart(2, '0')}
-                      </span>
-                      <p className="font-black text-xs uppercase tracking-wider truncate flex-1">{module.title}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* MATERIAIS DO MÓDULO - ROLAGEM INDEPENDENTE */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-white">
-               <div className="flex items-center gap-2 mb-2">
-                  <Layers className="h-4 w-4 text-accent" />
-                  <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Materiais da Unidade</h3>
-               </div>
-               
-               <div className="space-y-2 pb-10">
-                 {contents[activeModuleId || ""]?.map((content) => (
+        {/* EMENTA LATERAL (DIREITA) */}
+        {sidebarOpen && (
+          <aside className="bg-white border-l transition-all duration-500 ease-in-out flex flex-col shrink-0 w-full lg:w-[320px] sticky top-16 max-h-[calc(100vh-64px)] overflow-y-auto overflow-x-hidden z-30">
+            <div className="flex flex-col h-full">
+              {/* SELETOR DE MÓDULOS */}
+              <div className="p-6 bg-slate-50 border-b shrink-0">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/40">Ementa da Jornada</h2>
+                  <Badge className="bg-primary text-white text-[10px] font-black border-none px-3 h-6 rounded-full">{modules.length} Módulos</Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  {modules.map((module, idx) => (
                     <button 
-                      key={content.id}
+                      key={module.id}
                       onClick={() => {
-                        setActiveContentId(content.id);
-                        if (window.innerWidth < 1024) setSidebarOpen(false);
-                        window.scrollTo({ top: 0, behavior: 'smooth' }); // Volta ao topo ao mudar conteúdo
+                        setActiveModuleId(module.id);
+                        if (contents[module.id]?.length > 0) setActiveContentId(contents[module.id][0].id);
                       }}
-                      className={`w-full text-left p-4 rounded-2xl transition-all flex items-center gap-4 border-2 ${
-                        activeContentId === content.id 
-                          ? 'bg-accent/5 border-accent/40 shadow-sm' 
-                          : 'bg-white border-slate-100 hover:border-accent/20 hover:bg-slate-50'
+                      className={`w-full text-left p-4 rounded-2xl transition-all border-2 relative overflow-hidden group ${
+                        activeModuleId === module.id 
+                          ? 'bg-primary text-white border-primary shadow-xl' 
+                          : 'bg-white border-transparent hover:border-accent/20 text-primary/60'
                       }`}>
-                        <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
-                          activeContentId === content.id ? 'bg-accent text-white shadow-lg' : 'bg-slate-100 text-primary/30'
-                        }`}>
-                           {content.type === 'video' ? <PlayCircle className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className={`font-black text-xs uppercase tracking-wider truncate transition-colors ${
-                            activeContentId === content.id ? 'text-primary' : 'text-primary/60'
-                          }`}>{content.title}</p>
-                          <p className="text-[9px] font-bold text-muted-foreground uppercase opacity-60 leading-none mt-1">{content.type}</p>
-                        </div>
-                        {activeContentId === content.id && (
-                          <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-                        )}
+                      <div className="flex items-center gap-4 relative z-10">
+                        <span className={`text-base font-black italic transition-colors ${activeModuleId === module.id ? 'text-accent' : 'text-primary/20'}`}>
+                          {(idx + 1).toString().padStart(2, '0')}
+                        </span>
+                        <p className="font-black text-xs uppercase tracking-wider truncate flex-1">{module.title}</p>
+                      </div>
                     </button>
-                 ))}
-                 {(!contents[activeModuleId || ""] || contents[activeModuleId || ""].length === 0) && (
-                   <div className="py-12 text-center border-4 border-dashed rounded-[2rem] opacity-20 bg-muted/5">
-                      <p className="text-[10px] font-black uppercase italic tracking-widest">Sem Materiais Vinculados</p>
-                   </div>
-                 )}
-               </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* MATERIAIS DO MÓDULO */}
+              <div className="flex-1 p-6 space-y-4 bg-white">
+                 <div className="flex items-center gap-2 mb-2">
+                    <Layers className="h-4 w-4 text-accent" />
+                    <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Materiais da Unidade</h3>
+                 </div>
+                 
+                 <div className="space-y-2 pb-10">
+                   {contents[activeModuleId || ""]?.map((content) => (
+                      <button 
+                        key={content.id}
+                        onClick={() => {
+                          setActiveContentId(content.id);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                        className={`w-full text-left p-4 rounded-2xl transition-all flex items-center gap-4 border-2 ${
+                          activeContentId === content.id 
+                            ? 'bg-accent/5 border-accent/40 shadow-sm' 
+                            : 'bg-white border-slate-100 hover:border-accent/20 hover:bg-slate-50'
+                        }`}>
+                          <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                            activeContentId === content.id ? 'bg-accent text-white shadow-lg' : 'bg-slate-100 text-primary/30'
+                          }`}>
+                             {content.type === 'video' ? <PlayCircle className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className={`font-black text-xs uppercase tracking-wider truncate transition-colors ${
+                              activeContentId === content.id ? 'text-primary' : 'text-primary/60'
+                            }`}>{content.title}</p>
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase opacity-60 leading-none mt-1">{content.type}</p>
+                          </div>
+                          {activeContentId === content.id && (
+                            <div className="h-2 w-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
+                          )}
+                      </button>
+                   ))}
+                   {(!contents[activeModuleId || ""] || contents[activeModuleId || ""].length === 0) && (
+                     <div className="py-12 text-center border-4 border-dashed rounded-[2rem] opacity-20 bg-muted/5">
+                        <p className="text-[10px] font-black uppercase italic tracking-widest">Sem Materiais Vinculados</p>
+                     </div>
+                   )}
+                 </div>
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        )}
       </div>
     </div>
   );
