@@ -2,7 +2,7 @@
 "use client";
 
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroup, SidebarTrigger, SidebarInset, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
-import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users, Settings, Loader2, Eye, FileCheck, FilePenLine, ShieldAlert, Gavel } from "lucide-react";
+import { Home, Compass, BookOpen, Video, Library, LogOut, Bell, LayoutDashboard, ClipboardList, BarChart3, MessageSquare, MessagesSquare, MonitorPlay, Calculator, FileText, Database, Sparkles, ShieldCheck, Users, Settings, Eye, FileCheck, FilePenLine, ShieldAlert, Gavel } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -126,8 +126,9 @@ NavMenu.displayName = "NavMenu";
 
 function LoadingFallback() {
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <Loader2 className="h-8 w-8 animate-spin text-accent opacity-20" />
+    <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 opacity-20 animate-pulse">
+      <Sparkles className="h-10 w-10 text-accent" />
+      <p className="text-[10px] font-black uppercase tracking-widest">Sintonizando...</p>
     </div>
   );
 }
@@ -161,15 +162,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!hasHydrated || isUserLoading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-primary gap-4">
       <div className="relative">
-        <div className="h-12 w-12 rounded-2xl bg-accent flex items-center justify-center shadow-2xl animate-pulse">
-          <BookOpen className="h-6 w-6 text-accent-foreground" />
+        <div className="h-16 w-16 rounded-[2rem] bg-white/5 flex items-center justify-center shadow-2xl animate-pulse">
+          <BookOpen className="h-8 w-8 text-accent" />
         </div>
-        <Sparkles className="absolute -top-2 -right-2 h-4 w-4 text-accent animate-bounce" />
+        <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent animate-pulse" />
       </div>
-      <h2 className="text-sm font-black text-white italic tracking-tight">Compromisso</h2>
-      <div className="flex items-center gap-2 opacity-40">
-        <Loader2 className="h-3 w-3 animate-spin text-white" />
-        <span className="text-[8px] font-black uppercase text-white tracking-widest">Sincronizando...</span>
+      <h2 className="text-sm font-black text-white italic tracking-tighter">Compromisso</h2>
+      <div className="flex items-center gap-2 opacity-40 animate-pulse">
+        <span className="text-[8px] font-black uppercase text-white tracking-[0.4em]">Sintonizando Ambiente</span>
       </div>
     </div>
   );

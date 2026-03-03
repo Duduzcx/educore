@@ -10,7 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   Search, 
   FileCheck, 
-  Loader2, 
   AlertCircle, 
   CheckCircle2, 
   Send,
@@ -20,7 +19,8 @@ import {
   ClipboardList,
   MessagesSquare,
   Megaphone,
-  Sparkles
+  Sparkles,
+  Activity
 } from "lucide-react";
 import {
   Select,
@@ -210,13 +210,13 @@ export default function AdminChecklistAuditPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: "Critico (<30%)", count: students.filter(s => s.status === 'low').length, icon: AlertCircle, color: "text-red-600", bg: "bg-red-50" },
-          { label: "Em Evolução", count: students.filter(s => s.status === 'medium').length, icon: Loader2, color: "text-amber-600", bg: "bg-amber-50" },
+          { label: "progresso iniciado", count: students.filter(s => s.status === 'medium').length, icon: Activity, color: "text-amber-600", bg: "bg-amber-50" },
           { label: "Prontos (>80%)", count: students.filter(s => s.status === 'high').length, icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-lg rounded-3xl bg-white overflow-hidden p-6 hover:shadow-xl transition-all">
             <div className="flex items-center gap-4">
               <div className={`h-12 w-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shadow-inner`}>
-                <stat.icon className={`h-6 w-6 ${stat.icon === Loader2 ? 'animate-spin' : ''}`} />
+                <stat.icon className={`h-6 w-6 ${stat.icon === Activity ? 'animate-pulse' : ''}`} />
               </div>
               <div>
                 <p className="text-2xl font-black text-primary">{stat.count}</p>
@@ -240,7 +240,7 @@ export default function AdminChecklistAuditPage() {
               <SelectContent className="rounded-xl border-none shadow-2xl">
                 <SelectItem value="all" className="font-bold">Todos os Status</SelectItem>
                 <SelectItem value="low" className="font-bold text-red-600">Apenas Críticos</SelectItem>
-                <SelectItem value="medium" className="font-bold text-amber-600">Em Evolução</SelectItem>
+                <SelectItem value="medium" className="font-bold text-amber-600">progresso iniciado</SelectItem>
                 <SelectItem value="high" className="font-bold text-green-600">Prontos para Matrícula</SelectItem>
               </SelectContent>
             </Select>
@@ -281,7 +281,7 @@ export default function AdminChecklistAuditPage() {
               </DialogHeader>
               <div className="py-6 space-y-4">
                 <Label className="text-[10px] font-black uppercase opacity-40 ml-2">Conteúdo da Mensagem</Label>
-                <Textarea 
+                <支配Textarea 
                   placeholder="Olá! Notamos que sua documentação está pendente. Precisa de ajuda com algum item?" 
                   className="min-h-[150px] rounded-2xl bg-muted/30 border-none font-medium italic p-6"
                   value={bulkContent}
@@ -290,7 +290,7 @@ export default function AdminChecklistAuditPage() {
               </div>
               <DialogFooter>
                 <Button onClick={handleBulkMessage} disabled={isProcessing || !bulkContent.trim()} className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-xl">
-                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <Send className="h-5 w-5 mr-2 text-accent" />}
+                  {isProcessing ? <Sparkles className="h-6 w-6 animate-pulse mr-2 text-accent" /> : <Send className="h-5 w-5 mr-2 text-accent" />}
                   Disparar no Chat
                 </Button>
               </DialogFooter>
@@ -321,7 +321,7 @@ export default function AdminChecklistAuditPage() {
               </div>
               <DialogFooter>
                 <Button onClick={handleBulkAnnouncement} disabled={isProcessing || !bulkContent.trim()} className="w-full h-16 bg-accent text-accent-foreground font-black rounded-2xl shadow-xl">
-                  {isProcessing ? <Loader2 className="h-6 w-6 animate-spin mr-2" /> : <Megaphone className="h-5 w-5 mr-2" />}
+                  {isProcessing ? <Sparkles className="h-6 w-6 animate-pulse mr-2" /> : <Megaphone className="h-5 w-5 mr-2" />}
                   Fixar no Mural de Avisos
                 </Button>
               </DialogFooter>
@@ -334,7 +334,9 @@ export default function AdminChecklistAuditPage() {
         <CardContent className="p-0">
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="h-12 w-12 animate-spin text-accent" />
+              <div className="relative">
+                <Sparkles className="h-12 w-12 text-accent animate-pulse" />
+              </div>
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Auditando Registros de Rede...</p>
             </div>
           ) : (
@@ -379,7 +381,7 @@ export default function AdminChecklistAuditPage() {
                           <Badge className={`border-none font-black text-[8px] uppercase px-3 h-6 ${
                             student.status === 'low' ? 'bg-red-100 text-red-700' : student.status === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
                           }`}>
-                            {student.status === 'low' ? 'Risco Crítico' : student.status === 'medium' ? 'Em progresso' : 'Documentado'}
+                            {student.status === 'low' ? 'Risco Crítico' : student.status === 'medium' ? 'progresso iniciado' : 'Documentado'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right px-8">
