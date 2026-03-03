@@ -7,12 +7,34 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, Send, Loader2, MessageSquare, Calendar, Info, Lock, ShieldAlert, UserX } from "lucide-react";
+import { 
+  ChevronLeft, 
+  Send, 
+  Loader2, 
+  MessageSquare, 
+  Info, 
+  Lock, 
+  ShieldAlert, 
+  UserX, 
+  Users, 
+  Settings2,
+  ExternalLink,
+  Search,
+  ArrowUpRight
+} from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/app/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import Link from "next/link";
 
 export default function ForumDetailPage() {
   const params = useParams();
@@ -30,6 +52,14 @@ export default function ForumDetailPage() {
   const [isRestricted, setIsRestricted] = useState(false);
   const [isBanned, setIsBanned] = useState(false);
 
+  // Estados para Gestão de Membros
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
+  const [members, setMembers] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+
+  const isStaff = ['teacher', 'admin'].includes(profile?.profile_type?.toLowerCase() || '');
+
   useEffect(() => {
     async function loadData() {
       if (!forumId || !user) return;
@@ -39,14 +69,11 @@ export default function ForumDetailPage() {
         if (forumData) {
           setForum(forumData);
           
-          // Verificar se o fórum é "Somente Staff" e se o usuário é aluno
-          const isStaff = ['teacher', 'admin'].includes(profile?.profile_type?.toLowerCase() || '');
           if (forumData.is_teacher_only && !isStaff) {
             setIsRestricted(true);
           }
         }
 
-        // Verificar banimento específico deste usuário neste fórum
         const { data: banData } = await supabase
           .from('forum_bans')
           .select('id')
@@ -89,7 +116,28 @@ export default function ForumDetailPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [forumId, user, profile]);
+  }, [forumId, user, profile, isStaff]);
+
+  const loadMembers = async () => {
+    if (!forum || !isStaff) return;
+    setLoadingMembers(true);
+    try {
+      let query = supabase.from('profiles').select('*');
+      
+      // Se for fórum de polo, filtra apenas alunos daquela instituição
+      if (forum.category === "Polos") {
+        const poloName = forum.name.replace('Comunidade: ', '');
+        query = query.ilike('institution', `%${poloName}%`);
+      }
+
+      const { data } = await query.order('name');
+      setMembers(data || []);
+    } catch (err) {
+      console.error("Erro ao buscar membros:", err);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
 
   const handleSendPost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +172,10 @@ export default function ForumDetailPage() {
     }
   }, [posts]);
 
+  const filteredMembers = members.filter(m => 
+    m.name?.toLowerCase().includes(memberSearch.toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4">
@@ -156,7 +208,77 @@ export default function ForumDetailPage() {
             </div>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-2">
+        
+        <div className="flex items-center gap-2">
+          {isStaff && (
+            <Dialog open={isMembersOpen} onOpenChange={(open) => { setIsMembersOpen(open); if(open) loadMembers(); }}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="h-10 rounded-xl border-dashed border-primary/20 text-primary font-black text-[10px] uppercase gap-2 hover:bg-primary/5 hidden md:flex shadow-sm">
+                  <Users className="h-3.5 w-3.5" /> Gerenciar Membros
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="rounded-[2.5rem] p-10 bg-white border-none shadow-2xl max-w-2xl">
+                <DialogHeader>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="h-12 w-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-2xl font-black italic text-primary leading-none">Membros do Fórum</DialogTitle>
+                      <p className="text-xs text-muted-foreground italic mt-1.5">Alunos vinculados à instituição: {forum?.name?.replace('Comunidade: ', '')}</p>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                <div className="space-y-6">
+                  <div className="relative group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors group-focus-within:text-accent" />
+                    <Input 
+                      placeholder="Buscar aluno no polo..." 
+                      className="h-12 rounded-xl bg-muted/30 border-none pl-11 font-bold italic"
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                    />
+                  </div>
+
+                  <ScrollArea className="h-[400px] pr-4">
+                    {loadingMembers ? (
+                      <div className="py-20 flex flex-col items-center justify-center gap-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Sincronizando Rede...</p>
+                      </div>
+                    ) : filteredMembers.length === 0 ? (
+                      <div className="py-20 text-center opacity-30 italic">
+                        <p className="text-sm font-black uppercase">Nenhum aluno localizado</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredMembers.map((member) => (
+                          <div key={member.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md transition-all group">
+                            <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-xl bg-primary text-white flex items-center justify-center font-black italic shadow-md">{member.name?.charAt(0)}</div>
+                              <div className="flex flex-col">
+                                <span className="font-black text-primary text-sm italic">{member.name}</span>
+                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">{member.profile_type}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-accent hover:bg-accent/10" asChild>
+                                <Link href={`/dashboard/chat/${member.id}`}><Send className="h-4 w-4" /></Link>
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-primary" asChild>
+                                <Link href={`/dashboard/admin/users?search=${member.name}`}><ArrowUpRight className="h-4 w-4" /></Link>
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
           <Badge className="bg-green-100 text-green-700 border-none font-black text-[9px] px-3 py-1 uppercase tracking-tighter">Debate Ativo</Badge>
         </div>
       </div>
