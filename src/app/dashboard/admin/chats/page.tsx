@@ -2,25 +2,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
   Search, 
-  Eye, 
   Loader2, 
   MessageSquare, 
   ShieldCheck, 
-  User, 
   History,
   Calendar,
-  AlertCircle
+  Filter,
+  Users2,
+  Clock
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/app/lib/supabase";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format, isToday, isWithinInterval, subDays, subMonths } from "date-fns";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +44,8 @@ interface Conversation {
 
 export default function AdminChatAuditPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState<Conversation[]>([]);
   const { toast } = useToast();
@@ -45,7 +54,6 @@ export default function AdminChatAuditPage() {
     async function fetchThreads() {
       setLoading(true);
       try {
-        // 1. Busca mensagens recentes
         const { data: messages, error: mError } = await supabase
           .from('direct_messages')
           .select('*')
@@ -58,10 +66,8 @@ export default function AdminChatAuditPage() {
           return;
         }
 
-        // 2. Extrair IDs únicos de usuários envolvidos
         const userIds = Array.from(new Set(messages.flatMap(m => [m.sender_id, m.receiver_id])));
 
-        // 3. Buscar perfis desses usuários
         const { data: profiles, error: pError } = await supabase
           .from('profiles')
           .select('id, name, profile_type')
@@ -70,8 +76,6 @@ export default function AdminChatAuditPage() {
         if (pError) throw pError;
 
         const profileMap = new Map(profiles?.map(p => [p.id, p]));
-
-        // 4. Agrupar por pares únicos de usuários (Threads)
         const threadMap = new Map();
         
         messages.forEach(msg => {
@@ -100,7 +104,7 @@ export default function AdminChatAuditPage() {
         console.error("Erro detalhado ao auditar chats:", err);
         toast({
           title: "Erro de Sincronização",
-          description: "Não foi possível carregar os logs. Verifique se a tabela 'direct_messages' existe.",
+          description: "Não foi possível carregar os logs de conversa.",
           variant: "destructive"
         });
       } finally {
@@ -111,13 +115,37 @@ export default function AdminChatAuditPage() {
     fetchThreads();
   }, [toast]);
 
-  const filteredThreads = threads.filter(t => 
-    t.u1_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.u2_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredThreads = threads.filter(t => {
+    // 1. Busca por nome ou conteúdo
+    const searchMatch = 
+      t.u1_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      t.u2_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.last_message?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // 2. Filtro por Papel
+    const staffKeywords = ['teacher', 'admin', 'mentor', 'coordenador'];
+    const isU1Staff = staffKeywords.some(key => (t.u1_type || '').toLowerCase().includes(key));
+    const isU2Staff = staffKeywords.some(key => (t.u2_type || '').toLowerCase().includes(key));
+
+    let roleMatch = true;
+    if (roleFilter === 'student_student') roleMatch = !isU1Staff && !isU2Staff;
+    if (roleFilter === 'student_staff') roleMatch = (isU1Staff && !isU2Staff) || (!isU1Staff && isU2Staff);
+    if (roleFilter === 'staff_staff') roleMatch = isU1Staff && isU2Staff;
+
+    // 3. Filtro por Data
+    let dateMatch = true;
+    const msgDate = new Date(t.last_date);
+    const now = new Date();
+
+    if (dateFilter === 'today') dateMatch = isToday(msgDate);
+    if (dateFilter === 'week') dateMatch = isWithinInterval(msgDate, { start: subDays(now, 7), end: now });
+    if (dateFilter === 'month') dateMatch = isWithinInterval(msgDate, { start: subMonths(now, 1), end: now });
+
+    return searchMatch && roleMatch && dateMatch;
+  });
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-1">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
@@ -129,7 +157,7 @@ export default function AdminChatAuditPage() {
         <div className="relative w-full md:w-80 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-accent transition-colors" />
           <Input 
-            placeholder="Buscar por nome..." 
+            placeholder="Buscar por nome ou conteúdo..." 
             className="pl-12 h-14 bg-white border-none shadow-xl rounded-2xl italic font-medium focus-visible:ring-accent"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -137,12 +165,50 @@ export default function AdminChatAuditPage() {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase text-primary/40 px-2 tracking-widest flex items-center gap-2">
+            <Users2 className="h-3 w-3" /> Categoria de Interação
+          </Label>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="h-12 rounded-xl bg-white border-none shadow-md font-bold italic">
+              <SelectValue placeholder="Todas as Interações" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-none shadow-2xl">
+              <SelectItem value="all" className="font-bold">Todas as Interações</SelectItem>
+              <SelectItem value="student_student" className="font-bold">Aluno ↔ Aluno</SelectItem>
+              <SelectItem value="student_staff" className="font-bold">Aluno ↔ Mentoria</SelectItem>
+              <SelectItem value="staff_staff" className="font-bold">Equipe Técnica (Staff)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase text-primary/40 px-2 tracking-widest flex items-center gap-2">
+            <Clock className="h-3 w-3" /> Janela de Recência
+          </Label>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="h-12 rounded-xl bg-white border-none shadow-md font-bold italic">
+              <SelectValue placeholder="Todo o Período" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-none shadow-2xl">
+              <SelectItem value="all" className="font-bold">Todo o Histórico</SelectItem>
+              <SelectItem value="today" className="font-bold text-accent">Apenas Hoje</SelectItem>
+              <SelectItem value="week" className="font-bold">Última Semana</SelectItem>
+              <SelectItem value="month" className="font-bold">Último Mês</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white overflow-hidden">
         <CardContent className="p-0">
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center gap-4">
-              <Loader2 className="h-12 w-12 animate-spin text-accent" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Sincronizando Logs de Conversa...</p>
+              <div className="relative">
+                <History className="h-12 w-12 text-accent animate-pulse" />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sincronizando Logs de Auditoria...</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -200,7 +266,7 @@ export default function AdminChatAuditPage() {
                     <TableRow>
                       <TableCell colSpan={4} className="h-64 text-center py-20">
                         <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/20" />
-                        <p className="font-black italic text-xl text-primary/40 uppercase tracking-widest">Nenhuma conversa registrada</p>
+                        <p className="font-black italic text-xl text-primary/40 uppercase tracking-widest">Nenhuma conversa localizada</p>
                       </TableCell>
                     </TableRow>
                   )}
