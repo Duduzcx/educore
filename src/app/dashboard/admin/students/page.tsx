@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,7 +22,8 @@ import {
   X,
   Sparkles,
   MapPin,
-  MessagesSquare
+  MessagesSquare,
+  Layers
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -413,7 +413,7 @@ export default function AdminStudentsPage() {
                             <Settings2 className="h-4 w-4" />
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-sm border-none shadow-2xl">
+                        <DialogContent className="rounded-[2.5rem] p-10 bg-white max-sm border-none shadow-2xl">
                           <DialogHeader>
                             <DialogTitle className="text-xl font-black italic text-primary">Alterar Polo / Fórum</DialogTitle>
                             <DialogDescription className="text-xs italic">Isso moverá o aluno para a nova comunidade do polo instantaneamente.</DialogDescription>
