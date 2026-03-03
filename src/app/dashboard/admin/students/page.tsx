@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -20,7 +21,9 @@ import {
   Settings2,
   Building2,
   X,
-  Sparkles
+  Sparkles,
+  MapPin,
+  MessagesSquare
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -49,9 +52,13 @@ export default function AdminStudentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   
   const [cohorts, setCohorts] = useState<any[]>([]);
+  const [poloForums, setPoloForums] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [newCohort, setNewCohort] = useState({ name: "", description: "" });
+  
+  // Filtros ativos
   const [selectedCohortId, setSelectedCohortId] = useState<string | null>(null);
+  const [selectedPoloName, setSelectedPoloName] = useState<string | null>(null);
 
   // Estados para Edição de Aluno (Unidade/Fórum)
   const [editingStudent, setEditingStudent] = useState<any>(null);
@@ -60,6 +67,7 @@ export default function AdminStudentsPage() {
   async function fetchData() {
     setLoading(true);
     try {
+      // 1. Buscar Turmas (Classes)
       const { data: classData } = await supabase
         .from('classes')
         .select('*')
@@ -67,6 +75,16 @@ export default function AdminStudentsPage() {
       
       if (classData) setCohorts(classData);
 
+      // 2. Buscar Fóruns de Polo (Comunidades Regionais)
+      const { data: forumsData } = await supabase
+        .from('forums')
+        .select('*')
+        .eq('category', 'Polos')
+        .order('name');
+      
+      if (forumsData) setPoloForums(forumsData);
+
+      // 3. Buscar Todos os Alunos
       const { data: allProfiles, error: pError } = await supabase
         .from('profiles')
         .select('*')
@@ -80,6 +98,7 @@ export default function AdminStudentsPage() {
         return studentKeywords.some(key => type.includes(key)) || type === '';
       }) || [];
 
+      // 4. Buscar Progresso para cálculo de engajamento
       const { data: progressData } = await supabase
         .from('user_progress')
         .select('user_id, percentage');
@@ -110,7 +129,7 @@ export default function AdminStudentsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [cohorts.length]);
+  }, [user]);
 
   const handleCreateCohort = async () => {
     if (!newCohort.name.trim() || !user) return;
@@ -161,7 +180,7 @@ export default function AdminStudentsPage() {
 
       if (profileErr) throw profileErr;
 
-      // 2. Garantir que o fórum exista (Lógica Robusta)
+      // 2. Garantir que o fórum exista
       const forumName = `Comunidade: ${institutionClean}`;
       
       const { data: existingForum } = await supabase
@@ -221,21 +240,27 @@ export default function AdminStudentsPage() {
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCohort = !selectedCohortId || s.class_id === selectedCohortId;
-    return matchesSearch && matchesCohort;
+    const matchesPolo = !selectedPoloName || (s.institution || '').toLowerCase().includes(selectedPoloName.toLowerCase());
+    return matchesSearch && matchesCohort && matchesPolo;
   });
+
+  const clearFilters = () => {
+    setSelectedCohortId(null);
+    setSelectedPoloName(null);
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-1">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-primary italic leading-none">Gestão de Cohorts & Comunidades</h1>
-          <p className="text-muted-foreground font-medium italic">Administração de turmas, fóruns regionais e matrículas.</p>
+          <h1 className="text-3xl font-black text-primary italic leading-none">Gestão de Turmas & Comunidades</h1>
+          <p className="text-muted-foreground font-medium italic">Administração centralizada de Cohorts acadêmicos e Polos regionais.</p>
         </div>
         
         <div className="flex items-center gap-3">
-          {selectedCohortId && (
-            <Button variant="ghost" onClick={() => setSelectedCohortId(null)} className="h-14 rounded-2xl font-black text-red-500 uppercase text-[10px] gap-2">
-              <X className="h-4 w-4" /> Limpar Filtro
+          {(selectedCohortId || selectedPoloName) && (
+            <Button variant="ghost" onClick={clearFilters} className="h-14 rounded-2xl font-black text-red-500 uppercase text-[10px] gap-2">
+              <X className="h-4 w-4" /> Limpar Filtros
             </Button>
           )}
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -267,55 +292,77 @@ export default function AdminStudentsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {loading ? (
-          <div className="col-span-full py-10 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-accent" /></div>
-        ) : cohorts.length === 0 ? (
-          <div className="col-span-full py-20 text-center border-4 border-dashed rounded-[3rem] opacity-30">
-            <Database className="h-12 w-12 mx-auto mb-4" />
-            <p className="font-black italic">Nenhuma turma cadastrada</p>
-          </div>
-        ) : (
-          cohorts.map((cohort) => (
-            <Card 
-              key={cohort.id} 
-              className={`border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group hover:shadow-2xl transition-all ${
-                selectedCohortId === cohort.id ? 'ring-4 ring-accent' : ''
-              }`}
-            >
-              <CardContent className="p-8">
-                <div className={`p-4 w-fit rounded-2xl transition-all shadow-inner ${
-                  selectedCohortId === cohort.id ? 'bg-accent text-accent-foreground' : 'bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white'
-                }`}>
-                  <GraduationCap className="h-8 w-8" />
-                </div>
-                <div className="mt-6 space-y-2">
-                  <p className="text-xl font-black text-primary italic leading-none group-hover:text-accent transition-colors">{cohort.name}</p>
-                  <p className="text-[10px] text-muted-foreground font-medium italic line-clamp-1">{cohort.description || "Sem descrição."}</p>
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-muted/10">
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 font-black text-[8px] px-3">ATIVO</Badge>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => setSelectedCohortId(selectedCohortId === cohort.id ? null : cohort.id)}
-                      className={`h-8 rounded-lg font-bold px-3 ${selectedCohortId === cohort.id ? 'bg-accent text-accent-foreground' : 'text-accent'}`}
-                    >
-                      {selectedCohortId === cohort.id ? 'Filtrado' : 'Visualizar'} <ArrowUpRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+      {/* SEÇÃO DE CARDS: TURMAS E POLOS */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 px-2">
+          <Layers className="h-4 w-4 text-accent" />
+          <h2 className="text-[10px] font-black uppercase tracking-widest text-primary/40">Agrupamentos Disponíveis</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {loading ? (
+            <div className="col-span-full py-10 flex justify-center"><Loader2 className="animate-spin h-10 w-10 text-accent" /></div>
+          ) : (
+            <>
+              {/* TURMAS (CLASSES) */}
+              {cohorts.map((cohort) => (
+                <Card 
+                  key={cohort.id} 
+                  className={`border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group hover:shadow-2xl transition-all cursor-pointer ${
+                    selectedCohortId === cohort.id ? 'ring-4 ring-primary' : ''
+                  }`}
+                  onClick={() => { clearFilters(); setSelectedCohortId(cohort.id); }}
+                >
+                  <CardContent className="p-8">
+                    <div className={`p-4 w-fit rounded-2xl transition-all shadow-inner ${
+                      selectedCohortId === cohort.id ? 'bg-primary text-white' : 'bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white'
+                    }`}>
+                      <GraduationCap className="h-6 w-6" />
+                    </div>
+                    <div className="mt-6 space-y-1">
+                      <p className="text-lg font-black text-primary italic leading-none group-hover:text-accent transition-colors">{cohort.name}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">COHORT ACADÊMICO</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* POLOS (FORUMS) */}
+              {poloForums.map((forum) => {
+                const poloName = forum.name.replace('Comunidade: ', '');
+                return (
+                  <Card 
+                    key={forum.id} 
+                    className={`border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group hover:shadow-2xl transition-all cursor-pointer ${
+                      selectedPoloName === poloName ? 'ring-4 ring-accent' : ''
+                    }`}
+                    onClick={() => { clearFilters(); setSelectedPoloName(poloName); }}
+                  >
+                    <CardContent className="p-8">
+                      <div className={`p-4 w-fit rounded-2xl transition-all shadow-inner ${
+                        selectedPoloName === poloName ? 'bg-accent text-accent-foreground' : 'bg-accent/5 text-accent group-hover:bg-accent group-hover:text-white'
+                      }`}>
+                        <MapPin className="h-6 w-6" />
+                      </div>
+                      <div className="mt-6 space-y-1">
+                        <p className="text-lg font-black text-primary italic leading-none group-hover:text-accent transition-colors truncate">{poloName}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">COMUNIDADE REGIONAL</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </>
+          )}
+        </div>
       </div>
 
       <Card className="border-none shadow-2xl rounded-3xl bg-white overflow-hidden">
         <CardHeader className="p-8 border-b border-muted/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <CardTitle className="text-xl font-black text-primary italic">
             Lista Mestra de Alunos ({filteredStudents.length})
-            {selectedCohortId && (
-              <Badge className="ml-3 bg-accent text-accent-foreground font-black italic">Filtrando Turma</Badge>
+            {(selectedCohortId || selectedPoloName) && (
+              <Badge className="ml-3 bg-accent text-accent-foreground font-black italic">Visualização Filtrada</Badge>
             )}
           </CardTitle>
           <div className="relative w-64 group">
