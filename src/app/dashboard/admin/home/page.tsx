@@ -76,15 +76,30 @@ export default function CoordinatorDashboard() {
       let teacherCount = 0;
 
       if (!pErr && allProfiles) {
+        // LÓGICA INDUSTRIAL: Definir quem é ALUNO. 
+        // Tipos conhecidos de estudantes. O resto (que não for vazio) é STAFF/DOCENTE.
         const studentKeywords = ['etec', 'uni', 'enem', 'cpop', 'student', 'aluno'];
+        
         const classified = allProfiles.map(p => {
           const type = (p.profile_type || '').toLowerCase().trim();
-          const isStaff = type !== '' && !studentKeywords.some(key => type.includes(key));
+          
+          // Se o tipo for vazio, assumimos aluno por segurança (inclusivo)
+          if (!type) return { ...p, isStaff: false };
+          
+          // Se o tipo NÃO contém nenhuma keyword de aluno, é staff
+          const isStaff = !studentKeywords.some(key => type.includes(key));
           return { ...p, isStaff };
         });
 
         studentCount = classified.filter(p => !p.isStaff).length;
         teacherCount = classified.filter(p => p.isStaff).length;
+
+        // Log de Transparência para o Admin (F12)
+        console.table(classified.map(p => ({ 
+          Nome: p.name, 
+          Tipo: p.profile_type, 
+          Classificacao: p.isStaff ? 'DOCENTE' : 'ALUNO' 
+        })));
       }
 
       // 2. Buscar Logs
@@ -221,19 +236,19 @@ export default function CoordinatorDashboard() {
           </CardContent>
         </Card>
 
-        {/* Card Taxa Conclusão (Otimizado) */}
+        {/* Card Taxa Conclusão (Otimizado para Trilhas Terminadas) */}
         <Card className="border-none shadow-xl rounded-[2rem] bg-white overflow-hidden group hover:shadow-2xl transition-all duration-500">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className={`p-3 rounded-2xl bg-green-50 text-green-600 shadow-sm group-hover:scale-110 transition-transform duration-500`}>
                 <CheckCircle2 className="h-6 w-6" />
               </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-700 border-none font-black text-[8px]">MÉDIA</Badge>
+              <Badge variant="secondary" className="bg-green-100 text-green-700 border-none font-black text-[8px]">CONCLUÍDAS</Badge>
             </div>
             <div className="mt-4 space-y-3">
               <div>
-                <p className="text-3xl font-black text-primary leading-none italic">{stats.avgFinishedPerStudent}</p>
-                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Trilhas Finalizadas / Aluno</p>
+                <p className="text-3xl font-black text-primary leading-none italic">{stats.finishedTrails}</p>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Total de Trilhas Terminadas</p>
               </div>
               <div className="pt-2 border-t border-muted/10 grid grid-cols-2 gap-2">
                 <div>
@@ -241,8 +256,8 @@ export default function CoordinatorDashboard() {
                   <p className="text-[7px] font-bold text-muted-foreground uppercase">Iniciadas</p>
                 </div>
                 <div>
-                  <p className="text-xs font-black text-green-600 italic">{stats.finishedTrails}</p>
-                  <p className="text-[7px] font-bold text-muted-foreground uppercase">Terminadas</p>
+                  <p className="text-xs font-black text-green-600 italic">{stats.avgFinishedPerStudent}</p>
+                  <p className="text-[7px] font-bold text-muted-foreground uppercase">Média / Aluno</p>
                 </div>
               </div>
             </div>
