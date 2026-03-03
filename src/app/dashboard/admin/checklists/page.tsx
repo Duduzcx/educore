@@ -111,7 +111,7 @@ export default function AdminChecklistAuditPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: "Em Risco", count: students.filter(s => s.status === 'low').length, icon: AlertCircle, color: "text-red-600", bg: "bg-red-50" },
-          { label: "Em Progresso", count: students.filter(s => s.status === 'medium').length, icon: Loader2, color: "text-amber-600", bg: "bg-amber-50" },
+          { label: "progresso iniciado", count: students.filter(s => s.status === 'medium').length, icon: Loader2, color: "text-amber-600", bg: "bg-amber-50" },
           { label: "Prontos", count: students.filter(s => s.status === 'high').length, icon: CheckCircle2, color: "text-green-600", bg: "bg-green-50" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-lg rounded-3xl bg-white overflow-hidden p-6">
