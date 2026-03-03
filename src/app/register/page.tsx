@@ -97,6 +97,7 @@ export default function RegisterPage() {
           courseValue = formData.major || "Vestibulando";
         }
 
+        // 1. Criar Perfil
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
@@ -112,7 +113,29 @@ export default function RegisterPage() {
 
         if (profileError) throw profileError;
 
-        toast({ title: "Bem-vindo ao Compromisso!", description: "Sua conta foi criada com sucesso." });
+        // 2. Automação de Fórum de Polo
+        if (institutionValue && profileType !== 'teacher') {
+          const forumName = `Comunidade: ${institutionValue}`;
+          
+          const { data: existingForum } = await supabase
+            .from('forums')
+            .select('id')
+            .eq('name', forumName)
+            .maybeSingle();
+
+          if (!existingForum) {
+            await supabase.from('forums').insert({
+              name: forumName,
+              description: `Espaço oficial de debate e avisos para alunos de: ${institutionValue}.`,
+              category: "Polos",
+              author_id: authData.user.id,
+              author_name: "Aurora IA",
+              is_teacher_only: false
+            });
+          }
+        }
+
+        toast({ title: "Bem-vindo ao Compromisso!", description: "Sua conta foi criada e você já está no fórum do seu polo." });
         router.push(role === 'teacher' ? "/dashboard/teacher/home" : "/dashboard/home");
       }
     } catch (err: any) {

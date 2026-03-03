@@ -16,7 +16,9 @@ import {
   Atom,
   FlaskConical,
   MessageSquare,
-  Filter
+  Filter,
+  Building2,
+  Lock
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider";
@@ -36,6 +38,7 @@ const FORUM_CATEGORIES = [
   "História", 
   "Geografia", 
   "Carreira", 
+  "Polos",
   "Off-Topic"
 ];
 
@@ -92,11 +95,20 @@ export default function ForumPage() {
     setIsSubmitting(false);
   };
 
+  // Lógica de Filtro Industrial para Polos
   const filteredForums = forums?.filter(f => {
     const title = (f.name || '').toLowerCase();
     const desc = (f.description || '').toLowerCase();
     const search = searchTerm.toLowerCase();
+    const isStaff = ['teacher', 'admin'].includes(profile?.profile_type?.toLowerCase() || '');
     
+    // Filtro de Segurança por Polo: 
+    // Alunos só veem fóruns da categoria "Polos" se o nome do fórum contiver a instituição deles
+    if (f.category === "Polos" && !isStaff) {
+      const userInstitution = (profile?.institution || '').toLowerCase();
+      if (!title.includes(userInstitution)) return false;
+    }
+
     const matchesSearch = title.includes(search) || desc.includes(search);
     const matchesCategory = activeCategory === "Todos" || f.category === activeCategory;
     return matchesSearch && matchesCategory;
@@ -107,6 +119,7 @@ export default function ForumPage() {
       case "Matemática": return <Calculator className="h-5 w-5 md:h-6 md:w-6" />;
       case "Física": return <Atom className="h-5 w-5 md:h-6 md:w-6" />;
       case "Química": return <FlaskConical className="h-5 w-5 md:h-6 md:w-6" />;
+      case "Polos": return <Building2 className="h-5 w-5 md:h-6 md:w-6" />;
       default: return <Hash className="h-5 w-5 md:h-6 md:w-6" />;
     }
   };
@@ -170,7 +183,7 @@ export default function ForumPage() {
           />
         </div>
         <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 scrollbar-hide">
-          {FORUM_CATEGORIES.slice(0, 5).map(cat => (
+          {FORUM_CATEGORIES.slice(0, 6).map(cat => (
             <Button 
               key={cat} 
               variant={activeCategory === cat ? "default" : "outline"}

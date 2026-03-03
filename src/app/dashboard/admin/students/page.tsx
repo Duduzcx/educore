@@ -18,12 +18,14 @@ import {
   PlusCircle,
   Database,
   Star,
-  Trash2
+  Trash2,
+  Settings2,
+  Building2
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/app/lib/supabase";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -36,6 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AdminStudentsPage() {
   const { user, profile } = useAuth();
@@ -49,6 +52,10 @@ export default function AdminStudentsPage() {
   const [cohorts, setCohorts] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [newCohort, setNewCohort] = useState({ name: "", description: "" });
+
+  // Estados para Edição de Aluno (Unidade/Fórum)
+  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [newInstitution, setNewInstitution] = useState("");
 
   async function fetchData() {
     setLoading(true);
@@ -103,7 +110,7 @@ export default function AdminStudentsPage() {
 
   useEffect(() => {
     fetchData();
-  }, [cohorts.length]); // Atualiza quando mudar o número de turmas
+  }, [cohorts.length]);
 
   const handleCreateCohort = async () => {
     if (!newCohort.name.trim() || !user) return;
@@ -140,6 +147,46 @@ export default function AdminStudentsPage() {
     }
   };
 
+  const handleUpdateStudentForum = async () => {
+    if (!editingStudent || !newInstitution.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ institution: newInstitution })
+        .eq('id', editingStudent.id);
+
+      if (error) throw error;
+
+      // Garantir que o fórum exista
+      const forumName = `Comunidade: ${newInstitution}`;
+      const { data: existingForum } = await supabase
+        .from('forums')
+        .select('id')
+        .eq('name', forumName)
+        .maybeSingle();
+
+      if (!existingForum) {
+        await supabase.from('forums').insert({
+          name: forumName,
+          description: `Fórum gerido pela rede para a unidade: ${newInstitution}`,
+          category: "Polos",
+          author_id: user?.id,
+          author_name: "Administração",
+          is_teacher_only: false
+        });
+      }
+
+      toast({ title: "Unidade/Fórum Atualizado!", description: `${editingStudent.name} agora faz parte do grupo ${newInstitution}.` });
+      setEditingStudent(null);
+      fetchData();
+    } catch (e: any) {
+      toast({ title: "Erro ao mover aluno", description: e.message, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleDeleteStudent = async (id: string, name: string) => {
     setDeletingId(id);
     try {
@@ -171,8 +218,8 @@ export default function AdminStudentsPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 px-1">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-primary italic leading-none">Gestão de Cohorts</h1>
-          <p className="text-muted-foreground font-medium italic">Administração de turmas e matrículas estratégicas.</p>
+          <h1 className="text-3xl font-black text-primary italic leading-none">Gestão de Cohorts & Comunidades</h1>
+          <p className="text-muted-foreground font-medium italic">Administração de turmas, fóruns regionais e matrículas.</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -245,10 +292,10 @@ export default function AdminStudentsPage() {
             <TableHeader className="bg-slate-50 border-b border-muted/5">
               <TableRow className="border-none h-16">
                 <TableHead className="px-8 font-black uppercase text-[10px] tracking-widest text-primary/40">Estudante</TableHead>
-                <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Interesse</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Unidade / Fórum</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Turma</TableHead>
                 <TableHead className="font-black uppercase text-[10px] tracking-widest text-primary/40">Engajamento</TableHead>
-                <TableHead className="text-right px-8 font-black uppercase text-[10px] tracking-widest text-primary/40">Ações</TableHead>
+                <TableHead className="text-right px-8 font-black uppercase text-[10px] tracking-widest text-primary/40">Ações de Gestão</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -264,11 +311,9 @@ export default function AdminStudentsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {student.favorite_subject ? (
-                      <Badge className="bg-accent/10 text-accent border-none font-black text-[8px] uppercase px-3 flex items-center gap-1.5 w-fit">
-                        <Star className="h-2.5 w-2.5 fill-accent" /> {student.favorite_subject}
-                      </Badge>
-                    ) : <span className="text-[10px] opacity-20 italic">Não definido</span>}
+                    <Badge className="bg-blue-50 text-blue-700 border-none font-black text-[8px] uppercase px-3 flex items-center gap-1.5 w-fit">
+                      <Building2 className="h-2.5 w-2.5" /> {student.institution || 'Sem Polo'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-xs font-bold text-muted-foreground italic">{student.cohort}</TableCell>
                   <TableCell>
@@ -278,6 +323,32 @@ export default function AdminStudentsPage() {
                   </TableCell>
                   <TableCell className="text-right px-8">
                     <div className="flex items-center justify-end gap-2">
+                      {/* BOTÃO GERENCIAR FORUM/UNIDADE */}
+                      <Dialog open={editingStudent?.id === student.id} onOpenChange={(open) => !open && setEditingStudent(null)}>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="rounded-xl text-primary" onClick={() => { setEditingStudent(student); setNewInstitution(student.institution || ""); }}>
+                            <Settings2 className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="rounded-[2.5rem] p-10 bg-white max-w-sm border-none shadow-2xl">
+                          <DialogHeader>
+                            <DialogTitle className="text-xl font-black italic text-primary">Alterar Polo / Fórum</DialogTitle>
+                            <DialogDescription className="text-xs">Mudar a unidade do aluno o removerá da comunidade atual e o adicionará automaticamente na nova.</DialogDescription>
+                          </DialogHeader>
+                          <div className="py-6 space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-[9px] font-black uppercase opacity-40 ml-2">Nova Instituição</Label>
+                              <Input value={newInstitution} onChange={(e) => setNewInstitution(e.target.value)} placeholder="Ex: ETEC Jorge Street" className="h-14 rounded-xl bg-muted/30 border-none font-bold italic" />
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button onClick={handleUpdateStudentForum} disabled={isSubmitting} className="w-full h-14 bg-primary text-white font-black rounded-xl">
+                              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Transferir Aluno"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
                       <Button variant="ghost" size="icon" className="rounded-xl text-accent" asChild>
                         <Link href={`/dashboard/chat/${student.id}`}><Send className="h-4 w-4" /></Link>
                       </Button>
