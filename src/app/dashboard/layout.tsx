@@ -58,32 +58,20 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
   const handleTouchStart = (e: React.TouchEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest('.no-swipe, input, textarea, select, [role="slider"], button, audio, video, #youtube-player, .scrollable-content')) return;
-    
-    touchStart.current = {
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY
-    };
-    touchEnd.current = {
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY
-    };
+    touchStart.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY };
+    touchEnd.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY };
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    touchEnd.current = {
-      x: e.targetTouches[0].clientX,
-      y: e.targetTouches[0].clientY
-    };
+    touchEnd.current = { x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY };
   };
 
   const handleTouchEnd = () => {
     if (!isMobile) return;
-
     const deltaX = touchEnd.current.x - touchStart.current.x;
     const deltaY = touchEnd.current.y - touchStart.current.y;
     const absX = Math.abs(deltaX);
     const absY = Math.abs(deltaY);
-
     if (absX > absY * 1.5 && absX > 50) {
       if (!openMobile && deltaX > 50) setOpenMobile(true);
       else if (openMobile && deltaX < -50) setOpenMobile(false);
@@ -91,12 +79,7 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div 
-      className="flex-1 flex flex-col min-h-0 touch-pan-y overflow-hidden" 
-      onTouchStart={handleTouchStart} 
-      onTouchMove={handleTouchMove} 
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="flex-1 flex flex-col min-h-0 touch-pan-y overflow-hidden" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
       {children}
     </div>
   );
@@ -104,7 +87,6 @@ function SwipeHandler({ children }: { children: React.ReactNode }) {
 
 const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname: string, unreadCount: number }) => {
   const { setOpenMobile, isMobile } = useSidebar();
-
   return (
     <SidebarMenu className="gap-1">
       {items.map((item) => (
@@ -125,40 +107,19 @@ const NavMenu = memo(({ items, pathname, unreadCount }: { items: any[], pathname
 });
 NavMenu.displayName = "NavMenu";
 
-function LoadingFallback() {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 gap-4 opacity-20 animate-pulse">
-      <Sparkles className="h-10 w-10 text-accent" />
-      <p className="text-[10px] font-black uppercase tracking-widest">Sintonizando...</p>
-    </div>
-  );
-}
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, profile, loading: isUserLoading, signOut } = useAuth();
-  
+  const { user, profile, userRole, loading: isUserLoading, signOut } = useAuth();
   const [hasHydrated, setHasHydrated] = useState(false);
 
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-
-  // Detecção robusta de papel (Role)
-  const role = useMemo(() => {
-    if (!profile) return 'student';
-    const pType = (profile.profile_type || profile.role || '').toLowerCase().trim();
-    if (pType === 'admin' || pType === 'gestor') return 'admin';
-    if (pType === 'teacher' || pType === 'mentor' || pType === 'professor') return 'teacher';
-    return 'student';
-  }, [profile]);
+  useEffect(() => { setHasHydrated(true); }, []);
 
   const navItems = useMemo(() => {
-    if (role === 'admin') return adminItems;
-    if (role === 'teacher') return teacherItems;
+    if (userRole === 'admin') return adminItems;
+    if (userRole === 'teacher') return teacherItems;
     return studentItems;
-  }, [role]);
+  }, [userRole]);
 
   useEffect(() => {
     if (hasHydrated && !isUserLoading && !user) router.replace("/login");
@@ -177,9 +138,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-accent animate-pulse" />
       </div>
       <h2 className="text-sm font-black text-white italic tracking-tighter">Compromisso</h2>
-      <div className="flex items-center gap-2 opacity-40 animate-pulse">
-        <span className="text-[8px] font-black uppercase text-white tracking-[0.4em]">Sintonizando Ambiente</span>
-      </div>
     </div>
   );
 
@@ -224,9 +182,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard/settings" className="flex items-center gap-3 md:gap-4 group hover:opacity-80 transition-all">
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-sm font-black text-primary italic leading-none group-hover:text-accent transition-colors">{profile?.name || "Usuário"}</span>
-              <span className="text-[8px] font-black text-accent uppercase tracking-widest">
-                {role.toUpperCase()}
-              </span>
+              <span className="text-[8px] font-black text-accent uppercase tracking-widest">{userRole.toUpperCase()}</span>
             </div>
             <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl group-hover:border-accent transition-all">
               <AvatarImage src={userAvatar} />
@@ -234,11 +190,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Avatar>
           </Link>
         </header>
-        
         <SwipeHandler>
           <main className={`flex-1 flex flex-col min-h-0 overflow-y-auto ${isFullBleedPage ? 'p-0' : 'p-4 md:p-8'}`}>
             <div className={isFullBleedPage ? 'flex-1 flex flex-col min-h-0' : 'max-w-7xl mx-auto w-full'}>
-              <Suspense fallback={<LoadingFallback />}>
+              <Suspense fallback={<div className="p-8 opacity-20 animate-pulse"><Sparkles className="h-10 w-10 text-accent" /></div>}>
                 {children}
               </Suspense>
             </div>

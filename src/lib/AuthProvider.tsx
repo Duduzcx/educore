@@ -6,6 +6,8 @@ import { supabase, isSupabaseConfigured, isUsingSecretKeyInBrowser } from '@/app
 import { Session, User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
+type UserRole = 'admin' | 'teacher' | 'student';
+
 type Profile = {
   id: string;
   name: string;
@@ -20,6 +22,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  userRole: UserRole;
   loading: boolean;
   signOut: () => Promise<void>;
   isMock: boolean;
@@ -29,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   profile: null,
+  userRole: 'student',
   loading: true,
   signOut: async () => {},
   isMock: false
@@ -42,10 +46,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isMock, setIsMock] = useState(false);
   const router = useRouter();
 
-  // 1. Inicialização de Auth (Simulado ou Real)
+  // Calcula o papel normalizado baseado no perfil
+  const userRole = useMemo((): UserRole => {
+    if (!profile) return 'student';
+    const type = (profile.profile_type || profile.role || '').toLowerCase().trim();
+    if (type === 'admin' || type === 'gestor') return 'admin';
+    if (type === 'teacher' || type === 'mentor' || type === 'professor') return 'teacher';
+    return 'student';
+  }, [profile]);
+
   useEffect(() => {
     const initAuth = async () => {
-      // Prioridade absoluta: Tentar recuperar sessão simulada
       const savedMock = typeof window !== 'undefined' ? localStorage.getItem('compromisso_mock_session') : null;
       if (savedMock) {
         try {
@@ -67,7 +78,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Se não houver configuração do Supabase, paramos o loading para permitir o login via mock
       if (!isSupabaseConfigured || isUsingSecretKeyInBrowser) {
         setLoading(false);
         return;
@@ -77,12 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
-        
-        if (!initialSession) {
-          setLoading(false);
-        }
+        if (!initialSession) setLoading(false);
       } catch (e) {
-        console.warn("Falha ao sintonizar Supabase Auth:", e);
         setLoading(false);
       }
     };
@@ -95,7 +101,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
         }
-        
         if (event === 'SIGNED_OUT') {
           setProfile(null);
           setIsMock(false);
@@ -104,25 +109,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           router.replace('/');
         }
       });
-
-      return () => {
-        authListener?.subscription.unsubscribe();
-      };
+      return () => authListener?.subscription.unsubscribe();
     }
   }, [router, isMock]);
 
-  // 2. Busca de Perfil
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user || isMock) return;
-
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
+        const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (!error && data) {
           if (data.status === 'suspended') {
             setProfile(data as Profile);
@@ -131,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           setProfile(data as Profile);
         } else {
-          // Fallback para perfil básico via metadados
           setProfile({
             id: user.id,
             name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
@@ -150,23 +144,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (user && !isMock) {
       fetchProfile();
-
       if (isSupabaseConfigured && !isUsingSecretKeyInBrowser) {
-        const profileChannel = supabase
-          .channel(`profile_sync_${user.id}`)
-          .on('postgres_changes', { 
-            event: 'UPDATE', 
-            schema: 'public', 
-            table: 'profiles', 
-            filter: `id=eq.${user.id}` 
-          }, (payload) => {
+        const profileChannel = supabase.channel(`profile_sync_${user.id}`)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` }, (payload) => {
             setProfile(payload.new as Profile);
-          })
-          .subscribe();
-
-        return () => {
-          supabase.removeChannel(profileChannel);
-        };
+          }).subscribe();
+        return () => supabase.removeChannel(profileChannel);
       }
     }
   }, [user, router, isMock]);
@@ -177,9 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isMock && isSupabaseConfigured && !isUsingSecretKeyInBrowser) {
         await supabase.auth.signOut();
       }
-    } catch (e) {
-      // Ignora erro no logout
-    }
+    } catch (e) {}
     localStorage.removeItem('compromisso_mock_session');
     setUser(null);
     setSession(null);
@@ -193,16 +174,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     profile,
+    userRole,
     loading,
     signOut,
     isMock
-  }), [user, session, profile, loading, isMock]);
+  }), [user, session, profile, userRole, loading, isMock]);
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContext);
