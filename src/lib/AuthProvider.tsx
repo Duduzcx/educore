@@ -40,29 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar Modo de Emergência (Bypass de Supabase)
-    const isEmergency = localStorage.getItem('compromisso_emergency_mode') === 'true';
-    
-    if (isEmergency) {
-      const mockUser = {
-        id: 'emergency-admin',
-        email: 'gestor.emergencia@compromisso.com.br',
-        user_metadata: { full_name: 'Gestor de Emergência', role: 'admin' }
-      } as any;
-      
-      setUser(mockUser);
-      setProfile({
-        id: mockUser.id,
-        name: 'Gestor de Emergência (Offline)',
-        email: mockUser.email,
-        profile_type: 'admin',
-        role: 'admin',
-        status: 'active'
-      });
-      setLoading(false);
-      return;
-    }
-
     if (!isSupabaseConfigured) {
       setLoading(false);
       return;
@@ -103,9 +80,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const isEmergency = localStorage.getItem('compromisso_emergency_mode') === 'true';
-      if (isEmergency) return; // Perfil já definido no primeiro useEffect
-
       if (!user) {
         setProfile(null);
         return;
@@ -167,7 +141,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setLoading(true);
-    localStorage.removeItem('compromisso_emergency_mode');
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

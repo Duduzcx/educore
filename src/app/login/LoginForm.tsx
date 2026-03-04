@@ -88,23 +88,6 @@ export function LoginForm() {
     }
   };
 
-  const handleEmergencyBypass = () => {
-    setLoading(true);
-    setIsRedirecting(true);
-    
-    // Define um estado de simulação no localStorage para o AuthProvider
-    localStorage.setItem('compromisso_emergency_mode', 'true');
-    
-    toast({
-      title: "Modo de Emergência Ativado",
-      description: "Acessando interface em modo de simulação offline.",
-    });
-
-    setTimeout(() => {
-      router.push("/dashboard/admin/home");
-    }, 1500);
-  };
-
   const fillCredentials = (type: 'student' | 'teacher' | 'admin') => {
     const creds = {
       student: { email: "aluno@compromisso.com.br", password: "123456789" },
@@ -126,74 +109,62 @@ export function LoginForm() {
           <h2 className="text-2xl font-black italic tracking-tighter mb-2">Compromisso</h2>
           <div className="flex items-center gap-3">
             <Loader2 className="h-4 w-4 animate-spin text-accent" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Iniciando Simulação...</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Iniciando Painel...</p>
           </div>
         </div>
       )}
 
       <div className="flex flex-col items-center gap-4 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-2xl rotate-3 hover:rotate-0 transition-all duration-500 group border border-white/10">
+        <Link href="/" className="flex h-20 w-20 items-center justify-center rounded-3xl bg-primary text-primary-foreground shadow-2xl rotate-3 hover:rotate-0 transition-all duration-500 group border border-white/10">
           <Shield className="h-12 w-12 group-hover:scale-110 transition-transform" />
-        </div>
+        </Link>
         <div className="space-y-2">
           <h1 className="font-headline text-4xl font-black tracking-tighter text-white drop-shadow-lg">
             Compro<span className="text-accent">misso</span>
           </h1>
           <p className="text-white/70 font-medium flex items-center justify-center gap-2 italic">
             <Sparkles className="h-4 w-4 text-accent animate-pulse" />
-            Portal de Gestão Inteligente
+            Portal de Acesso Restrito
           </p>
         </div>
       </div>
 
       <Card className="border-none shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-2xl bg-white/95 rounded-[2.5rem]">
         <CardHeader className="space-y-1 pb-6 pt-8 text-center bg-primary/5 border-b border-dashed">
-          <CardTitle className="text-2xl font-black text-primary italic">Acesso Restrito</CardTitle>
+          <CardTitle className="text-2xl font-black text-primary italic">Login</CardTitle>
           <CardDescription className="font-medium text-muted-foreground italic">Entre para continuar seus estudos.</CardDescription>
         </CardHeader>
         <CardContent className="px-8 pt-8 space-y-6">
           {authError && (
-            <div className="space-y-4">
-              <Alert variant="destructive" className="bg-red-50 border-red-200">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Bloqueio de Chave de API</AlertTitle>
-                <AlertDescription className="text-xs font-medium">
-                  Identificamos o erro "Forbidden use of secret API key". Como você está sem acesso ao Netlify, use o botão de emergência abaixo para entrar.
-                </AlertDescription>
-              </Alert>
-              
-              <Button 
-                onClick={handleEmergencyBypass}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-black h-14 rounded-2xl shadow-lg border-none flex items-center justify-center gap-3 animate-pulse"
-              >
-                <AlertTriangle className="h-5 w-5" />
-                Acessar em Modo de Emergência
-              </Button>
-            </div>
+            <Alert variant="destructive" className="bg-red-50 border-red-200">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Erro de Infraestrutura</AlertTitle>
+              <AlertDescription className="text-xs font-medium">
+                {authError}
+              </AlertDescription>
+            </Alert>
           )}
 
-          {!authError && (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="seu@email.com" required disabled={loading} />
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
+              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="seu@email.com" required disabled={loading} />
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
+                <Link href="#" className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline">Esqueceu?</Link>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
-                  <Link href="#" className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline">Esqueceu?</Link>
-                </div>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="••••••••" required disabled={loading} />
-              </div>
-              <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black h-14 text-base shadow-xl rounded-2xl transition-all">
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
-              </Button>
-            </form>
-          )}
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="••••••••" required disabled={loading} />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black h-14 text-base shadow-xl rounded-2xl transition-all">
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
+            </Button>
+          </form>
 
           <div className="flex flex-col gap-4 pt-2">
             <Button asChild variant="outline" className="h-12 rounded-xl border-dashed border-primary/20 hover:bg-primary/5 text-primary font-black uppercase text-[10px] gap-2 tracking-widest">
-              <Link href="/register"><UserPlus className="h-4 w-4" /> Não tem conta? Criar Agora</Link>
+              <Link href="/register"><UserPlus className="h-4 w-4" /> Criar nova conta</Link>
             </Button>
           </div>
 
