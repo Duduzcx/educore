@@ -27,9 +27,10 @@ import {
   Calculator,
   BrainCircuit,
   X,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle2
 } from "lucide-react";
-import Image from "next/image";
+import Image from "image/next";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthProvider"; 
 import { supabase, isSupabaseConfigured } from "@/app/lib/supabase";
