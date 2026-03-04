@@ -64,8 +64,11 @@ export default function TeacherAnalyticsDashboard() {
           .select('score, total_questions, subjects(name)');
         
         const subjectMap: Record<string, { total: number, count: number }> = {};
-        subjectScores?.forEach(s => {
-          const name = s.subjects?.name || 'Geral';
+        subjectScores?.forEach((s: any) => {
+          // Correção de Tipo Industrial: Supabase joins podem retornar arrays ou objetos dependendo da relação
+          const subjectData = Array.isArray(s.subjects) ? s.subjects[0] : s.subjects;
+          const name = subjectData?.name || 'Geral';
+          
           if (!subjectMap[name]) subjectMap[name] = { total: 0, count: 0 };
           subjectMap[name].total += (s.score / s.total_questions) * 100;
           subjectMap[name].count += 1;
