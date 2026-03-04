@@ -22,6 +22,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  isMock: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   signOut: async () => {},
+  isMock: false
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -37,15 +39,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMock, setIsMock] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return;
-    }
-
     const initAuth = async () => {
+      // 1. Tentar recuperar sessão simulada (Modo de Emergência para Preview)
+      const savedMock = localStorage.getItem('compromisso_mock_session');
+      if (savedMock) {
+        try {
+          const mockData = JSON.parse(savedMock);
+          setIsMock(true);
+          setUser({ id: mockData.id, email: mockData.email } as User);
+          setProfile({
+            id: mockData.id,
+            name: mockData.name,
+            email: mockData.email,
+            profile_type: mockData.role,
+            role: mockData.role,
+            status: 'active'
+          });
+          setLoading(false);
+          return;
+        } catch (e) {
+          localStorage.removeItem('compromisso_mock_session');
+        }
+      }
+
+      if (!isSupabaseConfigured) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         setSession(initialSession);
@@ -63,11 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      if (!isMock) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      }
       
       if (event === 'SIGNED_OUT') {
         setProfile(null);
+        setIsMock(false);
+        localStorage.removeItem('compromisso_mock_session');
         setLoading(false);
         router.replace('/login');
       }
@@ -76,14 +105,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, isMock]);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) {
-        setProfile(null);
-        return;
-      }
+      if (!user || isMock) return;
 
       try {
         const { data, error } = await supabase
@@ -116,10 +142,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    if (user) {
+    if (user && !isMock) {
       fetchProfile();
 
-      // SINCRONIZAÇÃO EM TEMPO REAL: Se o adm mudar o polo do aluno, o portal dele atualiza na hora
       const profileChannel = supabase
         .channel(`profile_sync_${user.id}`)
         .on('postgres_changes', { 
@@ -128,7 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           table: 'profiles', 
           filter: `id=eq.${user.id}` 
         }, (payload) => {
-          console.log("[AUTH SYNC] Perfil atualizado pela gestão:", payload.new);
           setProfile(payload.new as Profile);
         })
         .subscribe();
@@ -137,14 +161,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         supabase.removeChannel(profileChannel);
       };
     }
-  }, [user, router]);
+  }, [user, router, isMock]);
 
   const signOut = async () => {
     setLoading(true);
-    await supabase.auth.signOut();
+    if (!isMock) {
+      await supabase.auth.signOut();
+    }
+    localStorage.removeItem('compromisso_mock_session');
     setUser(null);
     setSession(null);
     setProfile(null);
+    setIsMock(false);
     setLoading(false);
     router.replace('/login');
   };
@@ -154,8 +182,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     profile,
     loading,
-    signOut
-  }), [user, session, profile, loading]);
+    signOut,
+    isMock
+  }), [user, session, profile, loading, isMock]);
 
   return (
     <AuthContext.Provider value={contextValue}>
