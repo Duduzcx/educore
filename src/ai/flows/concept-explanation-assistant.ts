@@ -7,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { gemini15Flash } from '@genkit-ai/google-genai';
 
 const searchEducationalContent = ai.defineTool(
   {
@@ -48,7 +48,7 @@ export type ConceptExplanationAssistantOutput = z.infer<typeof ConceptExplanatio
 
 const prompt = ai.definePrompt({
   name: 'conceptExplanationAssistantPrompt',
-  model: googleAI.model('gemini-1.5-flash'),
+  model: gemini15Flash,
   tools: [searchEducationalContent],
   input: { schema: ConceptExplanationAssistantInputSchema },
   output: { schema: ConceptExplanationAssistantOutputSchema },

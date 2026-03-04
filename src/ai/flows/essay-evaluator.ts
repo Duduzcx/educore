@@ -7,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { gemini15Flash } from '@genkit-ai/google-genai';
 
 const CorrectionSchema = z.object({
   original: z.string().describe('O trecho com erro encontrado no texto.'),
@@ -41,7 +41,7 @@ const EssayEvaluatorOutputSchema = z.object({
 
 const prompt = ai.definePrompt({
   name: 'essayEvaluatorPrompt',
-  model: googleAI.model('gemini-1.5-flash'),
+  model: gemini15Flash,
   input: { schema: EssayEvaluatorInputSchema },
   output: { schema: EssayEvaluatorOutputSchema },
   config: { temperature: 0.3 },

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/app/lib/supabase';
 import { ai } from '@/ai/genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { gemini15Flash } from '@genkit-ai/google-genai';
 
 /**
  * @fileOverview API de Diagnóstico do Compromisso.
@@ -36,18 +36,21 @@ export async function GET() {
     diagnostics.genkit = { status: 'error', details: 'GEMINI_API_KEY não configurada no ambiente.' };
   } else {
     try {
+      // Teste de geração minimalista para validar conectividade e modelo
       const response = await ai.generate({
-        model: googleAI.model('gemini-1.5-flash'),
+        model: gemini15Flash,
         prompt: 'Responda apenas "ok"',
         config: { maxOutputTokens: 5 }
       });
+      
       if (response.text) {
         diagnostics.genkit = { status: 'ok', details: 'Aurora IA (Gemini 1.5 Flash) operacional.' };
       } else {
         throw new Error("Sem resposta do modelo.");
       }
     } catch (e: any) {
-      diagnostics.genkit = { status: 'error', details: 'A chave fornecida é inválida ou o limite de quota foi atingido.' };
+      console.error("[HEALTH CHECK AI ERROR]:", e);
+      diagnostics.genkit = { status: 'error', details: 'A chave fornecida é inválida, o limite de quota foi atingido ou o modelo gemini-1.5-flash não foi localizado.' };
     }
   }
 

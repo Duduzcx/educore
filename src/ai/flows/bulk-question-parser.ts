@@ -7,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { gemini15Flash } from '@genkit-ai/google-genai';
 
 const QuestionSchema = z.object({
   question_text: z.string().describe('O enunciado completo da questão.'),
@@ -31,7 +31,7 @@ export type BulkQuestionParserOutput = z.infer<typeof BulkQuestionParserOutputSc
 
 const prompt = ai.definePrompt({
   name: 'bulkQuestionParserPrompt',
-  model: googleAI.model('gemini-1.5-flash'),
+  model: gemini15Flash,
   input: { schema: BulkQuestionParserInputSchema },
   output: { schema: BulkQuestionParserOutputSchema },
   config: { temperature: 0.2 },

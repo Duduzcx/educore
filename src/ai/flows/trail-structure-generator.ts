@@ -7,7 +7,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
+import { gemini15Flash } from '@genkit-ai/google-genai';
 
 const ModuleStructureSchema = z.object({
   title: z.string().describe('Título curto e impactante do capítulo.'),
@@ -30,7 +30,7 @@ export type TrailStructureOutput = z.infer<typeof TrailStructureOutputSchema>;
 
 const prompt = ai.definePrompt({
   name: 'trailStructureGeneratorPrompt',
-  model: googleAI.model('gemini-1.5-flash'),
+  model: gemini15Flash,
   input: { schema: TrailStructureInputSchema },
   output: { schema: TrailStructureOutputSchema },
   config: { temperature: 0.7 },
