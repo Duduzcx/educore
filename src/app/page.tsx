@@ -13,7 +13,9 @@ import {
   Target,
   FileText,
   MonitorPlay,
-  ClipboardCheck
+  ClipboardCheck,
+  ShieldCheck,
+  CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
