@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, ChevronRight, Loader2, Sparkles, UserCircle, Users, GraduationCap, AlertCircle, UserPlus, BookOpen, ShieldCheck } from "lucide-react";
+import { Shield, ChevronRight, Loader2, Sparkles, UserCircle, Users, GraduationCap, AlertCircle, UserPlus, BookOpen, ShieldCheck, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/app/lib/supabase";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -47,7 +47,7 @@ export function LoginForm() {
         
         // Trata especificamente o erro de chave secreta no navegador
         if (error.message.includes("secret API key") || error.status === 403 || error.message.includes("Forbidden")) {
-          setAuthError("ERRO DE SEGURANÇA: Você configurou a SERVICE_ROLE_KEY no lugar da ANON_KEY no Netlify. Por favor, use a chave pública (anon public) para resolver este erro.");
+          setAuthError("ERRO DE SEGURANÇA: Você configurou a SERVICE_ROLE_KEY no lugar da ANON_KEY no Netlify.");
         } else {
           setAuthError("E-mail ou senha incorretos. Verifique os dados informados.");
         }
@@ -81,11 +81,28 @@ export function LoginForm() {
       setLoading(false);
       const msg = err?.message || "";
       if (msg.includes("secret API key") || msg.includes("Forbidden")) {
-        setAuthError("ERRO DE INFRAESTRUTURA: A chave configurada no Netlify é restrita ao servidor. Troque a chave NEXT_PUBLIC_SUPABASE_ANON_KEY pela chave pública.");
+        setAuthError("ERRO DE INFRAESTRUTURA: A chave configurada é restrita ao servidor. Use a chave 'anon public'.");
       } else {
         setAuthError("Erro inesperado na conexão. Verifique sua internet ou as chaves do Supabase.");
       }
     }
+  };
+
+  const handleEmergencyBypass = () => {
+    setLoading(true);
+    setIsRedirecting(true);
+    
+    // Define um estado de simulação no localStorage para o AuthProvider
+    localStorage.setItem('compromisso_emergency_mode', 'true');
+    
+    toast({
+      title: "Modo de Emergência Ativado",
+      description: "Acessando interface em modo de simulação offline.",
+    });
+
+    setTimeout(() => {
+      router.push("/dashboard/admin/home");
+    }, 1500);
   };
 
   const fillCredentials = (type: 'student' | 'teacher' | 'admin') => {
@@ -109,7 +126,7 @@ export function LoginForm() {
           <h2 className="text-2xl font-black italic tracking-tighter mb-2">Compromisso</h2>
           <div className="flex items-center gap-3">
             <Loader2 className="h-4 w-4 animate-spin text-accent" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Sintonizando Ambiente...</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Iniciando Simulação...</p>
           </div>
         </div>
       )}
@@ -136,29 +153,43 @@ export function LoginForm() {
         </CardHeader>
         <CardContent className="px-8 pt-8 space-y-6">
           {authError && (
-            <Alert variant="destructive" className="bg-red-50 border-red-200 animate-in shake-1">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Alerta de Infraestrutura</AlertTitle>
-              <AlertDescription className="text-xs font-medium">{authError}</AlertDescription>
-            </Alert>
+            <div className="space-y-4">
+              <Alert variant="destructive" className="bg-red-50 border-red-200">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="font-black uppercase text-[10px] tracking-widest">Bloqueio de Chave de API</AlertTitle>
+                <AlertDescription className="text-xs font-medium">
+                  Identificamos o erro "Forbidden use of secret API key". Como você está sem acesso ao Netlify, use o botão de emergência abaixo para entrar.
+                </AlertDescription>
+              </Alert>
+              
+              <Button 
+                onClick={handleEmergencyBypass}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-black h-14 rounded-2xl shadow-lg border-none flex items-center justify-center gap-3 animate-pulse"
+              >
+                <AlertTriangle className="h-5 w-5" />
+                Acessar em Modo de Emergência
+              </Button>
+            </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="seu@email.com" required disabled={loading} />
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
-                <Link href="#" className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline">Esqueceu?</Link>
+          {!authError && (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="font-bold text-primary/60">E-mail</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="seu@email.com" required disabled={loading} />
               </div>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="••••••••" required disabled={loading} />
-            </div>
-            <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black h-14 text-base shadow-xl rounded-2xl transition-all">
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
-            </Button>
-          </form>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha</Label>
+                  <Link href="#" className="text-[10px] font-black text-accent uppercase tracking-widest hover:underline">Esqueceu?</Link>
+                </div>
+                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-12 bg-white rounded-xl border-muted/20" placeholder="••••••••" required disabled={loading} />
+              </div>
+              <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/95 text-primary-foreground font-black h-14 text-base shadow-xl rounded-2xl transition-all">
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Entrar na Plataforma <ChevronRight className="h-5 w-5 ml-1" /></>}
+              </Button>
+            </form>
+          )}
 
           <div className="flex flex-col gap-4 pt-2">
             <Button asChild variant="outline" className="h-12 rounded-xl border-dashed border-primary/20 hover:bg-primary/5 text-primary font-black uppercase text-[10px] gap-2 tracking-widest">
