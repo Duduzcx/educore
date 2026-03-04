@@ -28,6 +28,7 @@ const teacherItems = [
   { icon: LayoutDashboard, label: "Painel de Gestão", href: "/dashboard/teacher/home" },
   { icon: ClipboardList, label: "Minhas Trilhas", href: "/dashboard/teacher/trails" },
   { icon: Database, label: "Banco de Questões", href: "/dashboard/teacher/questions" },
+  { icon: BarChart3, label: "BI & Analytics", href: "/dashboard/teacher/analytics" },
   { icon: Library, label: "Gestão de Biblioteca", href: "/dashboard/teacher/library" },
   { icon: MonitorPlay, label: "Gerenciar Lives", href: "/dashboard/teacher/live" },
   { icon: MessagesSquare, label: "Fórum Pedagógico", href: "/dashboard/forum" },
@@ -144,7 +145,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setHasHydrated(true);
   }, []);
 
-  const role = profile?.profile_type === 'teacher' ? 'teacher' : (profile?.profile_type === 'admin' ? 'admin' : 'student');
+  // Detecção robusta de papel (Role)
+  const role = useMemo(() => {
+    if (!profile) return 'student';
+    const pType = (profile.profile_type || profile.role || '').toLowerCase().trim();
+    if (pType === 'admin' || pType === 'gestor') return 'admin';
+    if (pType === 'teacher' || pType === 'mentor' || pType === 'professor') return 'teacher';
+    return 'student';
+  }, [profile]);
+
   const navItems = useMemo(() => {
     if (role === 'admin') return adminItems;
     if (role === 'teacher') return teacherItems;
@@ -216,7 +225,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-sm font-black text-primary italic leading-none group-hover:text-accent transition-colors">{profile?.name || "Usuário"}</span>
               <span className="text-[8px] font-black text-accent uppercase tracking-widest">
-                {profile?.profile_type?.toUpperCase() || 'ESTUDANTE'}
+                {role.toUpperCase()}
               </span>
             </div>
             <Avatar className="h-9 w-9 md:h-10 md:w-10 border-2 border-primary/5 shadow-xl group-hover:border-accent transition-all">

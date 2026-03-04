@@ -52,8 +52,14 @@ export function LoginForm() {
       if (data.user) {
         setIsRedirecting(true);
         const { data: profile } = await supabase.from('profiles').select('profile_type').eq('id', data.user.id).single();
-        const role = profile?.profile_type || 'student';
-        const path = role === 'admin' ? "/dashboard/admin/home" : role === 'teacher' ? "/dashboard/teacher/home" : "/dashboard/home";
+        
+        // Detecção robusta de papel para redirecionamento
+        const pType = (profile?.profile_type || '').toLowerCase().trim();
+        let path = "/dashboard/home";
+        
+        if (pType === 'admin' || pType === 'gestor') path = "/dashboard/admin/home";
+        else if (pType === 'teacher' || pType === 'mentor' || pType === 'professor') path = "/dashboard/teacher/home";
+        
         router.push(path);
       }
     } catch (err) {
@@ -148,7 +154,7 @@ export function LoginForm() {
             </div>
             <div className="grid grid-cols-3 gap-2">
               <Button variant="outline" onClick={() => startMockSession('aluno@compromisso.com.br')} className="h-11 rounded-xl text-blue-700 font-black gap-1 text-[9px] justify-center px-2 border-blue-100 hover:bg-blue-50">
-                <GraduationCap className="h-3 w-3" /> ALUNO
+                < GraduationCap className="h-3 w-3" /> ALUNO
               </Button>
               <Button variant="outline" onClick={() => startMockSession('mentor@compromisso.com.br')} className="h-11 rounded-xl text-orange-700 font-black gap-1 text-[9px] justify-center px-2 border-orange-100 hover:bg-orange-50">
                 <UserCircle className="h-3 w-3" /> MENTOR
