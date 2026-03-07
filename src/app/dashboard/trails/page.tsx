@@ -194,7 +194,7 @@ export default function LearningTrailsPage() {
                 )}
               </div>
               
-              <CardContent className="p-6 flex-1 flex flex-col justify-between">
+              <CardContent className="p-6 flex-1 flex flex-col justify-between min-h-[180px]">
                 <div className="space-y-2">
                   <h3 className="text-xl font-black text-primary italic leading-tight group-hover:text-accent transition-colors line-clamp-2">
                     {trail.title}
@@ -230,7 +230,7 @@ export default function LearningTrailsPage() {
                         className="object-cover"
                       />
                     </div>
-                    <span className="text-[10px] font-black text-primary italic leading-none">{trail.teacher_name || "Mentor"}</span>
+                    <span className="text-[10px] font-black text-primary italic leading-none truncate max-w-[100px]">{trail.teacher_name || "Mentor"}</span>
                   </div>
                   <Button asChild className="bg-primary text-white font-black text-[9px] uppercase h-9 px-5 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all">
                     <Link href={`/dashboard/classroom/${trail.id}`}>

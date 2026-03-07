@@ -47,11 +47,6 @@ export default function RegisterPage() {
       return;
     }
 
-    if (profileType === 'teacher' && !formData.subject) {
-      toast({ variant: "destructive", title: "Disciplina Obrigatória", description: "Mentores precisam informar sua área de atuação." });
-      return;
-    }
-
     if (!isSupabaseConfigured) {
       toast({ variant: "destructive", title: "Erro de Configuração", description: "O sistema não está conectado ao banco de dados Supabase." });
       return;
@@ -62,94 +57,64 @@ export default function RegisterPage() {
     try {
       const fullName = `${formData.firstName} ${formData.lastName}`.trim();
       const role = profileType === 'teacher' ? 'teacher' : 'student';
+      const cleanUsername = formData.username.replace('@', '').toLowerCase();
 
-      // 1. Cadastro no Auth do Supabase
+      let institutionValue = "";
+      let courseValue = "";
+
+      if (profileType === 'teacher') {
+        institutionValue = formData.subject;
+        courseValue = `Mentor ${formData.subject}`;
+      } else if (profileType === 'etec') {
+        institutionValue = formData.school || "ETEC";
+        courseValue = formData.course;
+      } else if (profileType === 'cpop_santana') {
+        institutionValue = "CPOP Santana";
+        courseValue = formData.course || "Aluno CPOP";
+      } else if (profileType === 'cpop_osasco') {
+        institutionValue = "CPOP Osasco";
+        courseValue = formData.course || "Aluno CPOP";
+      } else if (profileType === 'enem') {
+        institutionValue = formData.university || "ENEM";
+        courseValue = formData.major || "Vestibulando";
+      }
+
+      // NOVO PADRÃO INDUSTRIAL: Passamos tudo no metadata. 
+      // O trigger no banco de dados criará o perfil automaticamente.
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             full_name: fullName,
+            username: cleanUsername,
+            profile_type: profileType,
             role: role,
+            institution: institutionValue,
+            course: courseValue
           }
         }
       });
 
       if (authError) throw authError;
 
-      if (authData.user) {
-        let institutionValue = "";
-        let courseValue = "";
+      toast({ 
+        title: "Bem-vindo ao Compromisso! 🚀", 
+        description: "Sua conta foi criada. Redirecionando para o seu dashboard..." 
+      });
+      
+      // Redirecionamento forçado para garantir limpeza de estado
+      setTimeout(() => {
+        window.location.href = role === 'teacher' ? "/dashboard/teacher/home" : "/dashboard/home";
+      }, 1500);
 
-        if (profileType === 'teacher') {
-          institutionValue = formData.subject;
-          courseValue = `Mentor ${formData.subject}`;
-        } else if (profileType === 'etec') {
-          institutionValue = formData.school || "ETEC";
-          courseValue = formData.course;
-        } else if (profileType === 'cpop_santana') {
-          institutionValue = "CPOP Santana";
-          courseValue = formData.course || "Aluno CPOP";
-        } else if (profileType === 'cpop_osasco') {
-          institutionValue = "CPOP Osasco";
-          courseValue = formData.course || "Aluno CPOP";
-        } else if (profileType === 'enem') {
-          institutionValue = formData.university || "ENEM";
-          courseValue = formData.major || "Vestibulando";
-        }
-
-        // 2. Criar Perfil na tabela pública
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            name: fullName,
-            email: formData.email,
-            username: formData.username.replace('@', '').toLowerCase(),
-            profile_type: profileType,
-            institution: institutionValue,
-            course: courseValue,
-            interests: formData.interests,
-            last_access: new Date().toISOString()
-          }]);
-
-        if (profileError) throw profileError;
-
-        // 3. Automação de Fórum de Polo (Opcional)
-        if (institutionValue && profileType !== 'teacher') {
-          try {
-            const forumName = `Comunidade: ${institutionValue}`;
-            const { data: existingForum } = await supabase
-              .from('forums')
-              .select('id')
-              .eq('name', forumName)
-              .maybeSingle();
-
-            if (!existingForum) {
-              await supabase.from('forums').insert({
-                name: forumName,
-                description: `Espaço oficial de debate e avisos para alunos de: ${institutionValue}.`,
-                category: "Polos",
-                author_id: authData.user.id,
-                author_name: "Aurora IA",
-                is_teacher_only: false
-              });
-            }
-          } catch (e) {
-            console.warn("Falha ao criar fórum automático, mas cadastro prossegue.");
-          }
-        }
-
-        toast({ title: "Bem-vindo ao Compromisso!", description: "Sua conta foi criada com sucesso." });
-        
-        // Redirecionamento forçado para garantir limpeza de estado
-        setTimeout(() => {
-          window.location.href = role === 'teacher' ? "/dashboard/teacher/home" : "/dashboard/home";
-        }, 1000);
-      }
     } catch (err: any) {
       console.error("Erro no cadastro:", err);
-      toast({ title: "Falha no Cadastro", description: err.message, variant: "destructive" });
+      toast({ 
+        title: "Falha no Cadastro", 
+        description: err.message || "Verifique se o e-mail ou usuário já estão em uso.", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
@@ -222,7 +187,7 @@ export default function RegisterPage() {
                   <Label htmlFor="password" title="Senha" className="font-bold text-primary/60">Senha de Acesso</Label>
                   <div className="relative group">
                     <Lock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                    <Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={formData.password} onChange={(e) => updateField("password", e.target.value)} className="pl-11 h-12 bg-white/50 rounded-xl" />
+                    <Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={formData.password} onChange={(e) => setFormData(prev => ({...prev, password: e.target.value}))} className="pl-11 h-12 bg-white/50 rounded-xl" />
                   </div>
                 </div>
               </div>
