@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { conceptExplanationAssistant } from "@/ai/flows/concept-explanation-assistant";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -71,21 +70,36 @@ export default function AuroraSupportPage() {
         content: m.content
       }));
 
-      const result = await conceptExplanationAssistant({ 
-        query: textToSend,
-        history: historyForAi
+      // SEGURANÇA: Usando o Gateway de API em vez de chamar o fluxo diretamente no cliente
+      const response = await fetch('/api/genkit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flowId: 'conceptExplanationAssistant',
+          input: { 
+            query: textToSend,
+            history: historyForAi
+          },
+        }),
       });
 
-      if (result && result.response) {
-        setMessages(prev => [...prev, { role: "assistant", content: result.response }]);
-      } else {
-        throw new Error("Resposta vazia");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Falha na comunicação com a Aurora');
       }
-    } catch (error) {
+
+      const data = await response.json();
+      
+      if (data.success && data.result?.response) {
+        setMessages(prev => [...prev, { role: "assistant", content: data.result.response }]);
+      } else {
+        throw new Error("A Aurora retornou uma resposta inesperada.");
+      }
+    } catch (error: any) {
       console.error("Erro Aurora Chat:", error);
       toast({
-        title: "Aurora Processando",
-        description: "Houve uma oscilação na rede. Tente reenviar.",
+        title: "Atenção",
+        description: error.message || "Houve uma oscilação na rede. Tente reenviar.",
         variant: "destructive"
       });
     } finally {

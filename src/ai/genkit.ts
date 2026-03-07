@@ -3,9 +3,12 @@ import { googleAI } from '@genkit-ai/google-genai';
 
 /**
  * @fileOverview Configuração central do Genkit para o Compromisso.
- * O sistema utiliza GEMINI_API_KEY ou GOOGLE_GENAI_API_KEY.
- * Obtenha uma nova chave em: https://aistudio.google.com/app/apikey
+ * PROTEÇÃO DE SEGURANÇA: Este arquivo nunca deve ser importado em componentes 'use client'.
  */
+
+if (typeof window !== 'undefined') {
+  console.error("⚠️ [SEGURANÇA] Tentativa de carregar configuração de IA no navegador detectada e bloqueada.");
+}
 
 const apiKey = process.env.GOOGLE_GENAI_API_KEY || process.env.GEMINI_API_KEY;
 
