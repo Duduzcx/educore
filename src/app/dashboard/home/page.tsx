@@ -78,7 +78,13 @@ export default function DashboardHome() {
   const [canCloseUrgent, setCanCloseUrgent] = useState(false);
 
   const fetchProgress = useCallback(async () => {
-    if (!user || !isSupabaseConfigured) return;
+    // PROTEÇÃO: Não tenta buscar progresso se for uma sessão mock ou banco não configurado
+    if (!user || !isSupabaseConfigured || user.id.includes('mock')) {
+      setLoadingProgress(false);
+      setRecentProgress([]);
+      return;
+    }
+
     setLoadingProgress(true);
     try {
       const { data: progress, error } = await supabase
@@ -123,6 +129,19 @@ export default function DashboardHome() {
       if (!user) return;
 
       setLoadingAnnouncements(true);
+      
+      // PROTEÇÃO: Se for mock, usa dados estáticos e não bate no banco
+      if (!isSupabaseConfigured || user.id.includes('mock')) {
+        setAnnouncements([
+          { id: '1', title: 'Modo Demonstração Ativo', message: 'Conecte seu Supabase para ver dados reais.', priority: 'medium' }
+        ]);
+        setLoadingAnnouncements(false);
+        setLoadingTrails(false);
+        setLoadingResources(false);
+        setLoadingProgress(false);
+        return;
+      }
+
       try {
         const { data: annData } = await supabase
           .from('announcements')
@@ -130,27 +149,17 @@ export default function DashboardHome() {
           .order('created_at', { ascending: false });
         
         if (annData && annData.length > 0) {
-          // Filtragem de Público Alvo Industrial
           const filtered = annData.filter(ann => {
             if (ann.target_group === 'all') return true;
             if (ann.target_group === profile?.profile_type) return true;
             if (ann.target_group === profile?.class_id) return true;
-            // Se o alvo for polo, verifica se o nome da instituição do aluno está no alvo
             if (profile?.institution && ann.target_group === profile.institution) return true;
             return false;
           });
 
           setAnnouncements(filtered.slice(0, 3));
-
-          // Ativa Alerta Urgente se houver algum de alta prioridade não lido
           const urgent = filtered.find(ann => ann.priority === 'high');
-          if (urgent) {
-            setUrgentAlert(urgent);
-          }
-        } else {
-          setAnnouncements([
-            { id: '1', title: 'Boas-vindas!', message: 'Explore as trilhas de estudo e o simulador de isenção.', priority: 'low' }
-          ]);
+          if (urgent) setUrgentAlert(urgent);
         }
       } catch (e) {
         console.error("Erro comunicados");

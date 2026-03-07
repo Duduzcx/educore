@@ -35,9 +35,15 @@ export function LoginForm() {
     setEmail(targetEmail);
     setPassword('123456');
 
-    // Prepara a sessão simulada
+    // IDs em formato UUID para evitar erros de sintaxe no PostgreSQL
+    const mockIds = {
+      admin: '00000000-0000-0000-0000-00000000000a',
+      teacher: '00000000-0000-0000-0000-00000000000b',
+      student: '00000000-0000-0000-0000-00000000000c'
+    };
+
     const mockUser = {
-      id: `mock-${role}`,
+      id: mockIds[role],
       email: targetEmail,
       user_metadata: { full_name: `Usuário ${role.toUpperCase()}` }
     };
@@ -49,7 +55,6 @@ export function LoginForm() {
       institution: "Polo Central Compromisso"
     };
 
-    // Grava no localStorage para o AuthProvider ler no próximo reload
     localStorage.setItem('compromisso_mock_session', JSON.stringify({ user: mockUser, profile: mockProfile, role }));
     
     toast({ 
@@ -57,7 +62,6 @@ export function LoginForm() {
       description: `Entrando como ${role.toUpperCase()}.` 
     });
 
-    // Usa window.location.href para um redirecionamento "limpo" que força o AuthProvider a reiniciar
     setTimeout(() => {
       if (role === 'admin') window.location.href = "/dashboard/admin/home";
       else if (role === 'teacher') window.location.href = "/dashboard/teacher/home";
@@ -81,7 +85,6 @@ export function LoginForm() {
 
       if (error) {
         setLoading(false);
-        // Se for o erro de chave secreta e for um e-mail padrão, usa o fallback automático
         if (error.message.includes("secret API key") || error.status === 403) {
           if (email.includes('@compromisso.com.br')) {
             const role = email.split('@')[0] === 'aluno' ? 'student' : 
