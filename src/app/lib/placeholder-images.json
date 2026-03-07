@@ -2,6 +2,12 @@
 {
   "placeholderImages": [
     {
+      "id": "school-facade",
+      "description": "Fachada principal do Colégio Municipal",
+      "imageUrl": "https://picsum.photos/seed/school-facade/1000/1200",
+      "imageHint": "school building"
+    },
+    {
       "id": "trail-math",
       "description": "Mathematics learning trail cover",
       "imageUrl": "https://picsum.photos/seed/math/600/400",

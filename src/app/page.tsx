@@ -93,11 +93,11 @@ export default function LandingPage() {
             <div className="relative animate-in fade-in zoom-in-95 duration-1000 delay-300">
               <div className="relative aspect-[4/5] md:aspect-square rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.3)] border-[12px] border-white group">
                 <Image 
-                  src="https://picsum.photos/seed/school-life/1000/1200" 
-                  alt="Educação de Futuro" 
+                  src="https://picsum.photos/seed/school-facade/1000/1200" 
+                  alt="Nossa Unidade" 
                   fill 
                   className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                  data-ai-hint="student classroom"
+                  data-ai-hint="school building"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent" />
                 <div className="absolute top-10 right-10 p-8 bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/20 animate-bounce">
@@ -106,9 +106,9 @@ export default function LandingPage() {
                 <div className="absolute bottom-10 left-10 right-10 p-8 bg-primary/80 backdrop-blur-xl rounded-[2.5rem] text-white border border-white/10 shadow-2xl">
                   <div className="flex items-center gap-4 mb-2">
                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">Status: Em Aula</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">Status: Ambiente Real</span>
                   </div>
-                  <p className="text-lg font-black italic">"A tecnologia industrial aplicada à educação acelera a curva de aprendizado em até 3x."</p>
+                  <p className="text-lg font-black italic">"Nossa infraestrutura é o alicerce para o seu crescimento acadêmico e técnico."</p>
                 </div>
               </div>
             </div>
